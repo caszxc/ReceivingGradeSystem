@@ -1,14 +1,13 @@
 import React from 'react'
 import { Routes, Route } from "react-router-dom";
-import SampleHome from './Sample/SampleHome.jsx';
-
+import Login from './Module/Login/Login';
 function App() {
 
 
   return (
    <>
     <Routes>
-      <Route path="/" element={<SampleHome />} />
+      <Route path="/" element={<Login />} />
     </Routes>
    </>
   )
