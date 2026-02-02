@@ -1,0 +1,24 @@
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const db = require("./models/association");
+
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(bodyParser.json());
+
+// Student routes
+app.use("/api/students", require("./routes/student.routes"));
+
+// Sync DB and start server
+db.sequelize.sync().then(() => {
+  console.log("Database synced");
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend running at http://localhost:${PORT}`);
+});
+
+module.exports = app;
