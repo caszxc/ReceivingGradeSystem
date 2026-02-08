@@ -1,5 +1,6 @@
 const sequelize = require("../config/database");
 const Student = require("./student");
+const Account = require("./account");
 
 // Import future models here when needed:
 // const Attendance = require("./attendance");
@@ -12,7 +13,9 @@ const Student = require("./student");
 const db = {
   sequelize,
   Sequelize: require("sequelize"),
-  Student
+
+  Student,
+  Account,
 };
 
 module.exports = db;

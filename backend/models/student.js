@@ -4,12 +4,24 @@ const sequelize = require("../config/database");
 const Student = sequelize.define(
   "Student",
   {
-    id_num: {
-      type: DataTypes.STRING,
+    card_id_control_number: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       unique: true,
     },
-    student_no: {
+    date_enrolled: {
+      type: DataTypes.DATEONLY,
+      allowNull: false,
+    },
+    card_serial_number: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    card_type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    student_number: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -17,18 +29,25 @@ const Student = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    middle_name: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
     last_name: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    course: {
-      type: DataTypes.STRING,
-    },
     year_level: {
       type: DataTypes.INTEGER,
+      allowNull: true,
     },
-    section: {
+    card_status: {
       type: DataTypes.STRING,
+      allowNull: true,
+    },
+    date_issued: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {
