@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.use("/api/students", require("./routes/student.routes"));
 
 // Sync DB and start server
-db.sequelize.sync().then(() => {
+db.sequelize.sync({ alter: true }).then(() => {
   console.log("Database synced");
 });
 
