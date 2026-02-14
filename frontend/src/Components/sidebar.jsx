@@ -125,22 +125,26 @@ const Sidebar = () => {
             }
             title={isCollapsed ? item.name : ""}
           >
-            <span
-              className={({ isActive }) =>
-                `${isActive ? "text-blue-700" : "text-gray-400"} flex-shrink-0`
-              }
-            >
-              {item.icon}
-            </span>
-            {!isCollapsed && (
-              <span className="font-medium whitespace-nowrap">{item.name}</span>
-            )}
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`${isActive ? "text-blue-700" : "text-gray-400"} flex-shrink-0`}
+                >
+                  {item.icon}
+                </span>
+                {!isCollapsed && (
+                  <span className="font-medium whitespace-nowrap">
+                    {item.name}
+                  </span>
+                )}
 
-            {/* Tooltip for collapsed state */}
-            {isCollapsed && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
-                {item.name}
-              </div>
+                {/* Tooltip for collapsed state */}
+                {isCollapsed && (
+                  <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+                    {item.name}
+                  </div>
+                )}
+              </>
             )}
           </NavLink>
         ))}
@@ -191,7 +195,7 @@ const Sidebar = () => {
 
           {/* Tooltip for collapsed logout button */}
           {isCollapsed && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
               Logout
             </div>
           )}
