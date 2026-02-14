@@ -1,4 +1,3 @@
-// filepath: c:\Users\Kurt Pantaleon\Documents\GitHub\EnrollmentSystem\frontend\src\Module\dashboard\Dashboard.jsx
 import React, { useEffect } from "react";
 import usePagination from "../../hooks/usePagination";
 import PaginationControls from "../../hooks/paginationControls";
@@ -71,7 +70,7 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
