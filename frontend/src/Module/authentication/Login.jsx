@@ -26,45 +26,97 @@ function Login() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col ">
-      <div>
-        <img src="" alt="Plv Logo" />
-        <span>PLV Enrollment System</span>
-      </div>
-      <div className="flex justify-center items-center flex-col ">
-        Login
-        <div>
-          <form onSubmit={handleSubmit}>
-            <div className="flex flex-col ">
-              <label htmlFor="username">Username</label>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900">
+            PLV Enrollment System
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
+        </div>
+
+        {/* Login Form */}
+        <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label
+                htmlFor="username"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Username
+              </label>
               <input
+                id="username"
                 type="text"
-                className="w-50 border border-1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
-            <div className="flex flex-col ">
-              <label htmlFor="password">Password</label>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Password
+              </label>
               <input
+                id="password"
                 type="password"
-                className="w-50 border border-1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <button type="submit" className="mt-4">
-              Login
+
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"
+            >
+              Sign in
             </button>
           </form>
         </div>
+
+        {/* Error Modal */}
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-4 rounded shadow">
-              <p>Incorrect credentials</p>
-              <button onClick={() => setShowModal(false)}>Close</button>
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <svg
+                    className="h-6 w-6 text-red-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Login Failed
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Incorrect username or password
+                </p>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition duration-200"
+                >
+                  Try Again
+                </button>
+              </div>
             </div>
           </div>
         )}

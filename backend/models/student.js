@@ -11,7 +11,7 @@ const Student = sequelize.define(
     },
     date_enrolled: {
       type: DataTypes.DATEONLY,
-      allowNull: false,
+      allowNull: true,
     },
     card_serial_number: {
       type: DataTypes.INTEGER,
@@ -36,6 +36,10 @@ const Student = sequelize.define(
     last_name: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    course: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     year_level: {
       type: DataTypes.INTEGER,
