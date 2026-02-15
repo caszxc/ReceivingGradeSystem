@@ -10,10 +10,11 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Student routes
-app.use("/api/students", require("./routes/student.routes"));
+app.use("/students", require("./routes/student.routes"));
+app.use("/auth", require("./routes/authentication.route"));
 
 // Sync DB and start server
-db.sequelize.sync().then(() => {
+db.sequelize.sync({ alter: true }).then(() => {
   console.log("Database synced");
 });
 
