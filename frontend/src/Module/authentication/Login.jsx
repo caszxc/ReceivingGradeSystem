@@ -37,7 +37,7 @@ function Login() {
         {/* Header */}
 
         {/* Login Form */}
-        <div className="bg-[#DFEBFF] py-8 px-6 shadow-lg rounded-lg relative z-10 flex flex-row items-center space-x-10 rounded-lg ">
+        <div className="bg-[#DFEBFF] py-3 px-3 shadow-lg rounded-lg relative z-10 flex flex-row items-center space-x-10 rounded-lg ">
           {/*img*/}
           <div className="relative">
             <img src={Campus} alt="campus" className="h-80 w-70 rounded-lg" />
@@ -48,7 +48,7 @@ function Login() {
           </div>
 
           {/*form*/}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6 w-80">
             <div className="text-center ">
               <h2 className="text-2xl text-gray-900 mb-6 f">Sign In</h2>
             </div>
