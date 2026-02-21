@@ -26,18 +26,19 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#0153FF] to-[#001C56] overflow-hidden">
+      <div className="w-150 h-150 rounded-full border border-[4pc] border-[#508DFB]/[0.06] absolute -bottom-50 -right-30" />
+      <div className="w-140 h-140 rounded-full border border-[4pc] border-[#508DFB]/[0.06] absolute -top-40 -left-20" />
+      <div className="w-100 h-100 rounded-full border border-[4pc] border-[#508DFB]/[0.06] absolute -bottom-50 -left-30" />
+
+      <div className="relative z-10 flex items-center justify-center min-h-screen">
         {/* Header */}
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
-            PLV Enrollment System
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
-        </div>
 
         {/* Login Form */}
-        <div className="bg-white py-8 px-6 shadow-lg rounded-lg">
+        <div className="bg-white py-8 px-6 shadow-lg rounded-lg relative z-10">
+          <div>
+            <img src="" alt="" />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label
