@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import usePagination from "../../hooks/usePagination";
 import PaginationControls from "../../hooks/paginationControls";
+import swal from "sweetalert2";
 
 function Dashboard() {
   // Fetch function for getting students
@@ -63,6 +64,41 @@ function Dashboard() {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString();
   };
+
+  // Enroll student function
+  const enrollStudent = (studentId) => {
+    swal.fire({
+      title: "Enroll Student",
+      text: "Are you sure you want to enroll this student?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, enroll",
+      cancelButtonText: "No, cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch(`http://localhost:3001/students/enrollStudent/${studentId}`, {
+          method: "PATCH",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message) {
+              swal.fire("Enrolled!", data.message, "success");
+              fetchData();
+            } else {
+              swal.fire("Error", data.error || "Failed to enroll student", "error");
+            }
+          })
+          .catch((error) => {
+            swal.fire("Error", error.message || "Failed to enroll student", "error");
+          });
+      }
+    });
+  };
+
+  // Check if student is enrolled
+  const isEnrolled = (student) => {
+    return student.isEnrolled;
+  }
 
   // Initial load
   useEffect(() => {
@@ -137,6 +173,7 @@ function Dashboard() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date Enrolled
                   </th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -191,6 +228,20 @@ function Dashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(student.date_enrolled)}
+                      </td>
+                      <td>
+                        {student.isEnrolled ? (
+                          <span className="text-green-600 font-semibold">
+                            Enrolled
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => enrollStudent(student.id)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                          >
+                            Enroll
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

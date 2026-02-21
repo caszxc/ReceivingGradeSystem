@@ -9,6 +9,11 @@ const Student = sequelize.define(
       allowNull: false,
       unique: true,
     },
+    isEnrolled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     date_enrolled: {
       type: DataTypes.DATEONLY,
       allowNull: true,

@@ -299,4 +299,21 @@ function isValidDate(dateString) {
   return date instanceof Date && !isNaN(date);
 }
 
+// Enroll student
+router.patch("/enrollStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    student.isEnrolled = true;
+    student.date_enrolled = new Date();
+    await student.save();
+
+    res.json({ message: "Student enrolled successfully", student });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
