@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Campus from "/assets/campus.jpg";
+import Logo from "/assets/PLVLogo.png";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -35,40 +37,52 @@ function Login() {
         {/* Header */}
 
         {/* Login Form */}
-        <div className="bg-white py-8 px-6 shadow-lg rounded-lg relative z-10">
-          <div>
-            <img src="" alt="" />
+        <div className="bg-[#DFEBFF] py-8 px-6 shadow-lg rounded-lg relative z-10 flex flex-row items-center space-x-10 rounded-lg ">
+          {/*img*/}
+          <div className="relative">
+            <img src={Campus} alt="campus" className="h-80 w-70 rounded-lg" />
+            <div className="absolute inset-0 bg-blue-700 opacity-50  rounded-lg " />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img src={Logo} alt="logo" className="w-32 h-32" />
+            </div>
           </div>
+
+          {/*form*/}
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="text-center ">
+              <h2 className="text-2xl text-gray-900 mb-6 f">Sign In</h2>
+            </div>
+
+            {/*Username*/}
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-[.8rem]  font-medium text-gray-700 mb-1"
               >
-                Username
+                Email
               </label>
               <input
                 id="username"
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter your username"
+                type="email"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[.8rem] "
+                placeholder="Enter your email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
-
+            {/*Password*/}
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block  text-[.8rem] font-medium text-gray-700 mb-1"
               >
                 Password
               </label>
               <input
                 id="password"
                 type="password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[.8rem] "
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -76,6 +90,18 @@ function Login() {
               />
             </div>
 
+            <div className="flex items-center justify-between gap-x-2">
+              <label className="flex items-center  text-[.6rem] text-gray-500">
+                <input type="checkbox" className="mr-2" />
+                Remember me
+              </label>
+              <a
+                href="#"
+                className="text-blue-500 text-[.6rem] hover:underline"
+              >
+                Forgot password?
+              </a>
+            </div>
             <button
               type="submit"
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"

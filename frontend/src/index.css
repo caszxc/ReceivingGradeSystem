@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('/font/Gotham Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+@font-face {
+  font-family: 'Gotham';
+  src: url('/font/Gotham Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Gotham', Arial, sans-serif;
+}
