@@ -206,36 +206,29 @@ function Dashboard() {
     }
   };
 
-  // ── Sub-menu for format choice ────────────────────────────────────────────────
+  // ── Dark-themed format sub-menu ──────────────────────────────────────────────
   const FormatSubMenu = ({ scope, label }) => (
     <div className="border-b border-gray-100 last:border-0">
       <div
-        className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer group transition-colors"
-        onClick={() =>
-          setShowFormatMenu((prev) => (prev === scope ? null : scope))
-        }
+        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors ${showFormatMenu === scope
+            ? "bg-blue-600 text-white"
+            : "text-gray-900 hover:bg-blue-600 hover:text-white"
+          }`}
+        onClick={() => setShowFormatMenu((prev) => (prev === scope ? null : scope))}
       >
         <span>{label}</span>
         <svg
-          className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-150 ${showFormatMenu === scope ? "rotate-90" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+          className={`h-3 w-3 opacity-60 transition-transform duration-150 ${showFormatMenu === scope ? "rotate-90" : ""}`}
+          fill="currentColor" viewBox="0 0 20 20"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2.5"
-            d="M9 5l7 7-7 7"
-          />
+          <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
         </svg>
       </div>
-
       {showFormatMenu === scope && (
         <div className="bg-gray-50 border-t border-gray-100">
           <button
             onClick={() => handleExport(scope, "xlsx")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
           >
             <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
@@ -244,7 +237,7 @@ function Dashboard() {
           </button>
           <button
             onClick={() => handleExport(scope, "csv")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
           >
             <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -297,8 +290,8 @@ function Dashboard() {
                       key={col.value}
                       onClick={() => handleSortColumn(col.value)}
                       className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${sortBy === col.value
-                          ? "bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-700 hover:bg-gray-50"
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-50"
                         }`}
                     >
                       {col.label}
@@ -317,8 +310,8 @@ function Dashboard() {
                   <button
                     onClick={() => handleSortOrder("asc")}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${sortOrder === "asc"
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-50 text-blue-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-50"
                       }`}
                   >
                     Ascending
@@ -331,8 +324,8 @@ function Dashboard() {
                   <button
                     onClick={() => handleSortOrder("desc")}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${sortOrder === "desc"
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-50"
+                      ? "bg-blue-50 text-blue-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-50"
                       }`}
                   >
                     Descending
@@ -358,7 +351,7 @@ function Dashboard() {
                   setShowExportMenu(true);
                   setShowFormatMenu("all");
                 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-l-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-bold uppercase rounded-l-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {exporting ? (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -392,10 +385,7 @@ function Dashboard() {
 
               {/* Export dropdown */}
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
-                  <div className="px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                    Export as…
-                  </div>
+                <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
 
                   <FormatSubMenu scope="all" label="All" />
 
@@ -403,29 +393,31 @@ function Dashboard() {
 
                   <div className="border-b border-gray-100 last:border-0">
                     <div
-                      className={`flex items-center justify-between px-4 py-2.5 text-sm transition-colors cursor-pointer ${selectedIds.size === 0
-                          ? "text-gray-400 cursor-not-allowed"
-                          : "text-gray-700 hover:bg-gray-50"
+                      className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${selectedIds.size === 0
+                        ? "text-black cursor-not-allowed"
+                        : showFormatMenu === "selected"
+                          ? "bg-blue-600 text-white cursor-pointer"
+                          : "text-black hover:bg-blue-600 cursor-pointer"
                         }`}
                       onClick={() => {
                         if (selectedIds.size === 0) return;
                         setShowFormatMenu((prev) => (prev === "selected" ? null : "selected"));
                       }}
                     >
-                      <span>
+                      <span className="flex items-center gap-2">
                         Selected rows
                         {selectedIds.size > 0 && (
-                          <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                          <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full leading-none">
                             {selectedIds.size}
                           </span>
                         )}
                       </span>
                       {selectedIds.size > 0 && (
                         <svg
-                          className={`h-3.5 w-3.5 text-gray-400 transition-transform duration-150 ${showFormatMenu === "selected" ? "rotate-90" : ""}`}
-                          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                          className={`h-3 w-3 opacity-70 transition-transform duration-150 ${showFormatMenu === "selected" ? "rotate-90" : ""}`}
+                          fill="currentColor" viewBox="0 0 20 20"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                          <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
                         </svg>
                       )}
                     </div>
@@ -434,7 +426,7 @@ function Dashboard() {
                       <div className="bg-gray-50 border-t border-gray-100">
                         <button
                           onClick={() => handleExport("selected", "xlsx")}
-                          className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
                         >
                           <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
@@ -443,7 +435,7 @@ function Dashboard() {
                         </button>
                         <button
                           onClick={() => handleExport("selected", "csv")}
-                          className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
                         >
                           <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -593,10 +585,10 @@ function Dashboard() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.card_status === "Active"
-                                ? "bg-green-100 text-green-800"
-                                : student.card_status === "Inactive"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-800"
+                              ? "bg-green-100 text-green-800"
+                              : student.card_status === "Inactive"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-gray-100 text-gray-800"
                               }`}
                           >
                             {student.card_status || "Unknown"}
