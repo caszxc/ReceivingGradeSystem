@@ -62,6 +62,81 @@ router.get("/searchStudent", async (req, res) => {
   }
 });
 
+// Export students to Excel or CSV
+router.get("/exportStudents", async (req, res) => {
+  const { query, format = "xlsx" } = req.query;
+
+  try {
+    let whereClause = {};
+
+    if (query && query.trim() !== "") {
+      whereClause = {
+        [Op.or]: [
+          { student_number: { [Op.like]: `%${query}%` } },
+          { first_name: { [Op.like]: `%${query}%` } },
+          { middle_name: { [Op.like]: `%${query}%` } },
+          { last_name: { [Op.like]: `%${query}%` } },
+          { course: { [Op.like]: `%${query}%` } },
+          { card_type: { [Op.like]: `%${query}%` } },
+          { card_status: { [Op.like]: `%${query}%` } },
+        ],
+      };
+    }
+
+    const students = await Student.findAll({
+      where: whereClause,
+      order: [["last_name", "ASC"]],
+    });
+
+    // Map to plain export-friendly objects
+    const exportData = students.map((s) => ({
+      "Student Number": s.student_number,
+      "First Name": s.first_name,
+      "Middle Name": s.middle_name || "",
+      "Last Name": s.last_name,
+      Course: s.course || "",
+      "Year Level": s.year_level || "",
+      "Card Type": s.card_type,
+      "Card Status": s.card_status || "",
+      "Card ID Control #": s.card_id_control_number,
+      "Card Serial #": s.card_serial_number,
+      "Date Enrolled": s.date_enrolled || "",
+      "Date Issued": s.date_issued || "",
+    }));
+
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.json_to_sheet(exportData);
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const filename = `students_export_${timestamp}`;
+
+    if (format === "csv") {
+      const csvOutput = xlsx.utils.sheet_to_csv(worksheet);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}.csv"`
+      );
+      res.send(csvOutput);
+    } else {
+      const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}.xlsx"`
+      );
+      res.send(buffer);
+    }
+  } catch (err) {
+    console.error("Export error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get student by RFID UID
 router.get("/rfid/:uid", async (req, res) => {
   try {
