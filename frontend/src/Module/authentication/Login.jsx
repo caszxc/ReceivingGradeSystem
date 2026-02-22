@@ -37,7 +37,7 @@ function Login() {
         {/* Header */}
 
         {/* Login Form */}
-        <div className="bg-[#DFEBFF] py-3 px-3 shadow-lg rounded-lg relative z-10 flex flex-row items-center space-x-10 rounded-lg ">
+        <div className="bg-[#DFEBFF] py-3 px-3 shadow-lg rounded-lg relative z-10 flex flex-row items-center gap-6 rounded-lg ">
           {/*img*/}
           <div className="relative">
             <img src={Campus} alt="campus" className="h-80 w-70 rounded-lg" />
