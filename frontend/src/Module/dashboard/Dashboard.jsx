@@ -20,14 +20,14 @@ function Dashboard() {
   // ── Fetch functions ──────────────────────────────────────────────────────────
   const fetchStudents = async ({ page, limit }) => {
     const response = await fetch(
-      `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`
+      `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
     );
     return await response.json();
   };
 
   const searchStudents = async ({ query, page, limit }) => {
     const response = await fetch(
-      `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`
+      `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`,
     );
     return await response.json();
   };
@@ -176,12 +176,15 @@ function Dashboard() {
   return (
     <div className="p-6 bg-blue-200">
       <div className="max-w-7xl mx-auto">
-
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Student Dashboard</h1>
-            <p className="text-gray-600 mt-2">Manage and view student records</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Student Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Manage and view student records
+            </p>
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
@@ -206,11 +209,22 @@ function Dashboard() {
         {/* ── Selection status bar ────────────────────────────────────────────── */}
         {selectedIds.size > 0 && (
           <div className="mb-4 flex items-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
             <span>
-              <strong>{selectedIds.size}</strong> row{selectedIds.size !== 1 ? "s" : ""} selected
+              <strong>{selectedIds.size}</strong> row
+              {selectedIds.size !== 1 ? "s" : ""} selected
             </span>
             <button
               onClick={() => setSelectedIds(new Set())}
@@ -250,7 +264,7 @@ function Dashboard() {
             )} */}
           </form>
 
-          <div className="relative ">
+          {/* <div className="relative ">
             <button
               className="flex items-center gap-4 px-6 py-2 rounded-md bg-white shadow"
               onClick={() => setDropdownOpen((open) => !open)}
@@ -294,7 +308,7 @@ function Dashboard() {
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
         </div>
 
         {/* ── Table ──────────────────────────────────────────────────────────── */}
@@ -339,13 +353,19 @@ function Dashboard() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                    <td
+                      colSpan="9"
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
                       Loading…
                     </td>
                   </tr>
                 ) : students.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                    <td
+                      colSpan="9"
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
                       No students found
                     </td>
                   </tr>
@@ -382,35 +402,37 @@ function Dashboard() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${student.card_status === "Active"
-                              ? "bg-green-100 text-green-800"
-                              : student.card_status === "Inactive"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {student.card_status || "Unknown"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(student.date_enrolled)}
-                      </td>
-                      <td>
-                        {student.isEnrolled ? (
-                          <span className="text-green-600 font-semibold">
-                            Enrolled
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => enrollStudent(student.id)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              student.card_status === "Active"
+                                ? "bg-green-100 text-green-800"
+                                : student.card_status === "Inactive"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-800"
+                            }`}
                           >
-                            Enroll
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                            {student.card_status || "Unknown"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(student.date_enrolled)}
+                        </td>
+                        <td>
+                          {student.isEnrolled ? (
+                            <span className="text-green-600 font-semibold">
+                              Enrolled
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => enrollStudent(student.id)}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                            >
+                              Enroll
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
