@@ -10,17 +10,35 @@ const fs = require("fs");
 // Configure multer for file uploads
 const upload = multer({ dest: "uploads/" });
 
+// Allowed sort columns whitelist (prevent SQL injection)
+const ALLOWED_SORT_COLUMNS = {
+  last_name: "last_name",
+  student_number: "student_number",
+  course: "course",
+  year_level: "year_level",
+  card_type: "card_type",
+  date_enrolled: "date_enrolled",
+  card_status: "card_status",
+};
+
+function getSortOrder(sortBy, sortOrder) {
+  const col = ALLOWED_SORT_COLUMNS[sortBy] || "last_name";
+  const dir = sortOrder === "desc" ? "DESC" : "ASC";
+  return [[col, dir]];
+}
+
 // Get paginated student list
 router.get("/getStudent", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
+  const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
   try {
     const result = await Student.findAndCountAll({
       limit,
       offset,
-      order: [["last_name", "ASC"]],
+      order: getSortOrder(sortBy, sortOrder),
     });
     res.json(result);
   } catch (err) {
@@ -34,6 +52,7 @@ router.get("/searchStudent", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
+  const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
   if (!query) {
     return res.status(400).json({ error: "Search query is required" });
@@ -54,10 +73,115 @@ router.get("/searchStudent", async (req, res) => {
       },
       limit,
       offset,
-      order: [["last_name", "ASC"]],
+      order: getSortOrder(sortBy, sortOrder),
     });
     res.json(result);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Export students to Excel or CSV
+// scope: "all" (default) | "page" | "selected"
+// "page"     – requires page + limit + optional query/sortBy/sortOrder
+// "selected" – requires ids[] (array of student PKs)
+// "all"      – exports full DB (or filtered by query) with sort
+router.get("/exportStudents", async (req, res) => {
+  const {
+    query,
+    format = "xlsx",
+    scope = "all",
+    sortBy = "last_name",
+    sortOrder = "asc",
+  } = req.query;
+
+  // ids may come as ids[]=1&ids[]=2 or ids=1,2
+  let ids = req.query["ids[]"] || req.query.ids;
+  if (ids && !Array.isArray(ids)) {
+    ids = ids.split(",").map((x) => parseInt(x.trim())).filter(Boolean);
+  } else if (Array.isArray(ids)) {
+    ids = ids.map((x) => parseInt(x)).filter(Boolean);
+  }
+
+  try {
+    let whereClause = {};
+    const orderClause = getSortOrder(sortBy, sortOrder);
+
+    // Build where clause
+    if (scope === "selected" && ids && ids.length > 0) {
+      whereClause = { id: { [Op.in]: ids } };
+    } else if (query && query.trim() !== "") {
+      whereClause = {
+        [Op.or]: [
+          { student_number: { [Op.like]: `%${query}%` } },
+          { first_name: { [Op.like]: `%${query}%` } },
+          { middle_name: { [Op.like]: `%${query}%` } },
+          { last_name: { [Op.like]: `%${query}%` } },
+          { course: { [Op.like]: `%${query}%` } },
+          { card_type: { [Op.like]: `%${query}%` } },
+          { card_status: { [Op.like]: `%${query}%` } },
+        ],
+      };
+    }
+
+    let findOptions = { where: whereClause, order: orderClause };
+
+    // For "page" scope, apply pagination
+    if (scope === "page") {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      findOptions.limit = limit;
+      findOptions.offset = (page - 1) * limit;
+    }
+
+    const students = await Student.findAll(findOptions);
+
+    // Map to plain export-friendly objects
+    const exportData = students.map((s) => ({
+      "Student Number": s.student_number,
+      "First Name": s.first_name,
+      "Middle Name": s.middle_name || "",
+      "Last Name": s.last_name,
+      Course: s.course || "",
+      "Year Level": s.year_level || "",
+      "Card Type": s.card_type,
+      "Card Status": s.card_status || "",
+      "Card ID Control #": s.card_id_control_number,
+      "Card Serial #": s.card_serial_number,
+      "Date Enrolled": s.date_enrolled || "",
+      "Date Issued": s.date_issued || "",
+    }));
+
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.json_to_sheet(exportData);
+    xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const scopeLabel = scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
+    const filename = `students_export_${scopeLabel}_${timestamp}`;
+
+    if (format === "csv") {
+      const csvOutput = xlsx.utils.sheet_to_csv(worksheet);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}.csv"`
+      );
+      res.send(csvOutput);
+    } else {
+      const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}.xlsx"`
+      );
+      res.send(buffer);
+    }
+  } catch (err) {
+    console.error("Export error:", err);
     res.status(500).json({ error: err.message });
   }
 });

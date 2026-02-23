@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const usePagination = ({
   fetchFunction,
@@ -13,7 +13,7 @@ const usePagination = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [currentItemsPerPage, setCurrentItemsPerPage] = useState(itemsPerPage);
-
+  const debounceRef = useRef();
   // Calculate total pages
   const totalPages = Math.ceil(totalItems / currentItemsPerPage);
 
@@ -80,18 +80,30 @@ const usePagination = ({
     }
   };
 
-  // Handle search
+  // // Handle search
+  // const handleSearch = (query) => {
+  //   setSearchQuery(query);
+  //   setCurrentPage(1);
+  //   fetchData(1, query, currentItemsPerPage);
+  // };
+
+  // // Clear search
+  // const clearSearch = () => {
+  //   setSearchQuery("");
+  //   setCurrentPage(1);
+  //   fetchData(1, "", currentItemsPerPage);
+  // };
+
   const handleSearch = (query) => {
     setSearchQuery(query);
     setCurrentPage(1);
-    fetchData(1, query, currentItemsPerPage);
-  };
 
-  // Clear search
-  const clearSearch = () => {
-    setSearchQuery("");
-    setCurrentPage(1);
-    fetchData(1, "", currentItemsPerPage);
+    // Debounce: clear previous timeout
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(() => {
+      fetchData(1, query, currentItemsPerPage);
+    }, 400); // 400ms debounce
   };
 
   // Handle items per page change
@@ -164,7 +176,7 @@ const usePagination = ({
     nextPage,
     previousPage,
     handleSearch,
-    clearSearch,
+    // clearSearch,
     refresh,
     reset,
     setSearchQuery,
