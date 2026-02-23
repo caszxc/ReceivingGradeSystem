@@ -179,31 +179,13 @@ function Dashboard() {
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Student Dashboard
-            </h1>
+            <h1 className="text-3xl text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600 mt-2">
               Manage and view student records
             </p>
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-          <div className="flex items-center gap-3">
-            <SortByButton
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortColumn={setSortBy}
-              onSortOrder={setSortOrder}
-            />
-            <ExportButton
-              searchQuery={searchQuery}
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              selectedIds={selectedIds}
-            />
-          </div>
         </div>
 
         {/* ── Selection status bar ────────────────────────────────────────────── */}
@@ -236,8 +218,11 @@ function Dashboard() {
         )}
 
         {/* ── Search Bar ─────────────────────────────────────────────────────── */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <form onSubmit={onSearchSubmit} className="flex gap-4">
+        <div className="rounded-lg mb-6 flex gap-6">
+          <form
+            onSubmit={onSearchSubmit}
+            className="flex gap-4 shadow-sm rounded-lg  flex-1"
+          >
             <div className="flex-1">
               <input
                 type="text"
@@ -247,68 +232,24 @@ function Dashboard() {
                 onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
-            {/* <button
-              type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-            >
-              Search
-            </button>
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
-              >
-                Clear
-              </button>
-            )} */}
           </form>
 
-          {/* <div className="relative ">
-            <button
-              className="flex items-center gap-4 px-6 py-2 rounded-md bg-white shadow"
-              onClick={() => setDropdownOpen((open) => !open)}
-              type="button"
-            >
-              <span>Sort By</span>
-              <FaChevronDown className="text-[#14294B] text-xs" />
-            </button>
-            {dropdownOpen && (
-              <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white rounded shadow-lg z-10 py-1 border">
-                {sortFields.map((field) => (
-                  <button
-                    key={field}
-                    className={`block w-full text-left px-4 py-2 text-[#14294B] hover:bg-blue-100 ${
-                      sortField === field ? "bg-blue-100 font-bold" : ""
-                    }`}
-                    onClick={() => {
-                      setSortField(field);
-                      setDropdownOpen(false);
-                      // Call your sort logic here if needed
-                    }}
-                  >
-                    {field}
-                  </button>
-                ))}
-                <div className="border-t my-1" />
-                {sortOrders.map((order) => (
-                  <button
-                    key={order}
-                    className={`block w-full text-left px-4 py-2 text-[#14294B] hover:bg-blue-100 ${
-                      sortOrder === order ? "bg-blue-100 font-bold" : ""
-                    }`}
-                    onClick={() => {
-                      setSortOrder(order);
-                      setDropdownOpen(false);
-                      // Call your sort logic here if needed
-                    }}
-                  >
-                    {order}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div> */}
+          <div className="flex items-center gap-3">
+            <SortByButton
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortColumn={setSortBy}
+              onSortOrder={setSortOrder}
+            />
+            <ExportButton
+              searchQuery={searchQuery}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              selectedIds={selectedIds}
+            />
+          </div>
         </div>
 
         {/* ── Table ──────────────────────────────────────────────────────────── */}
@@ -416,7 +357,7 @@ function Dashboard() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(student.date_enrolled)}
                         </td>
-                        <td>
+                        <td className="px-3 py-4 whitespace-nowrap">
                           {student.isEnrolled ? (
                             <span className="text-green-600 font-semibold">
                               Enrolled
