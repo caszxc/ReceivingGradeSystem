@@ -1,9 +1,15 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import usePagination from "../../hooks/usePagination";
 import PaginationControls from "../../hooks/paginationControls";
 import swal from "sweetalert2";
+import { FaChevronDown } from "react-icons/fa";
 
 function Dashboard() {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [sortField, setSortField] = useState("Name");
+  const [sortOrder, setSortOrder] = useState("Ascending");
+  const dropdownRef = useRef(null);
+
   // Fetch function for getting students
   const fetchStudents = async ({ page, limit }) => {
     const response = await fetch(
@@ -67,68 +73,101 @@ function Dashboard() {
 
   // Enroll student function
   const enrollStudent = (studentId) => {
-    swal.fire({
-      title: "Enroll Student",
-      text: "Are you sure you want to enroll this student?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Yes, enroll",
-      cancelButtonText: "No, cancel",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        fetch(`http://localhost:3001/students/enrollStudent/${studentId}`, {
-          method: "PATCH",
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.message) {
-              swal.fire("Enrolled!", data.message, "success");
-              fetchData();
-            } else {
-              swal.fire("Error", data.error || "Failed to enroll student", "error");
-            }
+    swal
+      .fire({
+        title: "Enroll Student",
+        text: "Are you sure you want to enroll this student?",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Yes, enroll",
+        cancelButtonText: "No, cancel",
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          fetch(`http://localhost:3001/students/enrollStudent/${studentId}`, {
+            method: "PATCH",
           })
-          .catch((error) => {
-            swal.fire("Error", error.message || "Failed to enroll student", "error");
-          });
-      }
-    });
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.message) {
+                swal.fire("Enrolled!", data.message, "success");
+                fetchData();
+              } else {
+                swal.fire(
+                  "Error",
+                  data.error || "Failed to enroll student",
+                  "error",
+                );
+              }
+            })
+            .catch((error) => {
+              swal.fire(
+                "Error",
+                error.message || "Failed to enroll student",
+                "error",
+              );
+            });
+        }
+      });
   };
 
   // Check if student is enrolled
   const isEnrolled = (student) => {
     return student.isEnrolled;
-  }
+  };
 
   // Initial load
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Dropdown options
+  const sortFields = [
+    "Name",
+    "Student Number",
+    "Course",
+    "Year Level",
+    "Card Type",
+    "Date Enrolled",
+    "Enrollment Status",
+  ];
+  const sortOrders = ["Ascending", "Descending"];
+
   return (
-    <div className="p-6">
+    <div className="p-6 bg-blue-200">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Student Dashboard
-          </h1>
+          <h1 className="text-3xl text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage and view student records</p>
         </div>
 
         {/* Search Bar */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <form onSubmit={onSearchSubmit} className="flex gap-4">
+        <div className=" mb-6 flex flex-row items-center gap-6">
+          <form
+            onSubmit={onSearchSubmit}
+            className="flex gap-4 items-center w-full max-w-md"
+          >
             <div className="flex-1">
               <input
                 type="text"
                 placeholder="Search students by name, student number, course, etc..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full bg-white px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
-            <button
+            {/* <button
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
             >
@@ -142,8 +181,54 @@ function Dashboard() {
               >
                 Clear
               </button>
-            )}
+            )} */}
           </form>
+
+          <div className="relative ">
+            <button
+              className="flex items-center gap-4 px-6 py-2 rounded-md bg-white shadow"
+              onClick={() => setDropdownOpen((open) => !open)}
+              type="button"
+            >
+              <span>Sort By</span>
+              <FaChevronDown className="text-[#14294B] text-xs" />
+            </button>
+            {dropdownOpen && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-48 bg-white rounded shadow-lg z-10 py-1 border">
+                {sortFields.map((field) => (
+                  <button
+                    key={field}
+                    className={`block w-full text-left px-4 py-2 text-[#14294B] hover:bg-blue-100 ${
+                      sortField === field ? "bg-blue-100 font-bold" : ""
+                    }`}
+                    onClick={() => {
+                      setSortField(field);
+                      setDropdownOpen(false);
+                      // Call your sort logic here if needed
+                    }}
+                  >
+                    {field}
+                  </button>
+                ))}
+                <div className="border-t my-1" />
+                {sortOrders.map((order) => (
+                  <button
+                    key={order}
+                    className={`block w-full text-left px-4 py-2 text-[#14294B] hover:bg-blue-100 ${
+                      sortOrder === order ? "bg-blue-100 font-bold" : ""
+                    }`}
+                    onClick={() => {
+                      setSortOrder(order);
+                      setDropdownOpen(false);
+                      // Call your sort logic here if needed
+                    }}
+                  >
+                    {order}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Table */}
