@@ -99,7 +99,7 @@ const PaginationControls = ({
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
         <div className="flex items-center space-x-4">
           <p className="text-sm text-gray-700">
-            Showing <span className="font-medium">{totalItems}</span> results
+            <span className="font-medium">{totalItems}</span> results
           </p>
           <div className="flex items-center space-x-2">
             <label htmlFor="itemsPerPage" className="text-sm text-gray-700">
