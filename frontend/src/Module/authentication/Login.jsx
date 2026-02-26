@@ -2,27 +2,35 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Campus from "/assets/campus.jpg";
 import Logo from "/assets/PLVLogo.png";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import ClipLoader from "react-spinners/ClipLoader";
 
 function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const res = await fetch("http://localhost:3001/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
+      setLoading(false);
       if (res.ok) {
         navigate("/dashboard");
       } else {
         setShowModal(true);
       }
     } catch {
+      setLoading(false);
       setShowModal(true);
     }
   };
@@ -72,22 +80,24 @@ function Login() {
               />
             </div>
             {/*Password*/}
-            <div>
-              <label
-                htmlFor="password"
-                className="block  text-[.8rem] font-medium text-gray-700 mb-1"
-              >
-                Password
-              </label>
+            <div className="relative">
               <input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[.8rem] "
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 focus:outline-none"
+                tabIndex={-1}
+              >
+                {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+              </button>
             </div>
 
             {/* <div className="flex items-center justify-between gap-x-2">
@@ -104,9 +114,17 @@ function Login() {
             </div> */}
             <button
               type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"
+              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"
+              disabled={loading}
             >
-              Sign in
+              {loading ? (
+                <>
+                  <ClipLoader color="#fff" size={20} />
+                  <span className="ml-2">Signing in...</span>
+                </>
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
         </div>
