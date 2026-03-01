@@ -447,4 +447,9 @@ router.patch("/enrollStudent/:id", async (req, res) => {
   }
 });
 
+// Add Student 
+router.post("/addStudent", async (req, res) => {
+  
+});
+
 module.exports = router;
