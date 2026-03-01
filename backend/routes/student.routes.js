@@ -69,6 +69,7 @@ router.get("/searchStudent", async (req, res) => {
           { course: { [Op.like]: `%${query}%` } },
           { card_type: { [Op.like]: `%${query}%` } },
           { card_status: { [Op.like]: `%${query}%` } },
+          { card_serial_number: { [Op.like]: `%${query}%` } },
         ],
       },
       limit,
@@ -98,7 +99,10 @@ router.get("/exportStudents", async (req, res) => {
   // ids may come as ids[]=1&ids[]=2 or ids=1,2
   let ids = req.query["ids[]"] || req.query.ids;
   if (ids && !Array.isArray(ids)) {
-    ids = ids.split(",").map((x) => parseInt(x.trim())).filter(Boolean);
+    ids = ids
+      .split(",")
+      .map((x) => parseInt(x.trim()))
+      .filter(Boolean);
   } else if (Array.isArray(ids)) {
     ids = ids.map((x) => parseInt(x)).filter(Boolean);
   }
@@ -156,8 +160,12 @@ router.get("/exportStudents", async (req, res) => {
     const worksheet = xlsx.utils.json_to_sheet(exportData);
     xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const scopeLabel = scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    const scopeLabel =
+      scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
     const filename = `students_export_${scopeLabel}_${timestamp}`;
 
     if (format === "csv") {
@@ -165,18 +173,18 @@ router.get("/exportStudents", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.csv"`
+        `attachment; filename="${filename}.csv"`,
       );
       res.send(csvOutput);
     } else {
       const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
       res.setHeader(
         "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.xlsx"`
+        `attachment; filename="${filename}.xlsx"`,
       );
       res.send(buffer);
     }
@@ -438,6 +446,5 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
