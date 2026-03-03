@@ -3,6 +3,7 @@ import usePagination from "../../hooks/usePagination";
 import PaginationControls from "../../hooks/paginationControls";
 import SortByButton from "../../Components/SortByButton";
 import ExportButton from "../../Components/ExportButton";
+import AddStudentButton from "../../Components/AddStudentButton";
 import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
 
@@ -122,6 +123,102 @@ function Dashboard() {
   const isEnrolled = (student) => {
     return student.isEnrolled;
   };
+
+  // Add student function
+  const addStudent = () => {
+    swal.fire({
+      title: "Add New Student",
+      html: `
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Serial Number
+            </label>
+            <input id="serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Student Number
+            </label>
+            <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <input id="full_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Course
+              </label>
+              <input id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Section
+              </label>
+              <input id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      preConfirm: () => {
+        const serial_number = document.getElementById("serial_number").value;
+        const student_number = document.getElementById("student_number").value;
+        const full_name = document.getElementById("full_name").value;
+        const course = document.getElementById("course").value;
+        const section = document.getElementById("section").value;
+        if (!serial_number || !student_number || !full_name) {
+          swal.showValidationMessage("Please fill in all required fields");
+          return false;
+        }
+        return {
+          serial_number,
+          student_number,
+          full_name,
+          course,
+          section,
+        };
+      },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const { serial_number, student_number, full_name, course, section } =
+          result.value;
+        fetch("http://localhost:3001/students/addStudent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            serial_number,
+            student_number,
+            full_name,
+            course,
+            section,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.message) {
+              swal.fire("Success!", data.message, "success");
+              fetchData();
+            } else {
+              swal.fire("Error!", data.error || "Failed to add student", "error");
+            }
+          })
+          .catch((error) => {
+            swal.fire("Error!", error.message || "Failed to add student", "error");
+          });
+      }
+    });
+  }
 
   // Initial load
   useEffect(() => {
@@ -249,6 +346,7 @@ function Dashboard() {
               itemsPerPage={itemsPerPage}
               selectedIds={selectedIds}
             />
+            <AddStudentButton onAdd={addStudent} />
           </div>
         </div>
 
