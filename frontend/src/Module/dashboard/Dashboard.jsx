@@ -130,15 +130,16 @@ function Dashboard() {
 
   // Add student function
   const addStudent = () => {
-    swal.fire({
-      title: "Add New Student",
-      html: `
+    swal
+      .fire({
+        title: "Add New Student",
+        html: `
         <div class="space-y-4 text-left">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Serial Number
             </label>
-            <input id="serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
           </div>
           
           <div>
@@ -171,58 +172,74 @@ function Dashboard() {
           </div>
         </div>
       `,
-      focusConfirm: false,
-      showCancelButton: true,
-      preConfirm: () => {
-        const serial_number = document.getElementById("serial_number").value;
-        const student_number = document.getElementById("student_number").value;
-        const full_name = document.getElementById("full_name").value;
-        const course = document.getElementById("course").value;
-        const section = document.getElementById("section").value;
-        if (!serial_number || !student_number || !full_name) {
-          swal.showValidationMessage("Please fill in all required fields");
-          return false;
-        }
-        return {
-          serial_number,
-          student_number,
-          full_name,
-          course,
-          section,
-        };
-      },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const { serial_number, student_number, full_name, course, section } =
-          result.value;
-        fetch("http://localhost:3001/students/addStudent", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            serial_number,
+        focusConfirm: false,
+        showCancelButton: true,
+        preConfirm: () => {
+          const card_serial_number =
+            document.getElementById("card_serial_number").value;
+          const student_number =
+            document.getElementById("student_number").value;
+          const full_name = document.getElementById("full_name").value;
+          const course = document.getElementById("course").value;
+          const section = document.getElementById("section").value;
+          if (!card_serial_number || !student_number || !full_name) {
+            swal.showValidationMessage("Please fill in all required fields");
+            return false;
+          }
+          return {
+            card_serial_number,
             student_number,
             full_name,
             course,
             section,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.message) {
-              swal.fire("Success!", data.message, "success");
-              fetchData();
-            } else {
-              swal.fire("Error!", data.error || "Failed to add student", "error");
-            }
+          };
+        },
+      })
+      .then((result) => {
+        if (result.isConfirmed) {
+          const {
+            card_serial_number,
+            student_number,
+            full_name,
+            course,
+            section,
+          } = result.value;
+          fetch("http://localhost:3001/students/addStudent", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              card_serial_number,
+              student_number,
+              full_name,
+              course,
+              section,
+            }),
           })
-          .catch((error) => {
-            swal.fire("Error!", error.message || "Failed to add student", "error");
-          });
-      }
-    });
-  }
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.message) {
+                swal.fire("Success!", data.message, "success");
+                fetchData();
+              } else {
+                swal.fire(
+                  "Error!",
+                  data.error || "Failed to add student",
+                  "error",
+                );
+              }
+            })
+            .catch((error) => {
+              swal.fire(
+                "Error!",
+                error.message || "Failed to add student",
+                "error",
+              );
+            });
+        }
+      });
+  };
 
   // Initial load
   useEffect(() => {
@@ -443,14 +460,20 @@ function Dashboard() {
                           {isEditing ? (
                             <input
                               type="text"
-                              value={editData.serial_number || student.serial_number}
+                              value={
+                                editData.card_serial_number ||
+                                student.card_serial_number
+                              }
                               onChange={(e) =>
-                                setEditData({ ...editData, serial_number: e.target.value })
+                                setEditData({
+                                  ...editData,
+                                  card_serial_number: e.target.value,
+                                })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
                           ) : (
-                            student.serial_number || "—"
+                            student.card_serial_number || "—"
                           )}
                         </td>
 
@@ -458,9 +481,15 @@ function Dashboard() {
                           {isEditing ? (
                             <input
                               type="text"
-                              value={editData.student_number || student.student_number}
+                              value={
+                                editData.student_number ||
+                                student.student_number
+                              }
                               onChange={(e) =>
-                                setEditData({ ...editData, student_number: e.target.value })
+                                setEditData({
+                                  ...editData,
+                                  student_number: e.target.value,
+                                })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
@@ -473,9 +502,15 @@ function Dashboard() {
                           {isEditing ? (
                             <input
                               type="text"
-                              value={editData.full_name || `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim()}
+                              value={
+                                editData.full_name ||
+                                `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim()
+                              }
                               onChange={(e) =>
-                                setEditData({ ...editData, full_name: e.target.value })
+                                setEditData({
+                                  ...editData,
+                                  full_name: e.target.value,
+                                })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
@@ -483,14 +518,17 @@ function Dashboard() {
                             `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim()
                           )}
                         </td>
-                        
+
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
                               value={editData.course || student.course}
                               onChange={(e) =>
-                                setEditData({ ...editData, course: e.target.value })
+                                setEditData({
+                                  ...editData,
+                                  course: e.target.value,
+                                })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
@@ -505,7 +543,10 @@ function Dashboard() {
                               type="text"
                               value={editData.section || student.section}
                               onChange={(e) =>
-                                setEditData({ ...editData, section: e.target.value })
+                                setEditData({
+                                  ...editData,
+                                  section: e.target.value,
+                                })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
@@ -517,23 +558,25 @@ function Dashboard() {
                         <td>
                           {isEditing ? (
                             <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
-                              <button 
-                              onClick={() => {
-                                swal.fire({
-                                  title: "Save Changes",
-                                  text: "Are you sure you want to save changes to this student?",
-                                  icon: "question",
-                                  showCancelButton: true,
-                                  confirmButtonText: "Yes, save",
-                                  cancelButtonText: "No, cancel",
-                                }).then((result) => {
-                                  // Implement save logic here, e.g., send updated data to backend
-                                  setEditingId(null); // Exit edit mode after saving
-                                  setEditData({}); // Clear edit data after saving
-                                  fetchData(); // Refresh data to show updates
-                                });
-                              }}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                              <button
+                                onClick={() => {
+                                  swal
+                                    .fire({
+                                      title: "Save Changes",
+                                      text: "Are you sure you want to save changes to this student?",
+                                      icon: "question",
+                                      showCancelButton: true,
+                                      confirmButtonText: "Yes, save",
+                                      cancelButtonText: "No, cancel",
+                                    })
+                                    .then((result) => {
+                                      // Implement save logic here, e.g., send updated data to backend
+                                      setEditingId(null); // Exit edit mode after saving
+                                      setEditData({}); // Clear edit data after saving
+                                      fetchData(); // Refresh data to show updates
+                                    });
+                                }}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                               >
                                 Save
                               </button>
@@ -547,15 +590,17 @@ function Dashboard() {
                                 Cancel
                               </button>
                             </div>
-                            ) : (
+                          ) : (
                             <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
                               <button
                                 onClick={() => {
                                   setEditingId(student.id); // Enter edit mode
                                   setEditData({
-                                    serial_number: student.serial_number,
+                                    card_serial_number:
+                                      student.card_serial_number,
                                     student_number: student.student_number,
-                                    full_name: `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim(),
+                                    full_name:
+                                      `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim(),
                                     course: student.course,
                                     section: student.section,
                                   }); // Pre-fill edit data
@@ -566,23 +611,26 @@ function Dashboard() {
                               </button>
                               <button
                                 onClick={() => {
-                                  swal.fire({
-                                    title: "Delete Student",
-                                    text: "Are you sure you want to delete this student?",
-                                    icon: "warning",
-                                    showCancelButton: true,
-                                    confirmButtonText: "Yes, delete",
-                                    cancelButtonText: "No, cancel",
-                                  }).then((result) => {
-                                    // Implement delete logic here, e.g., send delete request to backend
-                                    fetchData(); // Refresh data to show updates after deletion
-                                  });
+                                  swal
+                                    .fire({
+                                      title: "Delete Student",
+                                      text: "Are you sure you want to delete this student?",
+                                      icon: "warning",
+                                      showCancelButton: true,
+                                      confirmButtonText: "Yes, delete",
+                                      cancelButtonText: "No, cancel",
+                                    })
+                                    .then((result) => {
+                                      // Implement delete logic here, e.g., send delete request to backend
+                                      fetchData(); // Refresh data to show updates after deletion
+                                    });
                                 }}
-                                className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                              >
                                 Delete
                               </button>
                             </div>
-                            )}
+                          )}
                         </td>
                         {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {student.year_level || "—"}
