@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { Student } = require("../models/association");
 const { Op } = require("sequelize");
+const sequelize = require("../config/database");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const csv = require("csv-parser");
@@ -27,6 +28,43 @@ function getSortOrder(sortBy, sortOrder) {
   return [[col, dir]];
 }
 
+function buildWhereClause(query, filters) {
+  let whereClause = {};
+
+  // Handle search query
+  if (query && query.trim() !== "") {
+    whereClause[Op.or] = [
+      { student_number: { [Op.like]: `%${query}%` } },
+      { first_name: { [Op.like]: `%${query}%` } },
+      { middle_name: { [Op.like]: `%${query}%` } },
+      { last_name: { [Op.like]: `%${query}%` } },
+      { course: { [Op.like]: `%${query}%` } },
+      { card_type: { [Op.like]: `%${query}%` } },
+      { card_status: { [Op.like]: `%${query}%` } },
+      { card_serial_number: { [Op.like]: `%${query}%` } },
+    ];
+  }
+
+  // Handle filters - these need to be combined with AND logic
+  if (filters.yearLevel) {
+    whereClause.year_level = filters.yearLevel;
+  }
+
+  if (filters.semester) {
+    whereClause.semester = filters.semester;
+  }
+
+  if (filters.course) {
+    whereClause.course = { [Op.like]: `%${filters.course}%` };
+  }
+
+  if (filters.section) {
+    whereClause.section = filters.section;
+  }
+
+  return whereClause;
+}
+
 // Get paginated student list
 router.get("/getStudent", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -34,8 +72,19 @@ router.get("/getStudent", async (req, res) => {
   const offset = (page - 1) * limit;
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
+  // Extract filter parameters
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+  };
+
   try {
+    const whereClause = buildWhereClause("", filters);
+
     const result = await Student.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
@@ -58,26 +107,88 @@ router.get("/searchStudent", async (req, res) => {
     return res.status(400).json({ error: "Search query is required" });
   }
 
+  // Extract filter parameters
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+  };
+
   try {
+    const whereClause = buildWhereClause(query, filters);
+
     const result = await Student.findAndCountAll({
-      where: {
-        [Op.or]: [
-          { student_number: { [Op.like]: `%${query}%` } },
-          { first_name: { [Op.like]: `%${query}%` } },
-          { middle_name: { [Op.like]: `%${query}%` } },
-          { last_name: { [Op.like]: `%${query}%` } },
-          { course: { [Op.like]: `%${query}%` } },
-          { card_type: { [Op.like]: `%${query}%` } },
-          { card_status: { [Op.like]: `%${query}%` } },
-          { card_serial_number: { [Op.like]: `%${query}%` } },
-        ],
-      },
+      where: whereClause,
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
     });
     res.json(result);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/getFilterOptions", async (req, res) => {
+  try {
+    // Get distinct year levels
+    const yearLevels = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("year_level")), "year_level"],
+      ],
+      where: {
+        year_level: { [Op.not]: null },
+      },
+      order: [["year_level", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct semesters
+    const semesters = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("semester")), "semester"],
+      ],
+      where: {
+        semester: { [Op.not]: null },
+      },
+      order: [["semester", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct courses
+    const courses = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("course")), "course"],
+      ],
+      where: {
+        course: { [Op.not]: null },
+        course: { [Op.ne]: "" },
+      },
+      order: [["course", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct sections
+    const sections = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      where: {
+        section: { [Op.not]: null },
+      },
+      order: [["section", "ASC"]],
+      raw: true,
+    });
+
+    res.json({
+      yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
+      semesters: semesters.map((item) => item.semester).filter(Boolean),
+      courses: courses.map((item) => item.course).filter(Boolean),
+      sections: sections.map((item) => item.section).filter(Boolean),
+    });
+  } catch (err) {
+    console.error("Filter options error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -447,9 +558,7 @@ router.patch("/enrollStudent/:id", async (req, res) => {
   }
 });
 
-// Add Student 
-router.post("/addStudent", async (req, res) => {
-  
-});
+// Add Student
+router.post("/addStudent", async (req, res) => {});
 
 module.exports = router;

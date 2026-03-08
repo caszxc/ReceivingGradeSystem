@@ -50,6 +50,14 @@ const Student = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    section: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    semester: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     card_status: {
       type: DataTypes.STRING,
       allowNull: true,
