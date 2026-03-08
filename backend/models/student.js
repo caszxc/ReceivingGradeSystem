@@ -7,7 +7,6 @@ const Student = sequelize.define(
     card_id_control_number: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
     },
     isEnrolled: {
       type: DataTypes.BOOLEAN,

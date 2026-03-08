@@ -9,7 +9,15 @@ router.post("/login", async (req, res) => {
     if (!account) {
       return res.status(401).json({ message: "Incorrect credentials" });
     }
-    res.json({ message: "Login successful" });
+    // Return user information including role
+    res.json({
+      message: "Login successful",
+      user: {
+        id: account.id,
+        username: account.username,
+        role: account.role,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
