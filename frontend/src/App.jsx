@@ -4,7 +4,8 @@ import Login from "./Module/authentication/Login";
 import Dashboard from "./Module/dashboard/Dashboard";
 import Upload from "./Module/upload/Upload";
 import Layout from "./Components/Layout";
-import CreateAccount from "./Module/superadmin/CreateAccount";
+
+import ManageAccount from "./Module/superadmin/ManageAccount";
 
 function App() {
   return (
@@ -27,10 +28,10 @@ function App() {
         }
       />
       <Route
-        path="/create-account"
+        path="/manage-accounts"
         element={
           <Layout>
-            <CreateAccount />
+            <ManageAccount />
           </Layout>
         }
       />

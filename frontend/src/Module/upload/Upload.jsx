@@ -189,9 +189,9 @@ const Upload = () => {
                 <div>
                   <strong>Required columns:</strong>
                   <ul className="mt-1 space-y-1">
-                    <li>• card_id_control_number</li>
+                    {/* <li>• card_id_control_number</li> */}
                     <li>• card_serial_number</li>
-                    <li>• card_type</li>
+                    {/* <li>• card_type</li> */}
                     <li>• student_number</li>
                     <li>• first_name</li>
                     <li>• last_name</li>
@@ -200,12 +200,12 @@ const Upload = () => {
                 <div>
                   <strong>Optional columns:</strong>
                   <ul className="mt-1 space-y-1">
-                    <li>• date_enrolled</li>
+                    {/* <li>• date_enrolled</li> */}
                     <li>• middle_name</li>
                     <li>• course</li>
                     <li>• year_level (1-4)</li>
-                    <li>• card_status</li>
-                    <li>• date_issued</li>
+                    {/* <li>• card_status</li>
+                    <li>• date_issued</li> */}
                   </ul>
                 </div>
               </div>
@@ -369,7 +369,7 @@ const Upload = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Success Message */}
               {uploadResult.success && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-6 flex-grow">
@@ -438,12 +438,15 @@ const Upload = () => {
                         <div className="text-sm text-yellow-800">
                           The following records already exist in the database:
                           <div className="mt-2 space-y-1">
-                            {uploadResult.existingRecords.map((record, index) => (
-                              <div key={index}>
-                                Student Number: {record.student_number}, Control
-                                Number: {record.card_id_control_number}
-                              </div>
-                            ))}
+                            {uploadResult.existingRecords.map(
+                              (record, index) => (
+                                <div key={index}>
+                                  Student Number: {record.student_number},
+                                  Control Number:{" "}
+                                  {record.card_id_control_number}
+                                </div>
+                              ),
+                            )}
                           </div>
                         </div>
                       </div>
@@ -646,77 +649,79 @@ const Upload = () => {
                 </div>
               </div>
             )}
-            
-            {/* Action Buttons */}
-            {uploadResult && uploadResult.validData && uploadResult.validData.length > 0 && (
-              <div className="flex gap-4 items-center">
-                <div className="">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor=""
-                    className="cursor-pointer bg-[#182D50] text-white px-6 py-5 rounded-lg hover:bg-[#0F1C35] transition-colors inline-flex items-center"
-                  >
-                    Add File
-                  </label>
-                </div>
-                
-                <div className="bg-white p-2 flex items-center justify-between space-x-4 flex-grow">
-                  <p className="text-sm text-gray-600 mt-1">
-                    Showing {Math.min(5, uploadResult.validData.length)} of{" "}
-                    {uploadResult.validData.length} valid records
-                  </p>
 
-                  <div className="space-x-4">
-                    <button
-                      onClick={resetUpload}
-                      disabled={uploading}
-                      className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Action Buttons */}
+            {uploadResult &&
+              uploadResult.validData &&
+              uploadResult.validData.length > 0 && (
+                <div className="flex gap-4 items-center">
+                  <div className="">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor=""
+                      className="cursor-pointer bg-[#182D50] text-white px-6 py-5 rounded-lg hover:bg-[#0F1C35] transition-colors inline-flex items-center"
                     >
-                      Cancel
-                    </button>
-                    {uploadResult.success && uploadResult.validData.length > 0 && (
+                      Add File
+                    </label>
+                  </div>
+
+                  <div className="bg-white p-2 flex items-center justify-between space-x-4 flex-grow">
+                    <p className="text-sm text-gray-600 mt-1">
+                      Showing {Math.min(5, uploadResult.validData.length)} of{" "}
+                      {uploadResult.validData.length} valid records
+                    </p>
+
+                    <div className="space-x-4">
                       <button
-                        onClick={handleConfirmUpload}
+                        onClick={resetUpload}
                         disabled={uploading}
-                        className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {uploading ? (
-                          <>
-                            <svg
-                              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Uploading...
-                          </>
-                        ) : (
-                          `Confirm Upload (${uploadResult.validData.length} records)`
-                        )}
+                        Cancel
                       </button>
-                    )}
+                      {uploadResult.success &&
+                        uploadResult.validData.length > 0 && (
+                          <button
+                            onClick={handleConfirmUpload}
+                            disabled={uploading}
+                            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {uploading ? (
+                              <>
+                                <svg
+                                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Uploading...
+                              </>
+                            ) : (
+                              `Confirm Upload (${uploadResult.validData.length} records)`
+                            )}
+                          </button>
+                        )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-
+              )}
           </div>
         )}
       </div>

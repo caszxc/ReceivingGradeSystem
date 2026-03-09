@@ -6,7 +6,7 @@ const Student = sequelize.define(
   {
     card_id_control_number: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
     },
     isEnrolled: {
       type: DataTypes.BOOLEAN,
@@ -23,27 +23,55 @@ const Student = sequelize.define(
     },
     card_type: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     student_number: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     first_name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "first_name",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
     },
     middle_name: {
       type: DataTypes.STRING,
       allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "middle_name",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
     },
     last_name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "last_name",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
     },
     course: {
       type: DataTypes.STRING,
       allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "course",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
     },
     year_level: {
       type: DataTypes.INTEGER,
