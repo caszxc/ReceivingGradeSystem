@@ -30,13 +30,13 @@ const Sidebar = () => {
     },
   ];
 
-  // Add CreateAccount only for superadmin
+  // Add manageAccount only for superadmin
   const navItems = isSuperAdmin()
     ? [
         ...baseNavItems,
         {
-          name: "Create Account",
-          path: "/create-account",
+          name: "Manage Account",
+          path: "/manage-accounts",
         },
       ]
     : baseNavItems;
