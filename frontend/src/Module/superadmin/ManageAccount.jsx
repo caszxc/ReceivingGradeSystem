@@ -92,6 +92,63 @@ function ManageAccount() {
       return;
     }
 
+    // Show confirmation dialog
+    const result = await swal.fire({
+      title: "Create Account Confirmation",
+      html: `
+      <div class="text-left space-y-3 p-4">
+        <p class="text-gray-700 mb-4">Are you sure you want to create this account with the following details?</p>
+        
+        <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+          <div class="flex justify-between">
+            <span class="font-medium text-gray-600">Username:</span>
+            <span class="text-gray-900">${formData.username}</span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="font-medium text-gray-600">Role:</span>
+            <span class="text-gray-900 capitalize">${formData.role}</span>
+          </div>
+          
+          <div class="flex justify-between">
+            <span class="font-medium text-gray-600">Password:</span>
+            <span class="text-gray-500">••••••••</span>
+          </div>
+        </div>
+        
+        <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div class="flex items-start">
+            <svg class="h-4 w-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-xs text-blue-700">
+              Once created, this account can be used to log into the system with the specified role permissions.
+            </p>
+          </div>
+        </div>
+      </div>
+    `,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3b82f6",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, Create Account",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      focusCancel: false,
+      customClass: {
+        popup: "swal2-popup-custom",
+        confirmButton: "swal2-confirm-custom",
+        cancelButton: "swal2-cancel-custom",
+      },
+    });
+
+    // If user cancels, don't proceed
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    // Proceed with account creation
     try {
       setLoading(true);
       const response = await fetch("http://localhost:3001/accounts/create", {
@@ -109,7 +166,29 @@ function ManageAccount() {
       const data = await response.json();
 
       if (response.ok) {
-        swal.fire("Success", "Account created successfully!", "success");
+        // Show success message with SweetAlert
+        await swal.fire({
+          title: "Account Created Successfully!",
+          html: `
+          <div class="text-center py-4">
+            <div class="mb-4">
+              <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <p class="text-gray-700">
+              The account <strong>${formData.username}</strong> has been created successfully with <strong>${formData.role}</strong> role.
+            </p>
+            <p class="text-sm text-gray-500 mt-2">
+              The user can now log in using these credentials.
+            </p>
+          </div>
+        `,
+          icon: "success",
+          confirmButtonColor: "#10b981",
+          confirmButtonText: "Great!",
+        });
+
         setShowCreateForm(false);
         setFormData({
           username: "",
@@ -119,11 +198,26 @@ function ManageAccount() {
         });
         fetchAccounts(); // Refresh the list
       } else {
+        // Show error with SweetAlert
+        await swal.fire({
+          title: "Account Creation Failed",
+          text: data.message || "Failed to create account",
+          icon: "error",
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "Try Again",
+        });
         throw new Error(data.message || "Failed to create account");
       }
     } catch (err) {
       console.error("Error creating account:", err);
-      swal.fire("Error", err.message, "error");
+      // Show error with SweetAlert
+      await swal.fire({
+        title: "Connection Error",
+        text: "Unable to connect to the server. Please check your connection and try again.",
+        icon: "error",
+        confirmButtonColor: "#ef4444",
+        confirmButtonText: "Okay",
+      });
     } finally {
       setLoading(false);
     }
