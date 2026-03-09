@@ -204,44 +204,73 @@ function Dashboard() {
       .fire({
         title: "Add New Student",
         html: `
-        <div class="space-y-4 text-left">
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Serial Number <span class="text-red-500">*</span>
+          </label>
+          <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Student Number
+          </label>
+          <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Serial Number
+              First Name
             </label>
-            <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input id="first_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
           </div>
-          
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Student Number
+              Middle Name
             </label>
-            <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <input id="middle_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
           </div>
-          
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
+              Last Name
             </label>
-            <input id="full_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Course
-              </label>
-              <input id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Section
-              </label>
-              <input id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-            </div>
+            <input id="last_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
           </div>
         </div>
-      `,
+        
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Course
+            </label>
+            <input id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Year Level
+            </label>
+            <div className="relative">
+              <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg  focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
+                <option value="">Select Year</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+               
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Section
+            </label>
+            <input id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+        </div>
+      </div>
+    `,
         focusConfirm: false,
         showCancelButton: true,
         preConfirm: () => {
@@ -249,18 +278,27 @@ function Dashboard() {
             document.getElementById("card_serial_number").value;
           const student_number =
             document.getElementById("student_number").value;
-          const full_name = document.getElementById("full_name").value;
+          const first_name = document.getElementById("first_name").value;
+          const middle_name = document.getElementById("middle_name").value;
+          const last_name = document.getElementById("last_name").value;
           const course = document.getElementById("course").value;
+          const year_level = document.getElementById("year_level").value;
           const section = document.getElementById("section").value;
-          if (!card_serial_number || !student_number || !full_name) {
-            swal.showValidationMessage("Please fill in all required fields");
+
+          // Only validate serial number is required
+          if (!card_serial_number || card_serial_number.trim() === "") {
+            swal.showValidationMessage("Serial number is required");
             return false;
           }
+
           return {
-            card_serial_number,
+            card_serial_number: card_serial_number.toUpperCase(), // Ensure uppercase
             student_number,
-            full_name,
+            first_name,
+            middle_name,
+            last_name,
             course,
+            year_level,
             section,
           };
         },
@@ -270,10 +308,14 @@ function Dashboard() {
           const {
             card_serial_number,
             student_number,
-            full_name,
+            first_name,
+            middle_name,
+            last_name,
             course,
+            year_level,
             section,
           } = result.value;
+
           fetch("http://localhost:3001/students/addStudent", {
             method: "POST",
             headers: {
@@ -282,16 +324,19 @@ function Dashboard() {
             body: JSON.stringify({
               card_serial_number,
               student_number,
-              full_name,
+              first_name,
+              middle_name,
+              last_name,
               course,
+              year_level,
               section,
             }),
           })
             .then((response) => response.json())
             .then((data) => {
-              if (data.message) {
+              if (data.success) {
                 swal.fire("Success!", data.message, "success");
-                fetchData();
+                fetchData(); // Refresh the student list
               } else {
                 swal.fire(
                   "Error!",
