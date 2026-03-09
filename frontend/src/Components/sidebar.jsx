@@ -1,13 +1,17 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import plvLogo from "/assets/PLVLogo.png";
+import { useAuth } from "../context/authContext";
 
 const Sidebar = () => {
+  const { user, logout, isSuperAdmin } = useAuth();
+
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
     // Add logout logic here later
+    logout();
     navigate("/");
   };
 
@@ -15,52 +19,27 @@ const Sidebar = () => {
     setIsCollapsed(!isCollapsed);
   };
 
-  const navItems = [
+  const baseNavItems = [
     {
       name: "Dashboard",
       path: "/dashboard",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M8 5a2 2 0 012-2h4a2 2 0 012 2v6H8V5z"
-          />
-        </svg>
-      ),
     },
     {
       name: "Upload",
       path: "/upload",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-          />
-        </svg>
-      ),
     },
   ];
+
+  // Add CreateAccount only for superadmin
+  const navItems = isSuperAdmin()
+    ? [
+        ...baseNavItems,
+        {
+          name: "Create Account",
+          path: "/create-account",
+        },
+      ]
+    : baseNavItems;
 
   return (
     <div
@@ -166,7 +145,10 @@ const Sidebar = () => {
           {!isCollapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium text-gray-900 whitespace-nowrap">
-                Admin User
+                {user?.username || "User"}
+              </p>
+              <p className="text-xs text-gray-500 whitespace-nowrap">
+                {user?.role || "Role"}
               </p>
             </div>
           )}

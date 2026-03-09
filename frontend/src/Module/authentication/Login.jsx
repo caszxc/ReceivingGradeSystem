@@ -4,6 +4,7 @@ import Campus from "/assets/campus.jpg";
 import Logo from "/assets/PLVLogo.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ClipLoader from "react-spinners/ClipLoader";
+import { useAuth } from "../../context/authContext";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -11,6 +12,7 @@ function Login() {
   const [showModal, setShowModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const navigate = useNavigate();
 
@@ -23,8 +25,12 @@ function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
+
+      const data = await res.json();
       setLoading(false);
+
       if (res.ok) {
+        login(data.user); // Store user data including role
         navigate("/dashboard");
       } else {
         setShowModal(true);
@@ -73,7 +79,7 @@ function Login() {
                 id="username"
                 // type="email"
                 className="w-full px-3 py-2 bg-white border border-gray-200 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[.8rem] "
-                placeholder="Enter your email"
+                placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -131,7 +137,7 @@ function Login() {
 
         {/* Error Modal */}
         {showModal && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="fixed inset-0 flex items-center justify-center bg-transparent backdrop-blur-sm z-50">
             <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
               <div className="text-center">
                 <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">

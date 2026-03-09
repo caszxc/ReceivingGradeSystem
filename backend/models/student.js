@@ -7,7 +7,6 @@ const Student = sequelize.define(
     card_id_control_number: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      unique: true,
     },
     isEnrolled: {
       type: DataTypes.BOOLEAN,
@@ -47,6 +46,14 @@ const Student = sequelize.define(
       allowNull: true,
     },
     year_level: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    section: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    semester: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },

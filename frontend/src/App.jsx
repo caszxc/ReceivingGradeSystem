@@ -4,14 +4,12 @@ import Login from "./Module/authentication/Login";
 import Dashboard from "./Module/dashboard/Dashboard";
 import Upload from "./Module/upload/Upload";
 import Layout from "./Components/Layout";
+import CreateAccount from "./Module/superadmin/CreateAccount";
 
 function App() {
   return (
     <Routes>
-      {/* Login page without sidebar */}
       <Route path="/" element={<Login />} />
-
-      {/* All other pages with sidebar */}
       <Route
         path="/dashboard"
         element={
@@ -25,6 +23,14 @@ function App() {
         element={
           <Layout>
             <Upload />
+          </Layout>
+        }
+      />
+      <Route
+        path="/create-account"
+        element={
+          <Layout>
+            <CreateAccount />
           </Layout>
         }
       />
