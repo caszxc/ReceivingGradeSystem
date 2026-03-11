@@ -11,6 +11,8 @@ function ViewStudent() {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState({});
+  const [profileImage, setProfileImage] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +30,12 @@ function ViewStudent() {
     };
 
     fetchStudent();
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      setProfileImage(`${BASE_URL}/students/getImage/${id}?t=${Date.now()}`);
+    }
   }, [id]);
 
   const handleEdit = () => {
@@ -84,6 +92,40 @@ function ViewStudent() {
     setEditData({ ...editData, [field]: value });
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      swal.fire(
+        "Error",
+        "Only JPEG, PNG, and WebP images are allowed.",
+        "error",
+      );
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      swal.fire("Error", "Image must be under 5MB.", "error");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      await axios.post(`${BASE_URL}/students/uploadImage/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfileImage(`${BASE_URL}/students/getImage/${id}?t=${Date.now()}`);
+      swal.fire("Success", "Profile image updated.", "success");
+    } catch (err) {
+      swal.fire("Error", "Failed to upload image.", "error");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
@@ -110,15 +152,35 @@ function ViewStudent() {
         <div className="h-[85vh] bg-white p-6 rounded-lg shadow-md  w-1/3 flex  gap-3 flex-col items-center">
           <div className="relative group">
             <img
-              src="https://randomuser.me/api/portraits/men/1.jpg"
+              src={profileImage || ""}
+              onError={(e) => {
+                e.target.src =
+                  "https://ui-avatars.com/api/?name=" +
+                  encodeURIComponent(
+                    (student?.first_name || "S") +
+                      " " +
+                      (student?.last_name || ""),
+                  ) +
+                  "&size=160&background=e5e5e5&color=555";
+              }}
               className="bg-[#e5e5e5] rounded-full border-3 border-[#c4c4c4] h-40 w-40 shadow-lg object-cover"
               alt="Profile"
             />
             {/* Overlay */}
-            <label className="absolute left-0 bottom-0 w-full h-1/2 bg-black bg-opacity-30 rounded-b-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <span className="text-white font-semibold">Upload</span>
-              <input type="file" accept="image/*" className="hidden" />
-            </label>
+            {isEditing && (
+              <label className="absolute left-0 bottom-0 w-full h-1/2 bg-black bg-opacity-30 rounded-b-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-white font-semibold">
+                  {uploadingImage ? "Uploading..." : "Upload"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+              </label>
+            )}
           </div>
 
           <div>

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const { Student } = require("../models/association");
+const sharp = require("sharp");
+const { Student, StudentImage } = require("../models/association");
 const { Op } = require("sequelize");
 const sequelize = require("../config/database");
 const multer = require("multer");
@@ -658,16 +659,100 @@ router.put("/updateStudent/:id", async (req, res) => {
       last_name: last_name ?? student.last_name,
       student_number: student_number ?? student.student_number,
       course: course ?? student.course,
-      section: section ?? student.section,
+      section: section ? parseInt(section) : student.section,
       year_level: year_level ? parseInt(year_level) : student.year_level,
       semester: semester ? parseInt(semester) : student.semester,
     });
 
-    res.json({ success: true, message: "Student updated successfully", student });
+    res.json({
+      success: true,
+      message: "Student updated successfully",
+      student,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+router.post("/uploadImage/:id", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file uploaded" });
+    }
+
+    const studentId = parseInt(req.params.id);
+    const student = await Student.findByPk(studentId);
+    if (!student) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Validate mime type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      fs.unlinkSync(req.file.path);
+      return res
+        .status(400)
+        .json({ error: "Only JPEG, PNG, and WebP images are allowed" });
+    }
+
+    // Read and compress with sharp
+    const compressedBuffer = await sharp(req.file.path)
+      .resize(400, 400, { fit: "cover" })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
+
+    // Upsert — update if exists, create if not
+    const [image, created] = await StudentImage.findOrCreate({
+      where: { student_id: studentId },
+      defaults: {
+        image_data: compressedBuffer,
+        mime_type: "image/jpeg",
+        original_name: req.file.originalname,
+        file_size: compressedBuffer.length,
+      },
+    });
+
+    if (!created) {
+      await image.update({
+        image_data: compressedBuffer,
+        mime_type: "image/jpeg",
+        original_name: req.file.originalname,
+        file_size: compressedBuffer.length,
+      });
+    }
+
+    res.json({ success: true, message: "Image uploaded successfully" });
+  } catch (err) {
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (_) {}
+    }
+    console.error("Image upload error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/getImage/:id", async (req, res) => {
+  try {
+    const image = await StudentImage.findOne({
+      where: { student_id: parseInt(req.params.id) },
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: "No image found" });
+    }
+
+    res.set("Content-Type", image.mime_type);
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(image.image_data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
