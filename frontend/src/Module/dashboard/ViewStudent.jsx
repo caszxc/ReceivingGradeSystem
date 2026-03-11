@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BASE_URL } from "../../Api/baseUrl";
+import swal from "sweetalert2";
 
 function ViewStudent() {
   const [isEditing, setIsEditing] = useState(false);
   const { id } = useParams();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editData, setEditData] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -25,6 +29,60 @@ function ViewStudent() {
 
     fetchStudent();
   }, [id]);
+
+  const handleEdit = () => {
+    setEditData({
+      first_name: student.first_name || "",
+      middle_name: student.middle_name || "",
+      last_name: student.last_name || "",
+      student_number: student.student_number || "",
+      course: student.course || "",
+      section: student.section || "",
+      year_level: student.year_level || "",
+      semester: student.semester || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditData({});
+  };
+
+  const handleSave = async () => {
+    const result = await swal.fire({
+      title: "Save Changes?",
+      text: "Are you sure you want to update this student's information?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, save",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.put(`${BASE_URL}/students/updateStudent/${id}`, editData);
+      await swal.fire({
+        title: "Updated!",
+        text: "Student information has been updated successfully.",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Failed to update student:", error);
+      swal.fire({
+        title: "Error",
+        text: "Failed to update student information.",
+        icon: "error",
+      });
+    }
+  };
+
+  const handleChange = (field, value) => {
+    setEditData({ ...editData, [field]: value });
+  };
 
   if (loading) {
     return (
@@ -85,7 +143,10 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.first_name || ""}
+                  value={
+                    isEditing ? editData.first_name : student.first_name || ""
+                  }
+                  onChange={(e) => handleChange("first_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="First Name"
                 />
               </div>
@@ -96,7 +157,10 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.middle_name || ""}
+                  value={
+                    isEditing ? editData.middle_name : student.middle_name || ""
+                  }
+                  onChange={(e) => handleChange("middle_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Middle Name"
                 />
               </div>
@@ -107,7 +171,10 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.last_name || ""}
+                  value={
+                    isEditing ? editData.last_name : student.last_name || ""
+                  }
+                  onChange={(e) => handleChange("last_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Surname"
                 />
               </div>
@@ -120,7 +187,14 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.student_number || ""}
+                  value={
+                    isEditing
+                      ? editData.student_number
+                      : student.student_number || ""
+                  }
+                  onChange={(e) =>
+                    handleChange("student_number", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Student Number"
                 />
               </div>
@@ -131,7 +205,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.course || ""}
+                  value={isEditing ? editData.course : student.course || ""}
+                  onChange={(e) => handleChange("course", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Course"
                 />
               </div>
@@ -142,7 +217,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.section || ""}
+                  value={isEditing ? editData.section : student.section || ""}
+                  onChange={(e) => handleChange("section", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Section"
                 />
               </div>
@@ -155,7 +231,10 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.year_level || ""}
+                  value={
+                    isEditing ? editData.year_level : student.year_level || ""
+                  }
+                  onChange={(e) => handleChange("year_level", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Year Level"
                 />
               </div>
@@ -166,7 +245,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  value={student.year_level || ""}
+                  value={isEditing ? editData.semester : student.semester || ""}
+                  onChange={(e) => handleChange("semester", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Semester"
                 />
               </div>
@@ -177,19 +257,30 @@ function ViewStudent() {
               <button
                 type="button"
                 className="px-6 py-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
-                onClick={() => setIsEditing(true)}
+                onClick={handleEdit}
               >
                 Update
               </button>
             )}
             {isEditing && (
-              <button
-                type="button"
-                className="px-6 py-2 rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
-                onClick={() => setIsEditing(false)}
-              >
-                Save
-              </button>
+              <>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="px-6 py-2 rounded-md bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition"
+                    onClick={handleCancel}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-6 py-2 rounded-md bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+                    onClick={handleSave}
+                  >
+                    Save
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

@@ -634,4 +634,40 @@ router.get("/viewStudent/:id", async (req, res) => {
   }
 });
 
+router.put("/updateStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const {
+      first_name,
+      middle_name,
+      last_name,
+      student_number,
+      course,
+      section,
+      year_level,
+      semester,
+    } = req.body;
+
+    await student.update({
+      first_name: first_name ?? student.first_name,
+      middle_name: middle_name ?? student.middle_name,
+      last_name: last_name ?? student.last_name,
+      student_number: student_number ?? student.student_number,
+      course: course ?? student.course,
+      section: section ?? student.section,
+      year_level: year_level ? parseInt(year_level) : student.year_level,
+      semester: semester ? parseInt(semester) : student.semester,
+    });
+
+    res.json({ success: true, message: "Student updated successfully", student });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
