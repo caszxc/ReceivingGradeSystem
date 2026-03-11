@@ -6,11 +6,13 @@ import ExportButton from "../../Components/ExportButton";
 import AddStudentButton from "../../Components/AddStudentButton";
 import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
   const dropdownRef = useRef(null);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
     yearLevel: "",
@@ -1025,7 +1027,8 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td>
+                        {/*action button*/}
+                        {/* <td>
                           {isEditing ? (
                             <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
                               <button
@@ -1106,6 +1109,25 @@ function Dashboard() {
                               </button>
                             </div>
                           )}
+                        </td> */}
+
+                        <td>
+                          <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={() => navigate("/view-student")}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => {
+                                // delete logic
+                              }}
+                              className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
