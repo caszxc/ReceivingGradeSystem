@@ -1,7 +1,46 @@
-import { useRef, useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import { BASE_URL } from "../../Api/baseUrl";
 
 function ViewStudent() {
   const [isEditing, setIsEditing] = useState(false);
+  const { id } = useParams();
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const response = await axios.get(
+          `${BASE_URL}/students/viewStudent/${id}`,
+        );
+        setStudent(response.data);
+      } catch (error) {
+        console.error("Failed to fetch student:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudent();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Loading student data...</p>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
+        <p className="text-red-600 text-lg">Student not found.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-blue-200 overflow-hidden h-screen">
@@ -46,8 +85,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //  placeholder="First Name"
+                  value={student.first_name || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="First Name"
                 />
               </div>
               <div>
@@ -57,8 +96,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Middle Name"
+                  value={student.middle_name || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Middle Name"
                 />
               </div>
               <div>
@@ -68,9 +107,9 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Surname"
-               />
+                  value={student.last_name || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Surname"
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -81,8 +120,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Student Number"
+                  value={student.student_number || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Student Number"
                 />
               </div>
               <div>
@@ -92,9 +131,9 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Course"
-               />
+                  value={student.course || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Course"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -103,9 +142,9 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Section"
-               />
+                  value={student.section || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Section"
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,8 +155,8 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Year Level"
+                  value={student.year_level || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Year Level"
                 />
               </div>
               <div>
@@ -127,9 +166,9 @@ function ViewStudent() {
                 <input
                   type="text"
                   disabled={!isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                //   placeholder="Semester"
-              />
+                  value={student.year_level || ""}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Semester"
+                />
               </div>
             </div>
           </form>

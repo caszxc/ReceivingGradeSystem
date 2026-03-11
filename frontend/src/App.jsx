@@ -20,8 +20,9 @@ function App() {
           </Layout>
         }
       />
+
       <Route
-        path="/view-student"
+        path="/view-student/:id"
         element={
           <Layout>
             <ViewStudent />

@@ -1114,7 +1114,9 @@ function Dashboard() {
                         <td>
                           <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
                             <button
-                              onClick={() => navigate("/view-student")}
+                              onClick={() =>
+                                navigate(`/view-student/${student.id}`)
+                              }
                               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                             >
                               View

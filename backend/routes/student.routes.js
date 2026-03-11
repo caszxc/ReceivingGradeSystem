@@ -609,4 +609,29 @@ router.post("/addStudent", async (req, res) => {
   }
 });
 
+router.get("/viewStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id, {
+      attributes: [
+        "id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "student_number",
+        "course",
+        "section",
+        "year_level",
+        "semester",
+        "isEnrolled",
+      ],
+    });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    res.json(student);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
