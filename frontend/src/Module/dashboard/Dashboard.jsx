@@ -465,6 +465,29 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
+  //sa semester display ito
+
+  // ── Semester & School Year display ─────────────────────────────────────────
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+
+  // Auto-detect: Aug-Dec = 1st sem of currentYear-nextYear, Jan-Jul = 2nd sem of prevYear-currentYear
+  const defaultSemester = currentMonth >= 8 ? "1" : "2";
+  const defaultSchoolYear =
+    currentMonth >= 8
+      ? `${currentYear}-${currentYear + 1}`
+      : `${currentYear - 1}-${currentYear}`;
+
+  const [selectedSemester, setSelectedSemester] = useState(defaultSemester);
+  const [selectedSchoolYear, setSelectedSchoolYear] =
+    useState(defaultSchoolYear);
+
+  // Generate school year options (5 years back, 1 year forward)
+  const schoolYearOptions = Array.from({ length: 7 }, (_, i) => {
+    const startYear = currentYear - 5 + i;
+    return `${startYear}-${startYear + 1}`;
+  });
+
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 bg-blue-200">
@@ -476,6 +499,41 @@ function Dashboard() {
             <p className="text-gray-600 mt-2">
               Manage and view student records
             </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Semester Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="1">1st Semester</option>
+                <option value="2">2nd Semester</option>
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <FaChevronDown className="h-3 w-3 text-gray-400" />
+              </div>
+            </div>
+
+            {/* School Year Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedSchoolYear}
+                onChange={(e) => setSelectedSchoolYear(e.target.value)}
+                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {schoolYearOptions.map((sy) => (
+                  <option key={sy} value={sy}>
+                    {sy}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                <FaChevronDown className="h-3 w-3 text-gray-400" />
+              </div>
+            </div>
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
