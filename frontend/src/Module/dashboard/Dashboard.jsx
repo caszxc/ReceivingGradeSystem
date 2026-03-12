@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import usePagination from "../../hooks/usePagination";
-import PaginationControls from "../../hooks/paginationControls";
+import PaginationControls from "../../hooks/PaginationControls";
 import SortByButton from "../../Components/SortByButton";
 import ExportButton from "../../Components/ExportButton";
 
