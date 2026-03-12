@@ -4,6 +4,7 @@ import Login from "./Module/authentication/Login";
 import Dashboard from "./Module/dashboard/Dashboard";
 import Upload from "./Module/upload/Upload";
 import Layout from "./Components/Layout";
+import ViewStudent from "./Module/dashboard/ViewStudent";
 
 import ManageAccount from "./Module/superadmin/ManageAccount";
 
@@ -19,6 +20,16 @@ function App() {
           </Layout>
         }
       />
+
+      <Route
+        path="/view-student/:id"
+        element={
+          <Layout>
+            <ViewStudent />
+          </Layout>
+        }
+      />
+
       <Route
         path="/upload"
         element={
