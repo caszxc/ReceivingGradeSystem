@@ -63,6 +63,36 @@ function buildWhereClause(query, filters) {
     whereClause.section = filters.section;
   }
 
+  if (filters.dateYearFrom || filters.dateYearTo) {
+    if (!whereClause[Op.and]) whereClause[Op.and] = [];
+
+    if (filters.dateYearFrom && filters.dateYearTo) {
+      // Both: YEAR(date_enrolled) BETWEEN from AND to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.between]: [
+            parseInt(filters.dateYearFrom),
+            parseInt(filters.dateYearTo),
+          ],
+        }),
+      );
+    } else if (filters.dateYearFrom) {
+      // Only from: YEAR(date_enrolled) >= from
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.gte]: parseInt(filters.dateYearFrom),
+        }),
+      );
+    } else {
+      // Only to: YEAR(date_enrolled) <= to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.lte]: parseInt(filters.dateYearTo),
+        }),
+      );
+    }
+  }
+
   return whereClause;
 }
 
@@ -79,6 +109,8 @@ router.get("/getStudent", async (req, res) => {
     semester: req.query.semester,
     course: req.query.course,
     section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
   };
 
   try {
@@ -114,6 +146,8 @@ router.get("/searchStudent", async (req, res) => {
     semester: req.query.semester,
     course: req.query.course,
     section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
   };
 
   try {
@@ -182,11 +216,29 @@ router.get("/getFilterOptions", async (req, res) => {
       raw: true,
     });
 
+    const dateYears = await Student.findAll({
+      attributes: [
+        [
+          sequelize.fn(
+            "DISTINCT",
+            sequelize.fn("YEAR", sequelize.col("date_enrolled")),
+          ),
+          "date_year",
+        ],
+      ],
+      where: {
+        date_enrolled: { [Op.not]: null },
+      },
+      order: [[sequelize.fn("YEAR", sequelize.col("date_enrolled")), "DESC"]],
+      raw: true,
+    });
+
     res.json({
       yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
       semesters: semesters.map((item) => item.semester).filter(Boolean),
       courses: courses.map((item) => item.course).filter(Boolean),
       sections: sections.map((item) => item.section).filter(Boolean),
+      dateYears: dateYears.map((item) => item.date_year).filter(Boolean),
     });
   } catch (err) {
     console.error("Filter options error:", err);

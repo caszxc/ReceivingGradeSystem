@@ -12,13 +12,26 @@ function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
   const dropdownRef = useRef(null);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const [dateYearDropdownOpen, setDateYearDropdownOpen] = useState(false);
   const navigate = useNavigate();
+  const dateYearRef = useRef(null);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const academicYear =
+    currentMonth >= 6
+      ? `${currentYear}-${currentYear + 1}`
+      : `${currentYear - 1}-${currentYear}`;
+  const currentSemester = currentMonth >= 6 ? "1st" : "2nd";
 
   const [filters, setFilters] = useState({
     yearLevel: "",
     semester: "",
     course: "",
     section: "",
+    dateYearFrom: String(currentMonth >= 6 ? currentYear : currentYear - 1),
+    dateYearTo: String(currentMonth >= 6 ? currentYear + 1 : currentYear),
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -26,6 +39,7 @@ function Dashboard() {
     semesters: [],
     courses: [],
     sections: [],
+    dateYears: [],
   });
   // ── Sort state ───────────────────────────────────────────────────────────────
   const [sortBy, setSortBy] = useState("last_name");
@@ -45,6 +59,10 @@ function Dashboard() {
     if (filters.semester) filterParams.append("semester", filters.semester);
     if (filters.course) filterParams.append("course", filters.course);
     if (filters.section) filterParams.append("section", filters.section);
+    if (filters.dateYearFrom)
+      filterParams.append("dateYearFrom", filters.dateYearFrom);
+    if (filters.dateYearTo)
+      filterParams.append("dateYearTo", filters.dateYearTo);
 
     const response = await fetch(
       `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
@@ -58,12 +76,29 @@ function Dashboard() {
     if (filters.semester) filterParams.append("semester", filters.semester);
     if (filters.course) filterParams.append("course", filters.course);
     if (filters.section) filterParams.append("section", filters.section);
+    if (filters.dateYearFrom)
+      filterParams.append("dateYearFrom", filters.dateYearFrom);
+    if (filters.dateYearTo)
+      filterParams.append("dateYearTo", filters.dateYearTo);
 
     const response = await fetch(
       `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
     );
     return await response.json();
   };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+      if (dateYearRef.current && !dateYearRef.current.contains(event.target)) {
+        setDateYearDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -103,6 +138,13 @@ function Dashboard() {
             label: `Section ${section}`,
           })),
         ],
+        dateYears: [
+          { value: "", label: "All Years" },
+          ...data.dateYears.map((year) => ({
+            value: year.toString(),
+            label: year.toString(),
+          })),
+        ],
       });
     } catch (error) {
       console.error("Error fetching filter options:", error);
@@ -112,6 +154,7 @@ function Dashboard() {
         semesters: [{ value: "", label: "All Semesters" }],
         courses: [{ value: "", label: "All Courses" }],
         sections: [{ value: "", label: "All Sections" }],
+        dateYears: [{ value: "", label: "All Years" }],
       });
     } finally {
       setFilterOptionsLoading(false);
@@ -145,6 +188,8 @@ function Dashboard() {
       semester: "",
       course: "",
       section: "",
+      dateYearFrom: "",
+      dateYearTo: "",
     });
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
@@ -465,32 +510,9 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
-  //sa semester display ito
-
-  // ── Semester & School Year display ─────────────────────────────────────────
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
-
-  // Auto-detect: Aug-Dec = 1st sem of currentYear-nextYear, Jan-Jul = 2nd sem of prevYear-currentYear
-  const defaultSemester = currentMonth >= 8 ? "1" : "2";
-  const defaultSchoolYear =
-    currentMonth >= 8
-      ? `${currentYear}-${currentYear + 1}`
-      : `${currentYear - 1}-${currentYear}`;
-
-  const [selectedSemester, setSelectedSemester] = useState(defaultSemester);
-  const [selectedSchoolYear, setSelectedSchoolYear] =
-    useState(defaultSchoolYear);
-
-  // Generate school year options (5 years back, 1 year forward)
-  const schoolYearOptions = Array.from({ length: 7 }, (_, i) => {
-    const startYear = currentYear - 5 + i;
-    return `${startYear}-${startYear + 1}`;
-  });
-
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="p-6 bg-blue-200">
+    <div className="p-6 bg-blue-200 h-screen">
       <div className="max-w-7xl mx-auto">
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 flex items-center justify-between">
@@ -499,41 +521,15 @@ function Dashboard() {
             <p className="text-gray-600 mt-2">
               Manage and view student records
             </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Semester Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="1">1st Semester</option>
-                <option value="2">2nd Semester</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <FaChevronDown className="h-3 w-3 text-gray-400" />
-              </div>
-            </div>
-
-            {/* School Year Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedSchoolYear}
-                onChange={(e) => setSelectedSchoolYear(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {schoolYearOptions.map((sy) => (
-                  <option key={sy} value={sy}>
-                    {sy}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <FaChevronDown className="h-3 w-3 text-gray-400" />
-              </div>
-            </div>
+            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
+              {filters.semester
+                ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
+                : "All Semester"}{" "}
+              A.Y.{" "}
+              {filters.dateYearFrom && filters.dateYearTo
+                ? `${filters.dateYearFrom}-${filters.dateYearTo}`
+                : academicYear}
+            </span>
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
@@ -618,8 +614,8 @@ function Dashboard() {
           </div>
 
           {filterOptionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, index) => (
                 <div key={index} className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
                   <div className="h-10 bg-gray-200 rounded"></div>
@@ -628,7 +624,7 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Year Level Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -776,13 +772,107 @@ function Dashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Date Year Range Filter */}
+                <div className="relative " ref={dateYearRef}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date Year
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDateYearDropdownOpen(!dateYearDropdownOpen)
+                    }
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer text-left text-sm"
+                  >
+                    {filters.dateYearFrom || filters.dateYearTo
+                      ? `${filters.dateYearFrom || "..."} — ${filters.dateYearTo || "..."}`
+                      : "All Years"}
+                  </button>
+                  <div
+                    className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
+                    style={{ top: "28px" }}
+                  >
+                    <svg
+                      className="h-4 w-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+
+                  {dateYearDropdownOpen && (
+                    <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 left-1/2 -translate-x-1/2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-500 mb-1">
+                            From
+                          </label>
+                          <select
+                            value={filters.dateYearFrom}
+                            onChange={(e) =>
+                              handleFilterChange("dateYearFrom", e.target.value)
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            {filterOptions.dateYears
+                              .filter((opt) => opt.value !== "")
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <span className="text-gray-400 mt-5">—</span>
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-500 mb-1">
+                            To
+                          </label>
+                          <select
+                            value={filters.dateYearTo}
+                            onChange={(e) =>
+                              handleFilterChange("dateYearTo", e.target.value)
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            {filterOptions.dateYears
+                              .filter(
+                                (opt) =>
+                                  opt.value !== "" &&
+                                  (!filters.dateYearFrom ||
+                                    parseInt(opt.value) >=
+                                      parseInt(filters.dateYearFrom)),
+                              )
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Active Filters Display */}
-              {(filters.yearLevel ||
+              {/* {(filters.yearLevel ||
                 filters.semester ||
                 filters.course ||
-                filters.section) && (
+                filters.section ||
+                filters.dateYearFrom ||
+                filters.dateYearTo) && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-700">
@@ -848,10 +938,30 @@ function Dashboard() {
                           </button>
                         </span>
                       )}
+                      {(filters.dateYearFrom || filters.dateYearTo) && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Date Year: {filters.dateYearFrom || "..."} —{" "}
+                          {filters.dateYearTo || "..."}
+                          <button
+                            onClick={() => {
+                              handleFilterChange("dateYearFrom", "");
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateYearFrom: "",
+                                dateYearTo: "",
+                              }));
+                              fetchData(1, searchQuery, itemsPerPage);
+                            }}
+                            className="ml-1 text-orange-600 hover:text-orange-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </>
           )}
         </div>
