@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 // Student routes
 app.use("/students", require("./routes/student.routes"));
 app.use("/auth", require("./routes/authentication.route"));
+app.use("/accounts", require("./routes/accountManagement.route"));
 
 // Sync DB and start server
 db.sequelize.sync({ alter: true }).then(() => {

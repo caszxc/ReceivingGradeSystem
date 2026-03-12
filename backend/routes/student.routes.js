@@ -1,7 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { Student } = require("../models/association");
+const sharp = require("sharp");
+const { Student, StudentImage } = require("../models/association");
 const { Op } = require("sequelize");
+const sequelize = require("../config/database");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const csv = require("csv-parser");
@@ -27,6 +29,73 @@ function getSortOrder(sortBy, sortOrder) {
   return [[col, dir]];
 }
 
+function buildWhereClause(query, filters) {
+  let whereClause = {};
+
+  // Handle search query
+  if (query && query.trim() !== "") {
+    whereClause[Op.or] = [
+      { student_number: { [Op.like]: `%${query}%` } },
+      { first_name: { [Op.like]: `%${query}%` } },
+      { middle_name: { [Op.like]: `%${query}%` } },
+      { last_name: { [Op.like]: `%${query}%` } },
+      { course: { [Op.like]: `%${query}%` } },
+      { card_type: { [Op.like]: `%${query}%` } },
+      { card_status: { [Op.like]: `%${query}%` } },
+      { card_serial_number: { [Op.like]: `%${query}%` } },
+    ];
+  }
+
+  // Handle filters - these need to be combined with AND logic
+  if (filters.yearLevel) {
+    whereClause.year_level = filters.yearLevel;
+  }
+
+  if (filters.semester) {
+    whereClause.semester = filters.semester;
+  }
+
+  if (filters.course) {
+    whereClause.course = { [Op.like]: `%${filters.course}%` };
+  }
+
+  if (filters.section) {
+    whereClause.section = filters.section;
+  }
+
+  if (filters.dateYearFrom || filters.dateYearTo) {
+    if (!whereClause[Op.and]) whereClause[Op.and] = [];
+
+    if (filters.dateYearFrom && filters.dateYearTo) {
+      // Both: YEAR(date_enrolled) BETWEEN from AND to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.between]: [
+            parseInt(filters.dateYearFrom),
+            parseInt(filters.dateYearTo),
+          ],
+        }),
+      );
+    } else if (filters.dateYearFrom) {
+      // Only from: YEAR(date_enrolled) >= from
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.gte]: parseInt(filters.dateYearFrom),
+        }),
+      );
+    } else {
+      // Only to: YEAR(date_enrolled) <= to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.lte]: parseInt(filters.dateYearTo),
+        }),
+      );
+    }
+  }
+
+  return whereClause;
+}
+
 // Get paginated student list
 router.get("/getStudent", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -34,8 +103,21 @@ router.get("/getStudent", async (req, res) => {
   const offset = (page - 1) * limit;
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
+  // Extract filter parameters
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
+  };
+
   try {
+    const whereClause = buildWhereClause("", filters);
+
     const result = await Student.findAndCountAll({
+      where: whereClause,
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
@@ -58,25 +140,108 @@ router.get("/searchStudent", async (req, res) => {
     return res.status(400).json({ error: "Search query is required" });
   }
 
+  // Extract filter parameters
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
+  };
+
   try {
+    const whereClause = buildWhereClause(query, filters);
+
     const result = await Student.findAndCountAll({
-      where: {
-        [Op.or]: [
-          { student_number: { [Op.like]: `%${query}%` } },
-          { first_name: { [Op.like]: `%${query}%` } },
-          { middle_name: { [Op.like]: `%${query}%` } },
-          { last_name: { [Op.like]: `%${query}%` } },
-          { course: { [Op.like]: `%${query}%` } },
-          { card_type: { [Op.like]: `%${query}%` } },
-          { card_status: { [Op.like]: `%${query}%` } },
-        ],
-      },
+      where: whereClause,
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
     });
     res.json(result);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/getFilterOptions", async (req, res) => {
+  try {
+    // Get distinct year levels
+    const yearLevels = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("year_level")), "year_level"],
+      ],
+      where: {
+        year_level: { [Op.not]: null },
+      },
+      order: [["year_level", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct semesters
+    const semesters = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("semester")), "semester"],
+      ],
+      where: {
+        semester: { [Op.not]: null },
+      },
+      order: [["semester", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct courses
+    const courses = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("course")), "course"],
+      ],
+      where: {
+        course: { [Op.not]: null },
+        course: { [Op.ne]: "" },
+      },
+      order: [["course", "ASC"]],
+      raw: true,
+    });
+
+    // Get distinct sections
+    const sections = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      where: {
+        section: { [Op.not]: null },
+      },
+      order: [["section", "ASC"]],
+      raw: true,
+    });
+
+    const dateYears = await Student.findAll({
+      attributes: [
+        [
+          sequelize.fn(
+            "DISTINCT",
+            sequelize.fn("YEAR", sequelize.col("date_enrolled")),
+          ),
+          "date_year",
+        ],
+      ],
+      where: {
+        date_enrolled: { [Op.not]: null },
+      },
+      order: [[sequelize.fn("YEAR", sequelize.col("date_enrolled")), "DESC"]],
+      raw: true,
+    });
+
+    res.json({
+      yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
+      semesters: semesters.map((item) => item.semester).filter(Boolean),
+      courses: courses.map((item) => item.course).filter(Boolean),
+      sections: sections.map((item) => item.section).filter(Boolean),
+      dateYears: dateYears.map((item) => item.date_year).filter(Boolean),
+    });
+  } catch (err) {
+    console.error("Filter options error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -98,7 +263,10 @@ router.get("/exportStudents", async (req, res) => {
   // ids may come as ids[]=1&ids[]=2 or ids=1,2
   let ids = req.query["ids[]"] || req.query.ids;
   if (ids && !Array.isArray(ids)) {
-    ids = ids.split(",").map((x) => parseInt(x.trim())).filter(Boolean);
+    ids = ids
+      .split(",")
+      .map((x) => parseInt(x.trim()))
+      .filter(Boolean);
   } else if (Array.isArray(ids)) {
     ids = ids.map((x) => parseInt(x)).filter(Boolean);
   }
@@ -156,8 +324,12 @@ router.get("/exportStudents", async (req, res) => {
     const worksheet = xlsx.utils.json_to_sheet(exportData);
     xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    const scopeLabel = scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    const scopeLabel =
+      scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
     const filename = `students_export_${scopeLabel}_${timestamp}`;
 
     if (format === "csv") {
@@ -165,18 +337,18 @@ router.get("/exportStudents", async (req, res) => {
       res.setHeader("Content-Type", "text/csv");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.csv"`
+        `attachment; filename="${filename}.csv"`,
       );
       res.send(csvOutput);
     } else {
       const buffer = xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
       res.setHeader(
         "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       );
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.xlsx"`
+        `attachment; filename="${filename}.xlsx"`,
       );
       res.send(buffer);
     }
@@ -422,5 +594,217 @@ function isValidDate(dateString) {
   const date = new Date(dateString);
   return date instanceof Date && !isNaN(date);
 }
+
+// Enroll student
+router.patch("/enrollStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    student.isEnrolled = true;
+    student.date_enrolled = new Date();
+    await student.save();
+
+    res.json({ message: "Student enrolled successfully", student });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add Student
+router.post("/addStudent", async (req, res) => {
+  try {
+    const {
+      card_serial_number,
+      student_number,
+      first_name,
+      middle_name,
+      last_name,
+      course,
+      year_level,
+      section,
+    } = req.body;
+
+    // Validate that serial number is provided
+    if (!card_serial_number || card_serial_number.trim() === "") {
+      return res.status(400).json({ error: "Serial number is required" });
+    }
+
+    // Check if serial number already exists
+    const existingStudent = await Student.findOne({
+      where: { card_serial_number: card_serial_number.toUpperCase() },
+    });
+
+    if (existingStudent) {
+      return res.status(400).json({ error: "Serial number already exists" });
+    }
+
+    // Create new student with separate name fields
+    const newStudent = await Student.create({
+      card_serial_number,
+      student_number: student_number || null,
+      first_name: first_name || null,
+      middle_name: middle_name || null,
+      last_name: last_name || null,
+      course: course || null,
+      year_level: year_level ? parseInt(year_level) : null,
+      section: section ? parseInt(section) : null,
+    });
+
+    res.json({
+      success: true,
+      message: "Student added successfully",
+      student: newStudent,
+    });
+  } catch (err) {
+    console.error("Add student error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/viewStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id, {
+      attributes: [
+        "id",
+        "first_name",
+        "middle_name",
+        "last_name",
+        "student_number",
+        "course",
+        "section",
+        "year_level",
+        "semester",
+        "isEnrolled",
+      ],
+    });
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    res.json(student);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put("/updateStudent/:id", async (req, res) => {
+  try {
+    const student = await Student.findByPk(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const {
+      first_name,
+      middle_name,
+      last_name,
+      student_number,
+      course,
+      section,
+      year_level,
+      semester,
+    } = req.body;
+
+    await student.update({
+      first_name: first_name ?? student.first_name,
+      middle_name: middle_name ?? student.middle_name,
+      last_name: last_name ?? student.last_name,
+      student_number: student_number ?? student.student_number,
+      course: course ?? student.course,
+      section: section ? parseInt(section) : student.section,
+      year_level: year_level ? parseInt(year_level) : student.year_level,
+      semester: semester ? parseInt(semester) : student.semester,
+    });
+
+    res.json({
+      success: true,
+      message: "Student updated successfully",
+      student,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/uploadImage/:id", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file uploaded" });
+    }
+
+    const studentId = parseInt(req.params.id);
+    const student = await Student.findByPk(studentId);
+    if (!student) {
+      fs.unlinkSync(req.file.path);
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Validate mime type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      fs.unlinkSync(req.file.path);
+      return res
+        .status(400)
+        .json({ error: "Only JPEG, PNG, and WebP images are allowed" });
+    }
+
+    // Read and compress with sharp
+    const compressedBuffer = await sharp(req.file.path)
+      .resize(400, 400, { fit: "cover" })
+      .jpeg({ quality: 70 })
+      .toBuffer();
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
+
+    // Upsert — update if exists, create if not
+    const [image, created] = await StudentImage.findOrCreate({
+      where: { student_id: studentId },
+      defaults: {
+        image_data: compressedBuffer,
+        mime_type: "image/jpeg",
+        original_name: req.file.originalname,
+        file_size: compressedBuffer.length,
+      },
+    });
+
+    if (!created) {
+      await image.update({
+        image_data: compressedBuffer,
+        mime_type: "image/jpeg",
+        original_name: req.file.originalname,
+        file_size: compressedBuffer.length,
+      });
+    }
+
+    res.json({ success: true, message: "Image uploaded successfully" });
+  } catch (err) {
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (_) {}
+    }
+    console.error("Image upload error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/getImage/:id", async (req, res) => {
+  try {
+    const image = await StudentImage.findOne({
+      where: { student_id: parseInt(req.params.id) },
+    });
+
+    if (!image) {
+      return res.status(404).json({ error: "No image found" });
+    }
+
+    res.set("Content-Type", image.mime_type);
+    res.set("Cache-Control", "public, max-age=3600");
+    res.send(image.image_data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
