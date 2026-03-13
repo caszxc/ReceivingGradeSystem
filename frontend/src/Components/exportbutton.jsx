@@ -80,7 +80,7 @@ async function fetchStudentData({
 
 // ── PDF renderer ──────────────────────────────────────────────────────────────
 function renderPdf({ students, filters, scope, now }) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -163,16 +163,16 @@ function renderPdf({ students, filters, scope, now }) {
     bodyStyles: { fontSize: 7.5, textColor: [31, 41, 55] },
     alternateRowStyles: { fillColor: [239, 246, 255] },
     columnStyles: {
-      0:  { halign: "center", cellWidth: 8  },
-      1:  { cellWidth: 24 },
-      2:  { cellWidth: 52 },
-      3:  { cellWidth: 22 },
-      4:  { halign: "center", cellWidth: 10 },
-      5:  { halign: "center", cellWidth: 10 },
-      6:  { halign: "center", cellWidth: 10 },
-      7:  { cellWidth: 22 },
-      8:  { cellWidth: 18 },
-      9:  { cellWidth: 22 },
+      0: { halign: "center", cellWidth: 8 },
+      1: { cellWidth: 24 },
+      2: { cellWidth: 52 },
+      3: { cellWidth: 22 },
+      4: { halign: "center", cellWidth: 10 },
+      5: { halign: "center", cellWidth: 10 },
+      6: { halign: "center", cellWidth: 10 },
+      7: { cellWidth: 22 },
+      8: { cellWidth: 18 },
+      9: { cellWidth: 22 },
       10: { cellWidth: 25 },
     },
     margin: { left: 14, right: 14 },
@@ -266,13 +266,12 @@ function FormatSubMenu({
         onClick={() =>
           !disabled && onSetScope(activeScope === scope ? null : scope)
         }
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
-          disabled
+        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${disabled
             ? "text-gray-300 cursor-not-allowed"
             : activeScope === scope
               ? "bg-blue-600 text-white cursor-pointer"
               : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
-        }`}
+          }`}
       >
         <span className="flex items-center gap-2">
           {label}
@@ -492,11 +491,11 @@ function ExportButton({
               filters.semester ||
               filters.course ||
               filters.section) && (
-              <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 leading-snug">
-                <span className="font-semibold">Filtered: </span>
-                {filterSummary}
-              </div>
-            )}
+                <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 leading-snug">
+                  <span className="font-semibold">Filtered: </span>
+                  {filterSummary}
+                </div>
+              )}
 
             <FormatSubMenu
               scope="all"
