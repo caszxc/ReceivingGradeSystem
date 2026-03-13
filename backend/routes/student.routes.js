@@ -271,6 +271,16 @@ router.get("/exportStudents", async (req, res) => {
     ids = ids.map((x) => parseInt(x)).filter(Boolean);
   }
 
+  // Extract filter parameters (same as getStudent / searchStudent)
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
+  };
+
   try {
     let whereClause = {};
     const orderClause = getSortOrder(sortBy, sortOrder);
@@ -278,18 +288,9 @@ router.get("/exportStudents", async (req, res) => {
     // Build where clause
     if (scope === "selected" && ids && ids.length > 0) {
       whereClause = { id: { [Op.in]: ids } };
-    } else if (query && query.trim() !== "") {
-      whereClause = {
-        [Op.or]: [
-          { student_number: { [Op.like]: `%${query}%` } },
-          { first_name: { [Op.like]: `%${query}%` } },
-          { middle_name: { [Op.like]: `%${query}%` } },
-          { last_name: { [Op.like]: `%${query}%` } },
-          { course: { [Op.like]: `%${query}%` } },
-          { card_type: { [Op.like]: `%${query}%` } },
-          { card_status: { [Op.like]: `%${query}%` } },
-        ],
-      };
+    } else {
+      // Apply search query + all active filters
+      whereClause = buildWhereClause(query || "", filters);
     }
 
     let findOptions = { where: whereClause, order: orderClause };

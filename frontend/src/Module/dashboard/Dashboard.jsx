@@ -595,6 +595,7 @@ function Dashboard() {
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               selectedIds={selectedIds}
+              filters={filters}
             />
             <AddStudentButton onAdd={addStudent} />
           </div>
