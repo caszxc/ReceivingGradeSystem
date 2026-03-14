@@ -97,7 +97,7 @@ function loadImageAsDataUrl(src) {
 
 // ── PDF renderer ──────────────────────────────────────────────────────────────
 async function renderPdf({ students, filters, scope, now }) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const marginLeft = 14;
@@ -106,7 +106,7 @@ async function renderPdf({ students, filters, scope, now }) {
   // ── Load PLV logo ─────────────────────────────────────────────────────────
   let logoDataUrl = null;
   try {
-    logoDataUrl = await loadImageAsDataUrl("/assets/PLVLogo.png");
+    logoDataUrl = await loadImageAsDataUrl("/assets/PLV_Logo.png");
   } catch (e) {
     console.warn("Could not load PLV logo for PDF header:", e);
   }
@@ -138,23 +138,23 @@ async function renderPdf({ students, filters, scope, now }) {
     let y = 10;
 
     // Logo
-    const logoSize = 18;
-    const logoX = centerX - 55;
+    const logoSize = 16;
+    const logoX = centerX - 70;
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, "PNG", logoX, y - 4, logoSize, logoSize);
+      doc.addImage(logoDataUrl, "PNG", logoX, y - 3, logoSize, logoSize);
     }
 
     // University name
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX + 2, y + 1, {
       align: "center",
     });
 
     // STUDENT MASTERLIST
     y += 6;
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("STUDENT MASTERLIST", centerX + 2, y + 1, { align: "center" });
 
@@ -230,30 +230,30 @@ async function renderPdf({ students, filters, scope, now }) {
       fillColor: [255, 255, 255],
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 7.5,
+      fontSize: 6.5,
       halign: "center",
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
     },
     bodyStyles: {
-      fontSize: 7,
+      fontSize: 6,
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
     },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
-      0: { halign: "center", cellWidth: 8 },
-      1: { cellWidth: 24 },
-      2: { cellWidth: 52 },
-      3: { cellWidth: 22 },
-      4: { halign: "center", cellWidth: 10 },
-      5: { halign: "center", cellWidth: 14 },
-      6: { halign: "center", cellWidth: 10 },
-      7: { cellWidth: 22 },
-      8: { cellWidth: 18 },
-      9: { cellWidth: 22 },
-      10: { cellWidth: 25 },
+      0: { halign: "center", cellWidth: 7 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 38 },
+      3: { cellWidth: 18 },
+      4: { halign: "center", cellWidth: 8 },
+      5: { halign: "center", cellWidth: 10 },
+      6: { halign: "center", cellWidth: 8 },
+      7: { cellWidth: 18 },
+      8: { cellWidth: 15 },
+      9: { cellWidth: 20 },
+      10: { cellWidth: 20 },
     },
     margin: { left: marginLeft, right: marginRight },
     didDrawPage: (data) => {
@@ -348,10 +348,10 @@ function FormatSubMenu({
           !disabled && onSetScope(activeScope === scope ? null : scope)
         }
         className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${disabled
-            ? "text-gray-300 cursor-not-allowed"
-            : activeScope === scope
-              ? "bg-blue-600 text-white cursor-pointer"
-              : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
+          ? "text-gray-300 cursor-not-allowed"
+          : activeScope === scope
+            ? "bg-blue-600 text-white cursor-pointer"
+            : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
           }`}
       >
         <span className="flex items-center gap-2">
