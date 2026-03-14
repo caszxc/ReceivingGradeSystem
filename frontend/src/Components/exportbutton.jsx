@@ -78,57 +78,130 @@ async function fetchStudentData({
   return data.rows ?? data;
 }
 
+// ── Load image as data URL ────────────────────────────────────────────────────
+function loadImageAsDataUrl(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 // ── PDF renderer ──────────────────────────────────────────────────────────────
-function renderPdf({ students, filters, scope, now }) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+async function renderPdf({ students, filters, scope, now }) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+  const marginLeft = 14;
+  const marginRight = 14;
 
-  // Header band
-  doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, pageWidth, 28, "F");
+  // ── Load PLV logo ─────────────────────────────────────────────────────────
+  let logoDataUrl = null;
+  try {
+    logoDataUrl = await loadImageAsDataUrl("/assets/PLVLogo.png");
+  } catch (e) {
+    console.warn("Could not load PLV logo for PDF header:", e);
+  }
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text("Student Enrollment Report", 14, 12);
+  // ── Build dynamic header text from filters ────────────────────────────────
+  const semLabel = filters?.semester
+    ? getSemesterLabel(filters.semester)
+    : "";
+  const ayFrom = filters?.dateYearFrom || "";
+  const ayTo = filters?.dateYearTo || "";
+  const schoolYear =
+    ayFrom && ayTo ? `School Year ${ayFrom} - ${ayTo}` : "";
+  const semesterLine =
+    semLabel && schoolYear
+      ? `${semLabel} ${schoolYear}`
+      : semLabel || schoolYear || "";
 
-  const filterSummary = buildFilterSummary(filters);
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text(filterSummary, 14, 20);
+  const enrollmentLine =
+    semLabel && ayFrom && ayTo
+      ? `MASTERLIST ENROLLMENT ${semLabel.toUpperCase()} A.Y (${ayFrom}-${ayTo})`
+      : "MASTERLIST ENROLLMENT";
 
-  const printedOn = now.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const printedAt = now.toLocaleTimeString("en-PH", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  doc.setFontSize(7);
-  doc.text(
-    `Printed: ${printedOn}  ${printedAt}`,
-    pageWidth - 14,
-    12,
-    { align: "right" }
-  );
-  doc.text(
-    `Total records: ${students.length}`,
-    pageWidth - 14,
-    18,
-    { align: "right" }
-  );
-  const scopeText =
-    scope === "page"
-      ? "Current Page"
-      : scope === "selected"
-        ? "Selected Rows"
-        : "All Records";
-  doc.text(`Scope: ${scopeText}`, pageWidth - 14, 24, { align: "right" });
+  const courseName = filters?.course || "";
+  const sectionName = filters?.section || "";
 
-  // Table
+  // ── Draw header (first page) ──────────────────────────────────────────────
+  function drawHeader(doc) {
+    const centerX = pageWidth / 2;
+    let y = 10;
+
+    // Logo
+    const logoSize = 18;
+    const logoX = centerX - 55;
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, "PNG", logoX, y - 4, logoSize, logoSize);
+    }
+
+    // University name
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX + 2, y + 1, {
+      align: "center",
+    });
+
+    // STUDENT MASTERLIST
+    y += 6;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("STUDENT MASTERLIST", centerX + 2, y + 1, { align: "center" });
+
+    // Semester / School Year line
+    if (semesterLine) {
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(semesterLine, centerX + 2, y + 1, { align: "center" });
+    }
+
+    // Divider line
+    y += 6;
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.3);
+    doc.line(marginLeft, y, pageWidth - marginRight, y);
+
+    // Enrollment line
+    y += 5;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text(enrollmentLine, marginLeft, y);
+
+    // Course and Section row
+    y += 5;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    if (courseName) {
+      doc.text(`Course : ${courseName}`, marginLeft, y);
+    }
+    if (sectionName) {
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `Section :  ${sectionName}`,
+        pageWidth - marginRight,
+        y,
+        { align: "right" }
+      );
+    }
+
+    y += 3;
+    return y; // next content Y
+  }
+
+  const tableStartY = drawHeader(doc);
+
+  // ── Table ──────────────────────────────────────────────────────────────────
   const rows = students.map((s, i) => [
     i + 1,
     s.student_number ?? "—",
@@ -146,48 +219,56 @@ function renderPdf({ students, filters, scope, now }) {
   ]);
 
   autoTable(doc, {
-    startY: 32,
+    startY: tableStartY,
     head: [[
       "#", "Student No.", "Full Name", "Course", "Yr", "Sec",
       "Sem", "Card Type", "Status", "Serial #", "Date Enrolled",
     ]],
     body: rows,
-    theme: "striped",
+    theme: "grid",
     headStyles: {
-      fillColor: [30, 64, 175],
-      textColor: 255,
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 8,
+      fontSize: 7.5,
       halign: "center",
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
     },
-    bodyStyles: { fontSize: 7.5, textColor: [31, 41, 55] },
-    alternateRowStyles: { fillColor: [239, 246, 255] },
+    bodyStyles: {
+      fontSize: 7,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+    },
+    alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: "center", cellWidth: 8 },
       1: { cellWidth: 24 },
       2: { cellWidth: 52 },
       3: { cellWidth: 22 },
       4: { halign: "center", cellWidth: 10 },
-      5: { halign: "center", cellWidth: 10 },
+      5: { halign: "center", cellWidth: 14 },
       6: { halign: "center", cellWidth: 10 },
       7: { cellWidth: 22 },
       8: { cellWidth: 18 },
       9: { cellWidth: 22 },
       10: { cellWidth: 25 },
     },
-    margin: { left: 14, right: 14 },
+    margin: { left: marginLeft, right: marginRight },
     didDrawPage: (data) => {
+      // Footer
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFontSize(7);
-      doc.setTextColor(150);
+      doc.setTextColor(120);
       doc.text(
         `Page ${data.pageNumber} of ${pageCount}`,
         pageWidth / 2,
         pageHeight - 5,
         { align: "center" }
       );
-      doc.setDrawColor(200);
-      doc.line(14, pageHeight - 8, pageWidth - 14, pageHeight - 8);
+      doc.setDrawColor(180);
+      doc.line(marginLeft, pageHeight - 8, pageWidth - marginRight, pageHeight - 8);
     },
   });
 
@@ -196,7 +277,7 @@ function renderPdf({ students, filters, scope, now }) {
       ? `AY_${filters.dateYearFrom}-${filters.dateYearTo}`
       : "ALL";
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  doc.save(`student_report_${ayLabel}_${timestamp}.pdf`);
+  doc.save(`student_masterlist_${ayLabel}_${timestamp}.pdf`);
 }
 
 // ── xlsx / csv downloader (backend) ──────────────────────────────────────────
@@ -428,7 +509,7 @@ function ExportButton({
 
     try {
       if (format === "pdf") {
-        renderPdf({ students, filters: params.filters, scope, now: new Date() });
+        await renderPdf({ students, filters: params.filters, scope, now: new Date() });
       } else {
         await downloadFile(params);
       }
