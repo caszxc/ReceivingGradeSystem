@@ -96,7 +96,7 @@ function loadImageAsDataUrl(src) {
 }
 
 // ── PDF renderer ──────────────────────────────────────────────────────────────
-async function renderPdf({ students, filters, scope, now }) {
+async function renderPdf({ students, filters, scope, now, withSignature }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -202,16 +202,28 @@ async function renderPdf({ students, filters, scope, now }) {
   const tableStartY = drawHeader(doc);
 
   // ── Table ──────────────────────────────────────────────────────────────────
-  const rows = students.map((s, i) => [
+  const baseRow = (s, i) => [
     i + 1,
     [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
     s.student_number ?? "—",
     s.isEnrolled ? "Enrolled" : "Not Enrolled",
-  ]);
+  ];
+  const rows = students.map((s, i) =>
+    withSignature ? [...baseRow(s, i), ""] : baseRow(s, i)
+  );
+
+  // Column widths adjust when signature column is present
+  const nameWidth   = withSignature ? 65 : 90;
+  const sigColStyle = withSignature
+    ? { 4: { cellWidth: 42 } }
+    : {};
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [["#", "Name", "Student No.", "Enrolled"]],  
+    head: [withSignature
+      ? ["#", "Name", "Student No.", "Enrolled", "Signature"]
+      : ["#", "Name", "Student No.", "Enrolled"],
+    ],
     body: rows,
     theme: "grid",
     headStyles: {
@@ -232,9 +244,10 @@ async function renderPdf({ students, filters, scope, now }) {
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
       0: { halign: "center", cellWidth: 10 },
-      1: { cellWidth: 90 },
+      1: { cellWidth: nameWidth },
       2: { cellWidth: 40 },
       3: { halign: "center", cellWidth: 32 },
+      ...sigColStyle,
     },
     margin: { left: marginLeft, right: marginRight },
     didDrawPage: (data) => {
@@ -481,7 +494,7 @@ function ExportButton({
   );
 
   // ── Confirm: do the actual export ────────────────────────────────────────
-  const handleConfirm = useCallback(async () => {
+  const handleConfirm = useCallback(async (withSignature = false) => {
     const { scope, format, students } = preview;
     const params = pendingRef.current;
     if (!params) return;
@@ -490,7 +503,7 @@ function ExportButton({
 
     try {
       if (format === "pdf") {
-        await renderPdf({ students, filters: params.filters, scope, now: new Date() });
+        await renderPdf({ students, filters: params.filters, scope, now: new Date(), withSignature });
       } else {
         await downloadFile(params);
       }

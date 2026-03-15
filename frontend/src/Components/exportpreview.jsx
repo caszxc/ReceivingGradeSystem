@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // ── Format meta ───────────────────────────────────────────────────────────────
 const FORMAT_META = {
@@ -97,11 +97,25 @@ function ExportPreview({
   format,           // "pdf" | "xlsx" | "csv"
   scope,            // "all" | "page" | "selected"
   filterSummary,    // string
-  onConfirm,        // () => void – trigger the actual download
+  onConfirm,        // (withSignature: boolean) => void – trigger the actual download
   onClose,          // () => void
 }) {
   const overlayRef = useRef(null);
   const panelRef   = useRef(null);
+  const [withSignature, setWithSignature] = useState(false);
+
+  // Reset checkbox whenever the modal opens
+  useEffect(() => {
+    if (isOpen) setWithSignature(false);
+  }, [isOpen]);
+
+  // Build the displayed columns dynamically (signature col appended for PDF)
+  const displayColumns = [
+    ...COLUMNS,
+    ...(format === "pdf" && withSignature
+      ? [{ key: "signature", label: "Signature", width: "w-40", align: "text-center" }]
+      : []),
+  ];
 
   // Close on Escape
   useEffect(() => {
@@ -211,7 +225,7 @@ function ExportPreview({
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="sticky top-0 z-10">
-                  {COLUMNS.map((col) => (
+                  {displayColumns.map((col) => (
                     <th
                       key={col.key}
                       className={`${col.width} ${col.align} px-3 py-2.5 bg-gray-800 text-gray-100 text-xs font-semibold uppercase tracking-wide whitespace-nowrap border-r border-gray-700 last:border-r-0`}
@@ -229,16 +243,20 @@ function ExportPreview({
                       i % 2 === 0 ? "bg-white hover:bg-blue-50" : "bg-blue-50/40 hover:bg-blue-100/50"
                     }`}
                   >
-                    {COLUMNS.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`${col.align} px-3 py-2 text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0 ${
-                          col.key === "no" ? "text-gray-400 font-mono text-xs" : ""
-                        }`}
-                      >
-                        {getCellValue(col, student, i)}
-                      </td>
-                    ))}
+                     {displayColumns.map((col) => (
+                       <td
+                         key={col.key}
+                         className={`${col.align} px-3 py-2 text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0 ${
+                           col.key === "no" ? "text-gray-400 font-mono text-xs" : ""
+                         }`}
+                       >
+                         {col.key === "signature" ? (
+                           <span className="block w-32 border-b border-gray-400 mx-auto" />
+                         ) : (
+                           getCellValue(col, student, i)
+                         )}
+                       </td>
+                     ))}
                   </tr>
                 ))}
               </tbody>
@@ -248,12 +266,51 @@ function ExportPreview({
 
         {/* ── Footer ─────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-          {/* Left: info */}
-          <p className="text-xs text-gray-400">
-            {loading
-              ? "Please wait while we fetch your data…"
-              : `Preview shows all ${totalRows.toLocaleString()} record${totalRows !== 1 ? "s" : ""} that will be included in the ${meta.label} file.`}
-          </p>
+          {/* Left: info + PDF-only signature toggle */}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs text-gray-400">
+              {loading
+                ? "Please wait while we fetch your data…"
+                : `Preview shows all ${totalRows.toLocaleString()} record${totalRows !== 1 ? "s" : ""} that will be included in the ${meta.label} file.`}
+            </p>
+
+            {/* Signature checkbox — PDF only */}
+            {format === "pdf" && (
+              <label className="inline-flex items-center gap-2 cursor-pointer select-none group">
+                <span
+                  className={`relative flex-shrink-0 w-4 h-4 rounded border-2 transition-colors ${
+                    withSignature
+                      ? "bg-red-600 border-red-600"
+                      : "bg-white border-gray-300 group-hover:border-red-400"
+                  }`}
+                >
+                  <input
+                    id="sig-checkbox"
+                    type="checkbox"
+                    checked={withSignature}
+                    onChange={(e) => setWithSignature(e.target.checked)}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                  {withSignature && (
+                    <svg
+                      className="absolute inset-0 w-3 h-3 m-auto text-white"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="1.5,6 4.5,9 10.5,3" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-800 transition-colors">
+                  Include Signature Column
+                </span>
+              </label>
+            )}
+          </div>
 
           {/* Right: actions */}
           <div className="flex items-center gap-3">
@@ -265,7 +322,7 @@ function ExportPreview({
             </button>
             <button
               disabled={loading || totalRows === 0}
-              onClick={onConfirm}
+              onClick={() => onConfirm(withSignature)}
               className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${meta.btnClass}`}
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
