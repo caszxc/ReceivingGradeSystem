@@ -204,56 +204,37 @@ async function renderPdf({ students, filters, scope, now }) {
   // ── Table ──────────────────────────────────────────────────────────────────
   const rows = students.map((s, i) => [
     i + 1,
-    s.student_number ?? "—",
     [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
-    s.course ?? "—",
-    s.year_level ?? "—",
-    s.section ?? "—",
-    s.semester ?? "—",
-    s.card_type ?? "—",
+    s.student_number ?? "—",
     s.card_status ?? "—",
-    s.card_serial_number ?? "—",
-    s.date_enrolled
-      ? new Date(s.date_enrolled).toLocaleDateString("en-PH")
-      : "—",
   ]);
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [[
-      "#", "Student No.", "Full Name", "Course", "Yr", "Sec",
-      "Sem", "Card Type", "Status", "Serial #", "Date Enrolled",
-    ]],
+    head: [["#", "Name", "Student No.", "Status"]],
     body: rows,
     theme: "grid",
     headStyles: {
       fillColor: [255, 255, 255],
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 6.5,
+      fontSize: 7,
       halign: "center",
       lineColor: [0, 0, 0],
       lineWidth: 0.3,
     },
     bodyStyles: {
-      fontSize: 6,
+      fontSize: 7,
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
       lineWidth: 0.2,
     },
     alternateRowStyles: { fillColor: [245, 245, 245] },
     columnStyles: {
-      0: { halign: "center", cellWidth: 7 },
-      1: { cellWidth: 20 },
-      2: { cellWidth: 38 },
-      3: { cellWidth: 18 },
-      4: { halign: "center", cellWidth: 8 },
-      5: { halign: "center", cellWidth: 10 },
-      6: { halign: "center", cellWidth: 8 },
-      7: { cellWidth: 18 },
-      8: { cellWidth: 15 },
-      9: { cellWidth: 20 },
-      10: { cellWidth: 20 },
+      0: { halign: "center", cellWidth: 10 },
+      1: { cellWidth: 90 },
+      2: { cellWidth: 40 },
+      3: { halign: "center", cellWidth: 32 },
     },
     margin: { left: marginLeft, right: marginRight },
     didDrawPage: (data) => {

@@ -306,19 +306,11 @@ router.get("/exportStudents", async (req, res) => {
     const students = await Student.findAll(findOptions);
 
     // Map to plain export-friendly objects
-    const exportData = students.map((s) => ({
-      "Student Number": s.student_number,
-      "First Name": s.first_name,
-      "Middle Name": s.middle_name || "",
-      "Last Name": s.last_name,
-      Course: s.course || "",
-      "Year Level": s.year_level || "",
-      "Card Type": s.card_type,
-      "Card Status": s.card_status || "",
-      "Card ID Control #": s.card_id_control_number,
-      "Card Serial #": s.card_serial_number,
-      "Date Enrolled": s.date_enrolled || "",
-      "Date Issued": s.date_issued || "",
+    const exportData = students.map((s, i) => ({
+      "No.": i + 1,
+      "Name": [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
+      "Student No.": s.student_number || "",
+      "Status": s.card_status || "",
     }));
 
     const workbook = xlsx.utils.book_new();

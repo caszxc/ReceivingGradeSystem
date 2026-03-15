@@ -50,17 +50,10 @@ const SCOPE_LABELS = {
 
 // ── table columns ─────────────────────────────────────────────────────────────
 const COLUMNS = [
-  { key: "no",              label: "#",              width: "w-10",   align: "text-center" },
-  { key: "student_number",  label: "Student No.",    width: "w-32",   align: "text-left"   },
-  { key: "full_name",       label: "Full Name",      width: "w-56",   align: "text-left"   },
-  { key: "course",          label: "Course",         width: "w-24",   align: "text-left"   },
-  { key: "year_level",      label: "Year",           width: "w-14",   align: "text-center" },
-  { key: "section",         label: "Section",        width: "w-14",   align: "text-center" },
-  { key: "semester",        label: "Sem",            width: "w-12",   align: "text-center" },
-  { key: "card_type",       label: "Card Type",      width: "w-28",   align: "text-left"   },
-  { key: "card_status",     label: "Status",         width: "w-20",   align: "text-center" },
-  { key: "card_serial_number", label: "Serial #",   width: "w-28",   align: "text-left"   },
-  { key: "date_enrolled",   label: "Date Enrolled",  width: "w-28",   align: "text-center" },
+  { key: "no",             label: "No.",         width: "w-10",   align: "text-center" },
+  { key: "full_name",      label: "Name",        width: "w-72",   align: "text-left"   },
+  { key: "student_number", label: "Student No.", width: "w-36",   align: "text-left"   },
+  { key: "card_status",    label: "Status",      width: "w-24",   align: "text-center" },
 ];
 
 function getCellValue(col, student, index) {
