@@ -310,7 +310,7 @@ router.get("/exportStudents", async (req, res) => {
       "No.": i + 1,
       "Name": [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
       "Student No.": s.student_number || "",
-      "Status": s.card_status || "",
+      "Enrolled": s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();

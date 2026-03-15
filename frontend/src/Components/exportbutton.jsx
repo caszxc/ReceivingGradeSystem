@@ -206,12 +206,12 @@ async function renderPdf({ students, filters, scope, now }) {
     i + 1,
     [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
     s.student_number ?? "—",
-    s.card_status ?? "—",
+    s.isEnrolled ? "Enrolled" : "Not Enrolled",
   ]);
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [["#", "Name", "Student No.", "Status"]],
+    head: [["#", "Name", "Student No.", "Enrolled"]],  
     body: rows,
     theme: "grid",
     headStyles: {

@@ -53,7 +53,7 @@ const COLUMNS = [
   { key: "no",             label: "No.",         width: "w-10",   align: "text-center" },
   { key: "full_name",      label: "Name",        width: "w-72",   align: "text-left"   },
   { key: "student_number", label: "Student No.", width: "w-36",   align: "text-left"   },
-  { key: "card_status",    label: "Status",      width: "w-24",   align: "text-center" },
+  { key: "card_status",    label: "Enrolled",    width: "w-28",   align: "text-center" },
 ];
 
 function getCellValue(col, student, index) {
@@ -71,18 +71,16 @@ function getCellValue(col, student, index) {
           })
         : "—";
     case "card_status": {
-      const val = student.card_status;
-      if (!val) return "—";
-      const isActive = val.toLowerCase() === "active";
+      const val = student.isEnrolled;
       return (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-            isActive
+            val
               ? "bg-green-100 text-green-700"
               : "bg-gray-100 text-gray-500"
           }`}
         >
-          {val}
+          {val ? "Enrolled" : "Not Enrolled"}
         </span>
       );
     }
