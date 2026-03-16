@@ -17,11 +17,17 @@ function buildFilterSummary(filters) {
   if (filters?.semester) parts.push(getSemesterLabel(filters.semester));
   if (filters?.course) parts.push(`Course: ${filters.course}`);
   if (filters?.section) parts.push(`Section: ${filters.section}`);
-  if (filters?.dateYearFrom || filters?.dateYearTo) {
-    const from = filters.dateYearFrom || "…";
-    const to = filters.dateYearTo || "…";
-    parts.push(`A.Y. ${from}–${to}`);
+
+  //uncomment kapag need
+  if (filters?.academicYear) {
+    parts.push(`A.Y. ${filters.academicYear}`);
   }
+
+  // if (filters?.dateYearFrom || filters?.dateYearTo) {
+  //   const from = filters.dateYearFrom || "…";
+  //   const to = filters.dateYearTo || "…";
+  //   parts.push(`A.Y. ${from}–${to}`);
+  // }
   return parts.length ? parts.join("  |  ") : "All Records";
 }
 
@@ -44,10 +50,17 @@ async function fetchStudentData({
       limit: 99999,
       page: 1,
     });
-    if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
-    if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
+
+    if (filters?.academicYear) {
+      const [fromYear, toYear] = filters.academicYear.split("-");
+      p.set("dateYearFrom", fromYear);
+      p.set("dateYearTo", toYear);
+    }
+
+    // if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
+    // if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
     const res = await fetch(
-      `http://localhost:3001/students/getStudent?${p.toString()}`
+      `http://localhost:3001/students/getStudent?${p.toString()}`,
     );
     const data = await res.json();
     const all = data.rows ?? data;
@@ -61,8 +74,16 @@ async function fetchStudentData({
   if (filters?.semester) p.set("semester", filters.semester);
   if (filters?.course) p.set("course", filters.course);
   if (filters?.section) p.set("section", filters.section);
-  if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
-  if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
+
+  if (filters?.academicYear) {
+    const [fromYear, toYear] = filters.academicYear.split("-");
+    p.set("dateYearFrom", fromYear);
+    p.set("dateYearTo", toYear);
+  }
+
+  //uncomment kapag need
+  // if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
+  // if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
 
   if (scope === "page") {
     p.set("page", currentPage);
@@ -72,7 +93,7 @@ async function fetchStudentData({
   const endpoint =
     searchQuery && searchQuery.trim() !== "" ? "searchStudent" : "getStudent";
   const res = await fetch(
-    `http://localhost:3001/students/${endpoint}?${p.toString()}`
+    `http://localhost:3001/students/${endpoint}?${p.toString()}`,
   );
   const data = await res.json();
   return data.rows ?? data;
@@ -112,13 +133,16 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
   }
 
   // ── Build dynamic header text from filters ────────────────────────────────
-  const semLabel = filters?.semester
-    ? getSemesterLabel(filters.semester)
+  const semLabel = filters?.semester ? getSemesterLabel(filters.semester) : "";
+  const ayFrom = filters?.academicYear
+    ? filters.academicYear.split("-")[0]
     : "";
-  const ayFrom = filters?.dateYearFrom || "";
-  const ayTo = filters?.dateYearTo || "";
-  const schoolYear =
-    ayFrom && ayTo ? `School Year ${ayFrom} - ${ayTo}` : "";
+  const ayTo = filters?.academicYear ? filters.academicYear.split("-")[1] : "";
+
+  //uncomment kapag need
+  // const ayFrom = filters?.dateYearFrom || "";
+  // const ayTo = filters?.dateYearTo || "";
+  const schoolYear = ayFrom && ayTo ? `School Year ${ayFrom} - ${ayTo}` : "";
   const semesterLine =
     semLabel && schoolYear
       ? `${semLabel} ${schoolYear}`
@@ -187,12 +211,9 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
     }
     if (sectionName) {
       doc.setFont("helvetica", "bold");
-      doc.text(
-        `Section :  ${sectionName}`,
-        pageWidth - marginRight,
-        y,
-        { align: "right" }
-      );
+      doc.text(`Section :  ${sectionName}`, pageWidth - marginRight, y, {
+        align: "right",
+      });
     }
 
     y += 3;
@@ -209,20 +230,19 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
     s.isEnrolled ? "Enrolled" : "Not Enrolled",
   ];
   const rows = students.map((s, i) =>
-    withSignature ? [...baseRow(s, i), ""] : baseRow(s, i)
+    withSignature ? [...baseRow(s, i), ""] : baseRow(s, i),
   );
 
   // Column widths adjust when signature column is present
-  const nameWidth   = withSignature ? 65 : 90;
-  const sigColStyle = withSignature
-    ? { 4: { cellWidth: 42 } }
-    : {};
+  const nameWidth = withSignature ? 65 : 90;
+  const sigColStyle = withSignature ? { 4: { cellWidth: 42 } } : {};
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [withSignature
-      ? ["#", "Name", "Student No.", "Enrolled", "Signature"]
-      : ["#", "Name", "Student No.", "Enrolled"],
+    head: [
+      withSignature
+        ? ["#", "Name", "Student No.", "Enrolled", "Signature"]
+        : ["#", "Name", "Student No.", "Enrolled"],
     ],
     body: rows,
     theme: "grid",
@@ -259,10 +279,15 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
         `Page ${data.pageNumber} of ${pageCount}`,
         pageWidth / 2,
         pageHeight - 5,
-        { align: "center" }
+        { align: "center" },
       );
       doc.setDrawColor(180);
-      doc.line(marginLeft, pageHeight - 8, pageWidth - marginRight, pageHeight - 8);
+      doc.line(
+        marginLeft,
+        pageHeight - 8,
+        pageWidth - marginRight,
+        pageHeight - 8,
+      );
     },
   });
 
@@ -302,11 +327,19 @@ async function downloadFile({
   if (filters?.semester) params.set("semester", filters.semester);
   if (filters?.course) params.set("course", filters.course);
   if (filters?.section) params.set("section", filters.section);
-  if (filters?.dateYearFrom) params.set("dateYearFrom", filters.dateYearFrom);
-  if (filters?.dateYearTo) params.set("dateYearTo", filters.dateYearTo);
+
+  if (filters?.academicYear) {
+    const [fromYear, toYear] = filters.academicYear.split("-");
+    params.set("dateYearFrom", fromYear);
+    params.set("dateYearTo", toYear);
+  }
+
+  //uncomment kapag need
+  // if (filters?.dateYearFrom) params.set("dateYearFrom", filters.dateYearFrom);
+  // if (filters?.dateYearTo) params.set("dateYearTo", filters.dateYearTo);
 
   const response = await fetch(
-    `http://localhost:3001/students/exportStudents?${params.toString()}`
+    `http://localhost:3001/students/exportStudents?${params.toString()}`,
   );
   if (!response.ok) throw new Error("Export failed");
 
@@ -341,12 +374,13 @@ function FormatSubMenu({
         onClick={() =>
           !disabled && onSetScope(activeScope === scope ? null : scope)
         }
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${disabled
-          ? "text-gray-300 cursor-not-allowed"
-          : activeScope === scope
-            ? "bg-blue-600 text-white cursor-pointer"
-            : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
-          }`}
+        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
+          disabled
+            ? "text-gray-300 cursor-not-allowed"
+            : activeScope === scope
+              ? "bg-blue-600 text-white cursor-pointer"
+              : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
+        }`}
       >
         <span className="flex items-center gap-2">
           {label}
@@ -379,7 +413,11 @@ function FormatSubMenu({
             onClick={() => onExport(scope, "xlsx")}
             className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
           >
-            <svg className="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-4 w-4 text-green-600"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
             </svg>
             Excel (.xlsx)
@@ -390,7 +428,12 @@ function FormatSubMenu({
             onClick={() => onExport(scope, "csv")}
             className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
           >
-            <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-4 w-4 text-blue-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -406,7 +449,11 @@ function FormatSubMenu({
             onClick={() => onExport(scope, "pdf")}
             className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-red-600 hover:text-white transition-colors"
           >
-            <svg className="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-4 w-4 text-red-500"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM11.5 18H10v-5h1.5c1.1 0 2 .9 2 2s-.9 2-2 2zm0-3.5H11v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5zm3 3.5v-5h1c1.1 0 2 .9 2 2v1c0 1.1-.9 2-2 2h-1zm1-3.5v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5H15zm-8 3.5v-5h3v1h-2v1h2v1h-2v2H7z" />
             </svg>
             PDF (.pdf)
@@ -467,7 +514,17 @@ function ExportButton({
       }
 
       // Save params for the confirm step
-      pendingRef.current = { scope, format, sortBy, sortOrder, currentPage, itemsPerPage, searchQuery, selectedIds, filters };
+      pendingRef.current = {
+        scope,
+        format,
+        sortBy,
+        sortOrder,
+        currentPage,
+        itemsPerPage,
+        searchQuery,
+        selectedIds,
+        filters,
+      };
 
       // Open preview in loading state
       setPreview({ isOpen: true, loading: true, students: [], format, scope });
@@ -490,28 +547,45 @@ function ExportButton({
         alert("Failed to load preview. Please try again.");
       }
     },
-    [searchQuery, sortBy, sortOrder, currentPage, itemsPerPage, selectedIds, filters]
+    [
+      searchQuery,
+      sortBy,
+      sortOrder,
+      currentPage,
+      itemsPerPage,
+      selectedIds,
+      filters,
+    ],
   );
 
   // ── Confirm: do the actual export ────────────────────────────────────────
-  const handleConfirm = useCallback(async (withSignature = false) => {
-    const { scope, format, students } = preview;
-    const params = pendingRef.current;
-    if (!params) return;
+  const handleConfirm = useCallback(
+    async (withSignature = false) => {
+      const { scope, format, students } = preview;
+      const params = pendingRef.current;
+      if (!params) return;
 
-    setPreview((p) => ({ ...p, isOpen: false }));
+      setPreview((p) => ({ ...p, isOpen: false }));
 
-    try {
-      if (format === "pdf") {
-        await renderPdf({ students, filters: params.filters, scope, now: new Date(), withSignature });
-      } else {
-        await downloadFile(params);
+      try {
+        if (format === "pdf") {
+          await renderPdf({
+            students,
+            filters: params.filters,
+            scope,
+            now: new Date(),
+            withSignature,
+          });
+        } else {
+          await downloadFile(params);
+        }
+      } catch (err) {
+        console.error("Export error:", err);
+        alert("Export failed. Please try again.");
       }
-    } catch (err) {
-      console.error("Export error:", err);
-      alert("Export failed. Please try again.");
-    }
-  }, [preview]);
+    },
+    [preview],
+  );
 
   const filterSummary = buildFilterSummary(filters);
 
@@ -527,7 +601,12 @@ function ExportButton({
           }}
           className="inline-flex items-center gap-2 pl-4 pr-3 py-3 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-l-lg hover:bg-blue-500 focus:outline-none transition-colors"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -552,7 +631,12 @@ function ExportButton({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
 
@@ -560,17 +644,20 @@ function ExportButton({
         {open && (
           <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
             {/* Active filter hint */}
-            {(filters.dateYearFrom ||
-              filters.dateYearTo ||
-              filters.yearLevel ||
-              filters.semester ||
-              filters.course ||
-              filters.section) && (
+            {
+              // filters.dateYearFrom ||
+              // filters.dateYearTo ||
+              (filters.academicYear ||
+                filters.yearLevel ||
+                filters.semester ||
+                filters.course ||
+                filters.section) && (
                 <div className="px-4 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 leading-snug">
                   <span className="font-semibold">Filtered: </span>
                   {filterSummary}
                 </div>
-              )}
+              )
+            }
 
             <FormatSubMenu
               scope="all"
