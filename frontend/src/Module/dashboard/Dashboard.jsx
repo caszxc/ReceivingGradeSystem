@@ -512,7 +512,7 @@ function Dashboard() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="p-6 bg-blue-200 h-screen">
+    <div className="p-6 bg-blue-200 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 flex items-center justify-between">
