@@ -63,6 +63,36 @@ function buildWhereClause(query, filters) {
     whereClause.section = filters.section;
   }
 
+  if (filters.dateYearFrom || filters.dateYearTo) {
+    if (!whereClause[Op.and]) whereClause[Op.and] = [];
+
+    if (filters.dateYearFrom && filters.dateYearTo) {
+      // Both: YEAR(date_enrolled) BETWEEN from AND to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.between]: [
+            parseInt(filters.dateYearFrom),
+            parseInt(filters.dateYearTo),
+          ],
+        }),
+      );
+    } else if (filters.dateYearFrom) {
+      // Only from: YEAR(date_enrolled) >= from
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.gte]: parseInt(filters.dateYearFrom),
+        }),
+      );
+    } else {
+      // Only to: YEAR(date_enrolled) <= to
+      whereClause[Op.and].push(
+        sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
+          [Op.lte]: parseInt(filters.dateYearTo),
+        }),
+      );
+    }
+  }
+
   return whereClause;
 }
 
@@ -79,6 +109,8 @@ router.get("/getStudent", async (req, res) => {
     semester: req.query.semester,
     course: req.query.course,
     section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
   };
 
   try {
@@ -114,6 +146,8 @@ router.get("/searchStudent", async (req, res) => {
     semester: req.query.semester,
     course: req.query.course,
     section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
   };
 
   try {
@@ -182,11 +216,29 @@ router.get("/getFilterOptions", async (req, res) => {
       raw: true,
     });
 
+    const dateYears = await Student.findAll({
+      attributes: [
+        [
+          sequelize.fn(
+            "DISTINCT",
+            sequelize.fn("YEAR", sequelize.col("date_enrolled")),
+          ),
+          "date_year",
+        ],
+      ],
+      where: {
+        date_enrolled: { [Op.not]: null },
+      },
+      order: [[sequelize.fn("YEAR", sequelize.col("date_enrolled")), "DESC"]],
+      raw: true,
+    });
+
     res.json({
       yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
       semesters: semesters.map((item) => item.semester).filter(Boolean),
       courses: courses.map((item) => item.course).filter(Boolean),
       sections: sections.map((item) => item.section).filter(Boolean),
+      dateYears: dateYears.map((item) => item.date_year).filter(Boolean),
     });
   } catch (err) {
     console.error("Filter options error:", err);
@@ -219,6 +271,16 @@ router.get("/exportStudents", async (req, res) => {
     ids = ids.map((x) => parseInt(x)).filter(Boolean);
   }
 
+  // Extract filter parameters (same as getStudent / searchStudent)
+  const filters = {
+    yearLevel: req.query.yearLevel,
+    semester: req.query.semester,
+    course: req.query.course,
+    section: req.query.section,
+    dateYearFrom: req.query.dateYearFrom,
+    dateYearTo: req.query.dateYearTo,
+  };
+
   try {
     let whereClause = {};
     const orderClause = getSortOrder(sortBy, sortOrder);
@@ -226,18 +288,9 @@ router.get("/exportStudents", async (req, res) => {
     // Build where clause
     if (scope === "selected" && ids && ids.length > 0) {
       whereClause = { id: { [Op.in]: ids } };
-    } else if (query && query.trim() !== "") {
-      whereClause = {
-        [Op.or]: [
-          { student_number: { [Op.like]: `%${query}%` } },
-          { first_name: { [Op.like]: `%${query}%` } },
-          { middle_name: { [Op.like]: `%${query}%` } },
-          { last_name: { [Op.like]: `%${query}%` } },
-          { course: { [Op.like]: `%${query}%` } },
-          { card_type: { [Op.like]: `%${query}%` } },
-          { card_status: { [Op.like]: `%${query}%` } },
-        ],
-      };
+    } else {
+      // Apply search query + all active filters
+      whereClause = buildWhereClause(query || "", filters);
     }
 
     let findOptions = { where: whereClause, order: orderClause };
@@ -253,19 +306,13 @@ router.get("/exportStudents", async (req, res) => {
     const students = await Student.findAll(findOptions);
 
     // Map to plain export-friendly objects
-    const exportData = students.map((s) => ({
-      "Student Number": s.student_number,
-      "First Name": s.first_name,
-      "Middle Name": s.middle_name || "",
-      "Last Name": s.last_name,
-      Course: s.course || "",
-      "Year Level": s.year_level || "",
-      "Card Type": s.card_type,
-      "Card Status": s.card_status || "",
-      "Card ID Control #": s.card_id_control_number,
-      "Card Serial #": s.card_serial_number,
-      "Date Enrolled": s.date_enrolled || "",
-      "Date Issued": s.date_issued || "",
+    const exportData = students.map((s, i) => ({
+      "No.": i + 1,
+      Name: [s.last_name, s.first_name, s.middle_name]
+        .filter(Boolean)
+        .join(", "),
+      "Student No.": s.student_number || "",
+      Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();
@@ -573,24 +620,19 @@ router.post("/addStudent", async (req, res) => {
       section,
     } = req.body;
 
-    // Validate that serial number is provided
-    if (!card_serial_number || card_serial_number.trim() === "") {
-      return res.status(400).json({ error: "Serial number is required" });
-    }
-
     // Check if serial number already exists
     const existingStudent = await Student.findOne({
-      where: { card_serial_number: card_serial_number.toUpperCase() },
+      where: { student_number: student_number.toUpperCase() },
     });
 
     if (existingStudent) {
-      return res.status(400).json({ error: "Serial number already exists" });
+      return res.status(400).json({ error: "Student number already exists" });
     }
 
     // Create new student with separate name fields
     const newStudent = await Student.create({
-      card_serial_number,
-      student_number: student_number || null,
+      card_serial_number: card_serial_number || null,
+      student_number: student_number.toUpperCase(),
       first_name: first_name || null,
       middle_name: middle_name || null,
       last_name: last_name || null,

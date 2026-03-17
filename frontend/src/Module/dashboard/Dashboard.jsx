@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import usePagination from "../../hooks/usePagination";
-import PaginationControls from "../../hooks/paginationControls";
+import PaginationControls from "../../hooks/PaginationControls";
 import SortByButton from "../../Components/SortByButton";
 import ExportButton from "../../Components/ExportButton";
 import AddStudentButton from "../../Components/AddStudentButton";
@@ -12,13 +12,33 @@ function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
   const dropdownRef = useRef(null);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
+  const [dateYearDropdownOpen, setDateYearDropdownOpen] = useState(false);
+
   const navigate = useNavigate();
+  const dateYearRef = useRef(null);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const academicYear =
+    currentMonth >= 6
+      ? `${currentYear}-${currentYear + 1}`
+      : `${currentYear - 1}-${currentYear}`;
+  const currentSemester = currentMonth >= 6 ? "1st" : "2nd";
+
+  //uncomment kapag need
+  const defaultAyStart = currentMonth >= 6 ? currentYear : currentYear - 1;
+  const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
 
   const [filters, setFilters] = useState({
     yearLevel: "",
     semester: "",
     course: "",
     section: "",
+    academicYear: defaultAcademicYear,
+
+    // dateYearFrom: String(currentMonth >= 6 ? currentYear : currentYear - 1),
+    // dateYearTo: String(currentMonth >= 6 ? currentYear + 1 : currentYear),
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -26,6 +46,7 @@ function Dashboard() {
     semesters: [],
     courses: [],
     sections: [],
+    dateYears: [],
   });
   // ── Sort state ───────────────────────────────────────────────────────────────
   const [sortBy, setSortBy] = useState("last_name");
@@ -46,6 +67,18 @@ function Dashboard() {
     if (filters.course) filterParams.append("course", filters.course);
     if (filters.section) filterParams.append("section", filters.section);
 
+    //uncomment kapag need
+    if (filters.academicYear) {
+      const [fromYear, toYear] = filters.academicYear.split("-");
+      filterParams.append("dateYearFrom", fromYear);
+      filterParams.append("dateYearTo", toYear);
+    }
+
+    // if (filters.dateYearFrom)
+    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
+    // if (filters.dateYearTo)
+    //   filterParams.append("dateYearTo", filters.dateYearTo);
+
     const response = await fetch(
       `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
     );
@@ -59,11 +92,36 @@ function Dashboard() {
     if (filters.course) filterParams.append("course", filters.course);
     if (filters.section) filterParams.append("section", filters.section);
 
+    //uncomment kapag need
+    if (filters.academicYear) {
+      const [fromYear, toYear] = filters.academicYear.split("-");
+      filterParams.append("dateYearFrom", fromYear);
+      filterParams.append("dateYearTo", toYear);
+    }
+
+    // if (filters.dateYearFrom)
+    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
+    // if (filters.dateYearTo)
+    //   filterParams.append("dateYearTo", filters.dateYearTo);
+
     const response = await fetch(
       `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
     );
     return await response.json();
   };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+      if (dateYearRef.current && !dateYearRef.current.contains(event.target)) {
+        setDateYearDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -76,31 +134,38 @@ function Dashboard() {
       // Transform the data into the format expected by the UI
       setFilterOptions({
         yearLevels: [
-          { value: "", label: "All Year Levels" },
+          { value: "", label: "" },
           ...data.yearLevels.map((year) => ({
             value: year.toString(),
             label: `${getYearLabel(year)} Year`,
           })),
         ],
         semesters: [
-          { value: "", label: "All Semesters" },
+          { value: "", label: "" },
           ...data.semesters.map((sem) => ({
             value: sem.toString(),
             label: `${getSemesterLabel(sem)} Semester`,
           })),
         ],
         courses: [
-          { value: "", label: "All Courses" },
+          { value: "", label: "" },
           ...data.courses.map((course) => ({
             value: course,
             label: course,
           })),
         ],
         sections: [
-          { value: "", label: "All Sections" },
+          { value: "", label: "" },
           ...data.sections.map((section) => ({
             value: section.toString(),
             label: `Section ${section}`,
+          })),
+        ],
+        dateYears: [
+          { value: "", label: "" },
+          ...data.dateYears.map((year) => ({
+            value: year.toString(),
+            label: year.toString(),
           })),
         ],
       });
@@ -112,6 +177,7 @@ function Dashboard() {
         semesters: [{ value: "", label: "All Semesters" }],
         courses: [{ value: "", label: "All Courses" }],
         sections: [{ value: "", label: "All Sections" }],
+        dateYears: [{ value: "", label: "All Years" }],
       });
     } finally {
       setFilterOptionsLoading(false);
@@ -145,6 +211,11 @@ function Dashboard() {
       semester: "",
       course: "",
       section: "",
+
+      //uncomment kapag need
+      academicYear: "",
+      // dateYearFrom: "",
+      // dateYearTo: "",
     });
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
@@ -218,13 +289,7 @@ function Dashboard() {
         title: "Add New Student",
         html: `
       <div class="space-y-4 text-left">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Serial Number <span class="text-red-500">*</span>
-          </label>
-          <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-        </div>
-        
+         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Student Number
@@ -287,8 +352,6 @@ function Dashboard() {
         focusConfirm: false,
         showCancelButton: true,
         preConfirm: () => {
-          const card_serial_number =
-            document.getElementById("card_serial_number").value;
           const student_number =
             document.getElementById("student_number").value;
           const first_name = document.getElementById("first_name").value;
@@ -298,14 +361,7 @@ function Dashboard() {
           const year_level = document.getElementById("year_level").value;
           const section = document.getElementById("section").value;
 
-          // Only validate serial number is required
-          if (!card_serial_number || card_serial_number.trim() === "") {
-            swal.showValidationMessage("Serial number is required");
-            return false;
-          }
-
           return {
-            card_serial_number: card_serial_number.toUpperCase(), // Ensure uppercase
             student_number,
             first_name,
             middle_name,
@@ -319,7 +375,6 @@ function Dashboard() {
       .then((result) => {
         if (result.isConfirmed) {
           const {
-            card_serial_number,
             student_number,
             first_name,
             middle_name,
@@ -347,9 +402,8 @@ function Dashboard() {
               <p class="text-lg font-medium text-gray-900 mb-4">Are you sure you want to add this student?</p>
               <div class="bg-gray-50 p-4 rounded-lg">
                 <div class="grid grid-cols-1 gap-2 text-sm">
-                  <div><span class="font-medium">Serial Number:</span> ${card_serial_number}</div>
                   ${student_number ? `<div><span class="font-medium">Student Number:</span> ${student_number}</div>` : ""}
-                  ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName}</div>` : ""}
+                  ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName.toUpperCase()}</div>` : ""}
                   ${course ? `<div><span class="font-medium">Course:</span> ${course}</div>` : ""}
                   ${year_level ? `<div><span class="font-medium">Year Level:</span> ${year_level}</div>` : ""}
                   ${section ? `<div><span class="font-medium">Section:</span> ${section}</div>` : ""}
@@ -373,7 +427,6 @@ function Dashboard() {
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    card_serial_number,
                     student_number,
                     first_name,
                     middle_name,
@@ -422,16 +475,6 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   // Dropdown options
   const sortFields = [
     "Name",
@@ -465,32 +508,14 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
-  //sa semester display ito
-
-  // ── Semester & School Year display ─────────────────────────────────────────
-  const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
-
-  // Auto-detect: Aug-Dec = 1st sem of currentYear-nextYear, Jan-Jul = 2nd sem of prevYear-currentYear
-  const defaultSemester = currentMonth >= 8 ? "1" : "2";
-  const defaultSchoolYear =
-    currentMonth >= 8
-      ? `${currentYear}-${currentYear + 1}`
-      : `${currentYear - 1}-${currentYear}`;
-
-  const [selectedSemester, setSelectedSemester] = useState(defaultSemester);
-  const [selectedSchoolYear, setSelectedSchoolYear] =
-    useState(defaultSchoolYear);
-
-  // Generate school year options (5 years back, 1 year forward)
-  const schoolYearOptions = Array.from({ length: 7 }, (_, i) => {
-    const startYear = currentYear - 5 + i;
-    return `${startYear}-${startYear + 1}`;
+  const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
+    const start = defaultAyStart - i;
+    return `${start}-${start + 1}`;
   });
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="p-6 bg-blue-200">
+    <div className="p-6 bg-blue-200 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="mb-8 flex items-center justify-between">
@@ -499,41 +524,23 @@ function Dashboard() {
             <p className="text-gray-600 mt-2">
               Manage and view student records
             </p>
-          </div>
+            {/*Uncomment kapag need*/}
+            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
+              {filters.semester
+                ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
+                : "All Semester"}{" "}
+              A.Y. {filters.academicYear ? filters.academicYear : academicYear}
+            </span>
 
-          <div className="flex items-center gap-3">
-            {/* Semester Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedSemester}
-                onChange={(e) => setSelectedSemester(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="1">1st Semester</option>
-                <option value="2">2nd Semester</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <FaChevronDown className="h-3 w-3 text-gray-400" />
-              </div>
-            </div>
-
-            {/* School Year Dropdown */}
-            <div className="relative">
-              <select
-                value={selectedSchoolYear}
-                onChange={(e) => setSelectedSchoolYear(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-700 shadow-sm cursor-pointer focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {schoolYearOptions.map((sy) => (
-                  <option key={sy} value={sy}>
-                    {sy}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                <FaChevronDown className="h-3 w-3 text-gray-400" />
-              </div>
-            </div>
+            {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
+              {filters.semester
+                ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
+                : "All Semester"}{" "}
+              A.Y.{" "}
+              {filters.dateYearFrom && filters.dateYearTo
+                ? `${filters.dateYearFrom}-${filters.dateYearTo}`
+                : academicYear}
+            </span> */}
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
@@ -586,12 +593,12 @@ function Dashboard() {
           </form>
 
           <div className="flex items-center gap-3">
-            <SortByButton
+            {/* <SortByButton
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortColumn={setSortBy}
               onSortOrder={setSortOrder}
-            />
+            /> */}
             <ExportButton
               searchQuery={searchQuery}
               sortBy={sortBy}
@@ -599,6 +606,7 @@ function Dashboard() {
               currentPage={currentPage}
               itemsPerPage={itemsPerPage}
               selectedIds={selectedIds}
+              filters={filters}
             />
             <AddStudentButton onAdd={addStudent} />
           </div>
@@ -618,8 +626,8 @@ function Dashboard() {
           </div>
 
           {filterOptionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, index) => (
                 <div key={index} className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
                   <div className="h-10 bg-gray-200 rounded"></div>
@@ -628,7 +636,7 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* Year Level Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -776,13 +784,145 @@ function Dashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Academic Year Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Academic Year
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={filters.academicYear}
+                      onChange={(e) =>
+                        handleFilterChange("academicYear", e.target.value)
+                      }
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
+                    >
+                      <option value=""></option>
+                      {academicYearOptions.map((ay) => (
+                        <option key={ay} value={ay}>
+                          A.Y {ay}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg
+                        className="h-4 w-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date Year Range Filter */}
+                {/* <div className="relative " ref={dateYearRef}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date Year
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDateYearDropdownOpen(!dateYearDropdownOpen)
+                    }
+                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer text-left text-sm"
+                  >
+                    {filters.dateYearFrom || filters.dateYearTo
+                      ? `${filters.dateYearFrom || "..."} — ${filters.dateYearTo || "..."}`
+                      : "All Years"}
+                  </button>
+                  <div
+                    className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
+                    style={{ top: "28px" }}
+                  >
+                    <svg
+                      className="h-4 w-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+
+                  {dateYearDropdownOpen && (
+                    <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 left-1/2 -translate-x-1/2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-500 mb-1">
+                            From
+                          </label>
+                          <select
+                            value={filters.dateYearFrom}
+                            onChange={(e) =>
+                              handleFilterChange("dateYearFrom", e.target.value)
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            {filterOptions.dateYears
+                              .filter((opt) => opt.value !== "")
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <span className="text-gray-400 mt-5">—</span>
+                        <div className="flex-1">
+                          <label className="block text-xs text-gray-500 mb-1">
+                            To
+                          </label>
+                          <select
+                            value={filters.dateYearTo}
+                            onChange={(e) =>
+                              handleFilterChange("dateYearTo", e.target.value)
+                            }
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
+                          >
+                            <option value="">—</option>
+                            {filterOptions.dateYears
+                              .filter(
+                                (opt) =>
+                                  opt.value !== "" &&
+                                  (!filters.dateYearFrom ||
+                                    parseInt(opt.value) >=
+                                      parseInt(filters.dateYearFrom)),
+                              )
+                              .map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div> */}
               </div>
 
               {/* Active Filters Display */}
-              {(filters.yearLevel ||
+              {/* {(filters.yearLevel ||
                 filters.semester ||
                 filters.course ||
-                filters.section) && (
+                filters.section ||
+                filters.dateYearFrom ||
+                filters.dateYearTo) && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-700">
@@ -848,10 +988,30 @@ function Dashboard() {
                           </button>
                         </span>
                       )}
+                      {(filters.dateYearFrom || filters.dateYearTo) && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Date Year: {filters.dateYearFrom || "..."} —{" "}
+                          {filters.dateYearTo || "..."}
+                          <button
+                            onClick={() => {
+                              handleFilterChange("dateYearFrom", "");
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateYearFrom: "",
+                                dateYearTo: "",
+                              }));
+                              fetchData(1, searchQuery, itemsPerPage);
+                            }}
+                            className="ml-1 text-orange-600 hover:text-orange-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </>
           )}
         </div>
@@ -1084,90 +1244,6 @@ function Dashboard() {
                             student.section || "—"
                           )}
                         </td>
-
-                        {/*action button*/}
-                        {/* <td>
-                          {isEditing ? (
-                            <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  swal
-                                    .fire({
-                                      title: "Save Changes",
-                                      text: "Are you sure you want to save changes to this student?",
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonText: "Yes, save",
-                                      cancelButtonText: "No, cancel",
-                                    })
-                                    .then((result) => {
-                                      if (result.isConfirmed) {
-                                        // Implement save logic here, e.g., send updated data to backend
-                                        setEditingId(null); // Exit edit mode after saving
-                                        setEditData({}); // Clear edit data after saving
-                                        fetchData(); // Refresh data to show updates
-                                      }
-                                    });
-                                }}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(null); // Exit edit mode
-                                  setEditData({}); // Clear edit data on cancel
-                                }}
-                                className="ml-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  setEditingId(student.id); // Enter edit mode
-                                  setEditData({
-                                    card_serial_number:
-                                      student.card_serial_number,
-                                    student_number: student.student_number,
-                                    full_name:
-                                      `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim(),
-                                    year_level: student.year_level, // Add year_level to edit data
-                                    course: student.course,
-                                    section: student.section,
-                                  }); // Pre-fill edit data
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                              >
-                                Update
-                              </button>
-                              <button
-                                onClick={() => {
-                                  swal
-                                    .fire({
-                                      title: "Delete Student",
-                                      text: "Are you sure you want to delete this student?",
-                                      icon: "warning",
-                                      showCancelButton: true,
-                                      confirmButtonText: "Yes, delete",
-                                      cancelButtonText: "No, cancel",
-                                    })
-                                    .then((result) => {
-                                      if (result.isConfirmed) {
-                                        // Implement delete logic here, e.g., send delete request to backend
-                                        fetchData(); // Refresh data to show updates after deletion
-                                      }
-                                    });
-                                }}
-                                className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </td> */}
 
                         <td>
                           <div className="flex gap-1 px-6 py-4 whitespace-nowrap">

@@ -165,7 +165,7 @@ const Upload = () => {
   };
 
   return (
-    <div className="p-6 bg-[#DFEBFF]">
+    <div className="p-6 bg-blue-200 h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
