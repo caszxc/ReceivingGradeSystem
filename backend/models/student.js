@@ -82,7 +82,7 @@ const Student = sequelize.define(
       allowNull: true,
     },
     semester: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     card_status: {

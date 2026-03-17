@@ -24,10 +24,6 @@ const Sidebar = () => {
       name: "Dashboard",
       path: "/dashboard",
     },
-    {
-      name: "Upload",
-      path: "/upload",
-    },
   ];
 
   // Add manageAccount only for superadmin
@@ -37,6 +33,14 @@ const Sidebar = () => {
         {
           name: "Manage Account",
           path: "/manage-accounts",
+        },
+        {
+          name: "Upload",
+          path: "/upload",
+        },
+        {
+          name: "Settings",
+          path: "/settings",
         },
       ]
     : baseNavItems;
