@@ -19,7 +19,7 @@ const Student = sequelize.define(
     },
     card_serial_number: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     card_type: {
       type: DataTypes.STRING,

@@ -308,9 +308,11 @@ router.get("/exportStudents", async (req, res) => {
     // Map to plain export-friendly objects
     const exportData = students.map((s, i) => ({
       "No.": i + 1,
-      "Name": [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
+      Name: [s.last_name, s.first_name, s.middle_name]
+        .filter(Boolean)
+        .join(", "),
       "Student No.": s.student_number || "",
-      "Enrolled": s.isEnrolled ? "Enrolled" : "Not Enrolled",
+      Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();
@@ -618,24 +620,19 @@ router.post("/addStudent", async (req, res) => {
       section,
     } = req.body;
 
-    // Validate that serial number is provided
-    if (!card_serial_number || card_serial_number.trim() === "") {
-      return res.status(400).json({ error: "Serial number is required" });
-    }
-
     // Check if serial number already exists
     const existingStudent = await Student.findOne({
-      where: { card_serial_number: card_serial_number.toUpperCase() },
+      where: { student_number: student_number.toUpperCase() },
     });
 
     if (existingStudent) {
-      return res.status(400).json({ error: "Serial number already exists" });
+      return res.status(400).json({ error: "Student number already exists" });
     }
 
     // Create new student with separate name fields
     const newStudent = await Student.create({
-      card_serial_number,
-      student_number: student_number || null,
+      card_serial_number: card_serial_number || null,
+      student_number: student_number.toUpperCase(),
       first_name: first_name || null,
       middle_name: middle_name || null,
       last_name: last_name || null,

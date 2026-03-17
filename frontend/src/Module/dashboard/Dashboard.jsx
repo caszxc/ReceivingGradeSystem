@@ -134,35 +134,35 @@ function Dashboard() {
       // Transform the data into the format expected by the UI
       setFilterOptions({
         yearLevels: [
-          { value: "", label: "All Year Levels" },
+          { value: "", label: "" },
           ...data.yearLevels.map((year) => ({
             value: year.toString(),
             label: `${getYearLabel(year)} Year`,
           })),
         ],
         semesters: [
-          { value: "", label: "All Semesters" },
+          { value: "", label: "" },
           ...data.semesters.map((sem) => ({
             value: sem.toString(),
             label: `${getSemesterLabel(sem)} Semester`,
           })),
         ],
         courses: [
-          { value: "", label: "All Courses" },
+          { value: "", label: "" },
           ...data.courses.map((course) => ({
             value: course,
             label: course,
           })),
         ],
         sections: [
-          { value: "", label: "All Sections" },
+          { value: "", label: "" },
           ...data.sections.map((section) => ({
             value: section.toString(),
             label: `Section ${section}`,
           })),
         ],
         dateYears: [
-          { value: "", label: "All Years" },
+          { value: "", label: "" },
           ...data.dateYears.map((year) => ({
             value: year.toString(),
             label: year.toString(),
@@ -289,13 +289,7 @@ function Dashboard() {
         title: "Add New Student",
         html: `
       <div class="space-y-4 text-left">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Serial Number <span class="text-red-500">*</span>
-          </label>
-          <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-        </div>
-        
+         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Student Number
@@ -358,8 +352,6 @@ function Dashboard() {
         focusConfirm: false,
         showCancelButton: true,
         preConfirm: () => {
-          const card_serial_number =
-            document.getElementById("card_serial_number").value;
           const student_number =
             document.getElementById("student_number").value;
           const first_name = document.getElementById("first_name").value;
@@ -369,14 +361,7 @@ function Dashboard() {
           const year_level = document.getElementById("year_level").value;
           const section = document.getElementById("section").value;
 
-          // Only validate serial number is required
-          if (!card_serial_number || card_serial_number.trim() === "") {
-            swal.showValidationMessage("Serial number is required");
-            return false;
-          }
-
           return {
-            card_serial_number: card_serial_number.toUpperCase(), // Ensure uppercase
             student_number,
             first_name,
             middle_name,
@@ -390,7 +375,6 @@ function Dashboard() {
       .then((result) => {
         if (result.isConfirmed) {
           const {
-            card_serial_number,
             student_number,
             first_name,
             middle_name,
@@ -418,9 +402,8 @@ function Dashboard() {
               <p class="text-lg font-medium text-gray-900 mb-4">Are you sure you want to add this student?</p>
               <div class="bg-gray-50 p-4 rounded-lg">
                 <div class="grid grid-cols-1 gap-2 text-sm">
-                  <div><span class="font-medium">Serial Number:</span> ${card_serial_number}</div>
                   ${student_number ? `<div><span class="font-medium">Student Number:</span> ${student_number}</div>` : ""}
-                  ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName}</div>` : ""}
+                  ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName.toUpperCase()}</div>` : ""}
                   ${course ? `<div><span class="font-medium">Course:</span> ${course}</div>` : ""}
                   ${year_level ? `<div><span class="font-medium">Year Level:</span> ${year_level}</div>` : ""}
                   ${section ? `<div><span class="font-medium">Section:</span> ${section}</div>` : ""}
@@ -444,7 +427,6 @@ function Dashboard() {
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    card_serial_number,
                     student_number,
                     first_name,
                     middle_name,
@@ -492,16 +474,6 @@ function Dashboard() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // useEffect(() => {
-  //   function handleClickOutside(event) {
-  //     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-  //       setDropdownOpen(false);
-  //     }
-  //   }
-  //   document.addEventListener("mousedown", handleClickOutside);
-  //   return () => document.removeEventListener("mousedown", handleClickOutside);
-  // }, []);
 
   // Dropdown options
   const sortFields = [
@@ -621,12 +593,12 @@ function Dashboard() {
           </form>
 
           <div className="flex items-center gap-3">
-            <SortByButton
+            {/* <SortByButton
               sortBy={sortBy}
               sortOrder={sortOrder}
               onSortColumn={setSortBy}
               onSortOrder={setSortOrder}
-            />
+            /> */}
             <ExportButton
               searchQuery={searchQuery}
               sortBy={sortBy}
@@ -826,7 +798,7 @@ function Dashboard() {
                       }
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
-                      <option value="">All Academic Years</option>
+                      <option value=""></option>
                       {academicYearOptions.map((ay) => (
                         <option key={ay} value={ay}>
                           A.Y {ay}
@@ -1272,90 +1244,6 @@ function Dashboard() {
                             student.section || "—"
                           )}
                         </td>
-
-                        {/*action button*/}
-                        {/* <td>
-                          {isEditing ? (
-                            <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  swal
-                                    .fire({
-                                      title: "Save Changes",
-                                      text: "Are you sure you want to save changes to this student?",
-                                      icon: "question",
-                                      showCancelButton: true,
-                                      confirmButtonText: "Yes, save",
-                                      cancelButtonText: "No, cancel",
-                                    })
-                                    .then((result) => {
-                                      if (result.isConfirmed) {
-                                        // Implement save logic here, e.g., send updated data to backend
-                                        setEditingId(null); // Exit edit mode after saving
-                                        setEditData({}); // Clear edit data after saving
-                                        fetchData(); // Refresh data to show updates
-                                      }
-                                    });
-                                }}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingId(null); // Exit edit mode
-                                  setEditData({}); // Clear edit data on cancel
-                                }}
-                                className="ml-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  setEditingId(student.id); // Enter edit mode
-                                  setEditData({
-                                    card_serial_number:
-                                      student.card_serial_number,
-                                    student_number: student.student_number,
-                                    full_name:
-                                      `${student.first_name} ${student.middle_name || ""} ${student.last_name}`.trim(),
-                                    year_level: student.year_level, // Add year_level to edit data
-                                    course: student.course,
-                                    section: student.section,
-                                  }); // Pre-fill edit data
-                                }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                              >
-                                Update
-                              </button>
-                              <button
-                                onClick={() => {
-                                  swal
-                                    .fire({
-                                      title: "Delete Student",
-                                      text: "Are you sure you want to delete this student?",
-                                      icon: "warning",
-                                      showCancelButton: true,
-                                      confirmButtonText: "Yes, delete",
-                                      cancelButtonText: "No, cancel",
-                                    })
-                                    .then((result) => {
-                                      if (result.isConfirmed) {
-                                        // Implement delete logic here, e.g., send delete request to backend
-                                        fetchData(); // Refresh data to show updates after deletion
-                                      }
-                                    });
-                                }}
-                                className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </td> */}
 
                         <td>
                           <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
