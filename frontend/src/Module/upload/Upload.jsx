@@ -190,7 +190,6 @@ const Upload = () => {
                   <strong>Required columns:</strong>
                   <ul className="mt-1 space-y-1">
                     {/* <li>• card_id_control_number</li> */}
-                    <li>• card_serial_number</li>
                     {/* <li>• card_type</li> */}
                     <li>• student_number</li>
                     <li>• first_name</li>

@@ -417,7 +417,6 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
       // Check required fields
       const requiredFields = [
         "card_id_control_number",
-        "card_serial_number",
         "card_type",
         "student_number",
         "first_name",
@@ -436,10 +435,6 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
         isNaN(parseInt(row.card_id_control_number))
       ) {
         rowErrors.push("card_id_control_number must be a number");
-      }
-
-      if (row.card_serial_number && isNaN(parseInt(row.card_serial_number))) {
-        rowErrors.push("card_serial_number must be a number");
       }
 
       if (
@@ -485,7 +480,7 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
         const cleanedRow = {
           card_id_control_number: parseInt(row.card_id_control_number),
           date_enrolled: row.date_enrolled || null,
-          card_serial_number: parseInt(row.card_serial_number),
+          card_serial_number: null, //default to null since it's not required and may not be provided
           card_type: row.card_type.toString().trim(),
           student_number: row.student_number.toString().trim(),
           first_name: row.first_name.toString().trim(),
@@ -661,6 +656,7 @@ router.get("/viewStudent/:id", async (req, res) => {
         "middle_name",
         "last_name",
         "student_number",
+        "card_serial_number",
         "course",
         "section",
         "year_level",
@@ -685,6 +681,7 @@ router.put("/updateStudent/:id", async (req, res) => {
     }
 
     const {
+      card_serial_number,
       first_name,
       middle_name,
       last_name,
@@ -696,6 +693,7 @@ router.put("/updateStudent/:id", async (req, res) => {
     } = req.body;
 
     await student.update({
+      card_serial_number: card_serial_number ?? student.card_serial_number,
       first_name: first_name ?? student.first_name,
       middle_name: middle_name ?? student.middle_name,
       last_name: last_name ?? student.last_name,
