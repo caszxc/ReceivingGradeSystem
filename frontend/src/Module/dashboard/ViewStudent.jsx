@@ -434,9 +434,9 @@ function ViewStudent() {
                     disabled
                     value={
                       student.semester
-                        ? student.semester === 1
+                        ? student.semester === "1"
                           ? "1st Semester"
-                          : student.semester === 2
+                          : student.semester === "2"
                             ? "2nd Semester"
                             : `${student.semester}th Semester`
                         : "—"
