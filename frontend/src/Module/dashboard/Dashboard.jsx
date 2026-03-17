@@ -123,6 +123,25 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  //fetch filter options default
+  useEffect(() => {
+    // Only fetch defaults on first load
+    fetch("http://localhost:3001/settings/default-filters")
+      .then((res) => res.json())
+      .then((defaults) => {
+        // Only set if filters are empty (or you can always set if you want to force defaults)
+        setFilters((prev) => ({
+          ...prev,
+          yearLevel: defaults.yearLevel || "",
+          semester: defaults.semester || "",
+          course: defaults.course || "",
+          section: defaults.section || "",
+          academicYear: defaults.academicYear || defaultAcademicYear,
+        }));
+      });
+    // eslint-disable-next-line
+  }, []);
+
   const fetchFilterOptions = async () => {
     try {
       setFilterOptionsLoading(true);

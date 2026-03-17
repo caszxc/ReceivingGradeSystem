@@ -24,11 +24,26 @@ function Settings() {
       .then((res) => res.json())
       .then((data) => {
         setFilterOptions({
-          yearLevels: data.yearLevels,
-          semesters: data.semesters,
-          courses: data.courses,
-          sections: data.sections,
-          academicYears: data.dateYears,
+          yearLevels: data.yearLevels.map((y) => ({
+            value: y,
+            label: `${["1st", "2nd", "3rd", "4th"][y - 1] || `${y}th`} Year`,
+          })),
+          semesters: data.semesters.map((s) => ({
+            value: s,
+            label: `${["1st", "2nd"][s - 1] || `${s}th`} Semester`,
+          })),
+          courses: data.courses.map((c) => ({
+            value: c,
+            label: c,
+          })),
+          sections: data.sections.map((sec) => ({
+            value: sec,
+            label: `Section ${sec}`,
+          })),
+          academicYears: data.dateYears.map((ay) => ({
+            value: `${ay}-${parseInt(ay) + 1}`,
+            label: `A.Y ${ay}-${parseInt(ay) + 1}`,
+          })),
         });
         setLoading(false);
       });
@@ -138,9 +153,9 @@ function Settings() {
                 className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
               >
                 <option value="">None</option>
-                {filterOptions.yearLevels.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
+                {filterOptions.yearLevels.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -172,9 +187,9 @@ function Settings() {
                 className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
               >
                 <option value="">None</option>
-                {filterOptions.semesters.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                {filterOptions.semesters.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -206,9 +221,9 @@ function Settings() {
                 className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
               >
                 <option value="">None</option>
-                {filterOptions.courses.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
+                {filterOptions.courses.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -240,9 +255,9 @@ function Settings() {
                 className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
               >
                 <option value="">None</option>
-                {filterOptions.sections.map((sec) => (
-                  <option key={sec} value={sec}>
-                    {sec}
+                {filterOptions.sections.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -274,9 +289,9 @@ function Settings() {
                 className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
               >
                 <option value="">None</option>
-                {filterOptions.academicYears.map((ay) => (
-                  <option key={ay} value={ay}>
-                    {ay}
+                {filterOptions.academicYears.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
