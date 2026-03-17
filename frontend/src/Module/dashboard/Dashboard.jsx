@@ -154,13 +154,7 @@ function Dashboard() {
             label: course,
           })),
         ],
-        sections: [
-          { value: "", label: "" },
-          ...data.sections.map((section) => ({
-            value: section.toString(),
-            label: `Section ${section}`,
-          })),
-        ],
+        sections: [{ value: "", label: "" }],
         dateYears: [
           { value: "", label: "" },
           ...data.dateYears.map((year) => ({
@@ -197,11 +191,46 @@ function Dashboard() {
 
   const handleFilterChange = (filterType, value) => {
     const newFilters = { ...filters, [filterType]: value };
+
+    // When course changes, reset section and fetch available sections
+    if (filterType === "course") {
+      newFilters.section = "";
+      if (value) {
+        fetchSectionsByCourse(value);
+      } else {
+        setFilterOptions((prev) => ({
+          ...prev,
+          sections: [{ value: "", label: "" }],
+        }));
+      }
+    }
+
     setFilters(newFilters);
 
     // Trigger new fetch with updated filters
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
+  };
+
+  const fetchSectionsByCourse = async (course) => {
+    try {
+      const response = await fetch(
+        `http://localhost:3001/students/getSectionsByCourse?course=${encodeURIComponent(course)}`,
+      );
+      const data = await response.json();
+      setFilterOptions((prev) => ({
+        ...prev,
+        sections: [
+          { value: "", label: "" },
+          ...data.sections.map((section) => ({
+            value: section.toString(),
+            label: `Section ${section}`,
+          })),
+        ],
+      }));
+    } catch (error) {
+      console.error("Error fetching sections by course:", error);
+    }
   };
 
   // Add clear filters function (update the existing one)
@@ -217,6 +246,10 @@ function Dashboard() {
       // dateYearFrom: "",
       // dateYearTo: "",
     });
+    setFilterOptions((prev) => ({
+      ...prev,
+      sections: [{ value: "", label: "" }],
+    }));
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
   };
@@ -759,13 +792,18 @@ function Dashboard() {
                       onChange={(e) =>
                         handleFilterChange("section", e.target.value)
                       }
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
+                      disabled={!filters.course}
+                      className={`w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer ${!filters.course ? "opacity-50 cursor-not-allowed bg-gray-100" : ""}`}
                     >
-                      {filterOptions.sections.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                      {!filters.course ? (
+                        <option value="">Select a course first</option>
+                      ) : (
+                        filterOptions.sections.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))
+                      )}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                       <svg
