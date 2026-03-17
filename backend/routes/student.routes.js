@@ -656,6 +656,7 @@ router.get("/viewStudent/:id", async (req, res) => {
         "middle_name",
         "last_name",
         "student_number",
+        "card_serial_number",
         "course",
         "section",
         "year_level",
@@ -680,6 +681,7 @@ router.put("/updateStudent/:id", async (req, res) => {
     }
 
     const {
+      card_serial_number,
       first_name,
       middle_name,
       last_name,
@@ -691,6 +693,7 @@ router.put("/updateStudent/:id", async (req, res) => {
     } = req.body;
 
     await student.update({
+      card_serial_number: card_serial_number ?? student.card_serial_number,
       first_name: first_name ?? student.first_name,
       middle_name: middle_name ?? student.middle_name,
       last_name: last_name ?? student.last_name,

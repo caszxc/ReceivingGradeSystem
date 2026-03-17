@@ -15,6 +15,14 @@ function ViewStudent() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
 
+  // State for dropdown options
+  const [options, setOptions] = useState({
+    courses:   [],
+    yearLevels: [],
+    sections:  [],
+    semesters: [],
+  });
+
   useEffect(() => {
     const fetchStudent = async () => {
       try {
@@ -38,8 +46,29 @@ function ViewStudent() {
     }
   }, [id]);
 
+  // Fetch options for dropdowns
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/students/getFilterOptions`); //use getFilterOptions endpoint to fetch all dropdown options 
+        const data = response.data;
+        setOptions({
+          courses: data.courses || [],
+          yearLevels: data.yearLevels || [],
+          sections: data.sections || [],
+          semesters: data.semesters || [],
+        });
+      } catch (error) {
+        console.error("Failed to fetch options:", error);
+      }
+    };
+
+    fetchOptions();
+  }, []);
+
   const handleEdit = () => {
     setEditData({
+      card_serial_number: student.card_serial_number || "",
       first_name: student.first_name || "",
       middle_name: student.middle_name || "",
       last_name: student.last_name || "",
@@ -197,6 +226,21 @@ function ViewStudent() {
             <span className="text-[1.4rem]">Student Information</span>
           </div>
           <form className="space-y-6 py-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Serial Number
+              </label>
+              <input
+                type="text"
+                disabled ={!isEditing}
+                value={
+                  isEditing ? editData.card_serial_number : student.card_serial_number || ""
+                }
+                onChange={(e) => handleChange("card_serial_number", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="Serial Number"
+              />
+
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -261,56 +305,120 @@ function ViewStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Course
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={isEditing ? editData.course : student.course || ""}
-                  onChange={(e) => handleChange("course", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Course"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                {isEditing ? (
+                  <select
+                    value={editData.course || ""}
+                    onChange={(e) => handleChange("course", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  >
+                    <option value="">— Select course —</option>
+                    {options.courses.map((course) => (
+                      <option key={course} value={course}>
+                        {course}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={student.course || "—"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Section
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={isEditing ? editData.section : student.section || ""}
-                  onChange={(e) => handleChange("section", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Section"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                {isEditing ? (
+                  <select
+                    value={editData.section || ""}
+                    onChange={(e) => handleChange("section", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  >
+                    <option value="">— Select section —</option>
+                    {options.sections.map((sec) => (
+                      <option key={sec} value={sec}>
+                        Section {sec}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={student.section ? `Section ${student.section}` : "—"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Year Level
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={
-                    isEditing ? editData.year_level : student.year_level || ""
-                  }
-                  onChange={(e) => handleChange("year_level", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Year Level"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                {isEditing ? (
+                  <select
+                    value={editData.year_level || ""}
+                    onChange={(e) => handleChange("year_level", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  >
+                    <option value="">— Select year —</option>
+                    {options.yearLevels.map((yr) => (
+                      <option key={yr} value={yr}>
+                        {yr === 1 ? "1st" : yr === 2 ? "2nd" : yr === 3 ? "3rd" : `${yr}th`} Year
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={
+                      student.year_level
+                        ? student.year_level === 1
+                          ? "1st Year"
+                          : student.year_level === 2
+                          ? "2nd Year"
+                          : student.year_level === 3
+                          ? "3rd Year"
+                          : `${student.year_level}th Year`
+                        : "—"
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Semester
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={isEditing ? editData.semester : student.semester || ""}
-                  onChange={(e) => handleChange("semester", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Semester"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                {isEditing ? (
+                  <select
+                    value={editData.semester || ""}
+                    onChange={(e) => handleChange("semester", e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  >
+                    <option value="">— Select semester —</option>
+                    {options.semesters.map((sem) => (
+                      <option key={sem} value={sem}>
+                        {sem === 1 ? "1st" : sem === 2 ? "2nd" : `${sem}th`} Semester
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={
+                      student.semester
+                        ? student.semester === 1
+                          ? "1st Semester"
+                          : student.semester === 2
+                          ? "2nd Semester"
+                          : `${student.semester}th Semester`
+                        : "—"
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                )}
               </div>
             </div>
           </form>
