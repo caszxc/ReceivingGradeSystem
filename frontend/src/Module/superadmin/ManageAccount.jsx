@@ -242,16 +242,36 @@ function ManageAccount() {
       title: `Change Password`,
       html: `
         <div class="text-left space-y-4 p-2">
-          <p class="text-sm text-gray-600 mb-4">Changing password for <strong>${username}</strong></p>
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+            <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <span class="text-white font-bold text-lg">${username.charAt(0).toUpperCase()}</span>
+            </div>
+            <div>
+              <p class="text-xs text-blue-600 font-medium">Changing password for</p>
+              <p class="text-sm font-bold text-gray-900">${username}</p>
+            </div>
+          </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-            <input id="swal-new-password" type="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+            <div style="position:relative;">
+              <input id="swal-new-password" type="password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+              <button type="button" id="toggle-new-pw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;padding:0;display:flex;align-items:center;">
+                <svg id="icon-new-eye" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="icon-new-eye-off" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
           </div>
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-            <input id="swal-confirm-password" type="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirm new password">
+            <div style="position:relative;">
+              <input id="swal-confirm-password" type="password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirm new password">
+              <button type="button" id="toggle-confirm-pw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;padding:0;display:flex;align-items:center;">
+                <svg id="icon-confirm-eye" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="icon-confirm-eye-off" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
           </div>
           
           <div id="swal-password-requirements" class="mt-2 p-3 bg-gray-50 rounded-lg">
@@ -287,6 +307,24 @@ function ManageAccount() {
       didOpen: () => {
         const newPwInput = document.getElementById("swal-new-password");
         const confirmPwInput = document.getElementById("swal-confirm-password");
+
+        // Toggle visibility for New Password
+        const toggleNewPw = document.getElementById("toggle-new-pw");
+        toggleNewPw.addEventListener("click", () => {
+          const isPassword = newPwInput.type === "password";
+          newPwInput.type = isPassword ? "text" : "password";
+          document.getElementById("icon-new-eye").style.display = isPassword ? "none" : "block";
+          document.getElementById("icon-new-eye-off").style.display = isPassword ? "block" : "none";
+        });
+
+        // Toggle visibility for Confirm Password
+        const toggleConfirmPw = document.getElementById("toggle-confirm-pw");
+        toggleConfirmPw.addEventListener("click", () => {
+          const isPassword = confirmPwInput.type === "password";
+          confirmPwInput.type = isPassword ? "text" : "password";
+          document.getElementById("icon-confirm-eye").style.display = isPassword ? "none" : "block";
+          document.getElementById("icon-confirm-eye-off").style.display = isPassword ? "block" : "none";
+        });
 
         const updateIndicators = () => {
           const pw = newPwInput.value;
