@@ -246,6 +246,35 @@ router.get("/getFilterOptions", async (req, res) => {
   }
 });
 
+// Get distinct sections for a specific course
+router.get("/getSectionsByCourse", async (req, res) => {
+  try {
+    const { course } = req.query;
+    if (!course) {
+      return res.json({ sections: [] });
+    }
+
+    const sections = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      where: {
+        course: course,
+        section: { [Op.not]: null },
+      },
+      order: [["section", "ASC"]],
+      raw: true,
+    });
+
+    res.json({
+      sections: sections.map((item) => item.section).filter(Boolean),
+    });
+  } catch (err) {
+    console.error("Sections by course error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Export students to Excel or CSV
 // scope: "all" (default) | "page" | "selected"
 // "page"     – requires page + limit + optional query/sortBy/sortOrder
