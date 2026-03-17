@@ -2,6 +2,7 @@ const sequelize = require("../config/database");
 const Student = require("./student");
 const Account = require("./account");
 const StudentImage = require("./studentProfile");
+const DefaultFilter = require("./defaultFilter");
 
 // Import future models here when needed:
 // const Attendance = require("./attendance");
@@ -21,6 +22,7 @@ const db = {
   Student,
   Account,
   StudentImage,
+  DefaultFilter,
 };
 
 module.exports = db;
