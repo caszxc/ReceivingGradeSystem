@@ -71,4 +71,25 @@ router.delete("/deleteAccount/:id", async (req, res) => {
   }
 });
 
+router.put("/changePassword/:id", async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+
+  try {
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required" });
+    }
+
+    const account = await Account.findByPk(id);
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    await account.update({ password: newPassword });
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
