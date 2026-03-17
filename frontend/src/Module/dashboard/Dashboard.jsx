@@ -3,10 +3,22 @@ import usePagination from "../../hooks/usePagination";
 import PaginationControls from "../../hooks/PaginationControls";
 import SortByButton from "../../Components/SortByButton";
 import ExportButton from "../../Components/ExportButton";
+import EnrollStudentButton from "../../Components/enrollstudentbutton";
 import AddStudentButton from "../../Components/AddStudentButton";
 import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+
+const FILTERS_KEY = "dashboardFilters";
+
+function loadFilters() {
+  const saved = localStorage.getItem(FILTERS_KEY);
+  return saved ? JSON.parse(saved) : null;
+}
+
+function saveFilters(filters) {
+  localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+}
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
@@ -30,15 +42,17 @@ function Dashboard() {
   const defaultAyStart = currentMonth >= 6 ? currentYear : currentYear - 1;
   const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
 
-  const [filters, setFilters] = useState({
-    yearLevel: "",
-    semester: "",
-    course: "",
-    section: "",
-    academicYear: defaultAcademicYear,
+  const [filters, setFilters] = useState(() => {
+    const saved = loadFilters();
+    if (saved) return saved;
 
-    // dateYearFrom: String(currentMonth >= 6 ? currentYear : currentYear - 1),
-    // dateYearTo: String(currentMonth >= 6 ? currentYear + 1 : currentYear),
+    return {
+      yearLevel: "",
+      semester: "",
+      course: "",
+      section: "",
+      academicYear: defaultAcademicYear,
+    };
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -225,8 +239,7 @@ function Dashboard() {
     }
 
     setFilters(newFilters);
-
-    // Trigger new fetch with updated filters
+    saveFilters(newFilters);
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
   };
@@ -254,21 +267,18 @@ function Dashboard() {
 
   // Add clear filters function (update the existing one)
   const clearFilters = () => {
-    setFilters({
+    const cleared = {
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-
       //uncomment kapag need
       academicYear: "",
       // dateYearFrom: "",
       // dateYearTo: "",
-    });
-    setFilterOptions((prev) => ({
-      ...prev,
-      sections: [{ value: "", label: "" }],
-    }));
+    };
+    setFilters(cleared);
+    saveFilters(cleared);
     fetchData(1, searchQuery, itemsPerPage);
     setSelectedIds(new Set());
   };
@@ -521,6 +531,96 @@ function Dashboard() {
       });
   };
 
+  const enrollStudent = () => {
+    swal
+      .fire({
+        title: "Enroll Student",
+        html: `
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Card Serial Number
+          </label>
+          <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Student Number
+          </label>
+          <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        </div>
+      </div>
+    `,
+        showCancelButton: true,
+        confirmButtonText: "Enroll",
+        cancelButtonText: "Cancel",
+        focusConfirm: false,
+        preConfirm: () => {
+          const cardSerialNumber = document
+            .getElementById("card_serial_number")
+            .value.trim();
+          const studentNumber = document
+            .getElementById("student_number")
+            .value.trim();
+
+          // Check if both are empty
+          if (!cardSerialNumber && !studentNumber) {
+            swal.showValidationMessage(
+              "Either card serial number or student number must be provided",
+            );
+            return false;
+          }
+
+          return { cardSerialNumber, studentNumber };
+        },
+      })
+      .then(async (result) => {
+        if (result.isConfirmed) {
+          const { cardSerialNumber, studentNumber } = result.value;
+
+          try {
+            // Enroll the student with either serial number or student number
+            const enrollRes = await fetch(
+              `http://localhost:3001/students/enrollStudent/0`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  cardSerialNumber: cardSerialNumber || undefined,
+                  studentNumber: studentNumber || undefined,
+                }),
+              },
+            );
+
+            const enrollData = await enrollRes.json();
+
+            if (enrollRes.ok) {
+              swal.fire(
+                "Success",
+                `${enrollData.student.first_name} ${enrollData.student.last_name} has been enrolled successfully`,
+                "success",
+              );
+              // Refresh the data
+              fetchData(currentPage, searchQuery, itemsPerPage);
+            } else {
+              swal.fire(
+                "Error",
+                enrollData.message || "Failed to enroll student",
+                "error",
+              );
+            }
+          } catch (error) {
+            swal.fire(
+              "Error",
+              error.message || "Failed to enroll student",
+              "error",
+            );
+          }
+        }
+      });
+  };
+
   // Initial load
   useEffect(() => {
     fetchData();
@@ -651,6 +751,7 @@ function Dashboard() {
               onSortColumn={setSortBy}
               onSortOrder={setSortOrder}
             /> */}
+
             <ExportButton
               searchQuery={searchQuery}
               sortBy={sortBy}
@@ -661,6 +762,7 @@ function Dashboard() {
               filters={filters}
             />
             <AddStudentButton onAdd={addStudent} />
+            <EnrollStudentButton onEnroll={enrollStudent} />
           </div>
         </div>
 
