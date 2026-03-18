@@ -5,8 +5,9 @@ const { Account } = require("../models/association");
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
-    const account = await Account.findOne({ where: { username, password } });
-    if (!account) {
+    const account = await Account.findOne({ where: { username } });
+    // Case-sensitive password
+    if (!account || account.password !== password) {
       return res.status(401).json({ message: "Incorrect credentials" });
     }
     // Return user information including role

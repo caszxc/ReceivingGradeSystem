@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/authContext";
-import { FaEye, FaEyeSlash, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaPlus, FaEdit, FaTrash, FaKey } from "react-icons/fa";
 import swal from "sweetalert2";
 
 function ManageAccount() {
@@ -234,6 +234,180 @@ function ManageAccount() {
   // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Change password
+  const handleChangePassword = async (accountId, username) => {
+    const { value: formValues } = await swal.fire({
+      title: `Change Password`,
+      html: `
+        <div class="text-left space-y-4 p-2">
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+            <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <span class="text-white font-bold text-lg">${username.charAt(0).toUpperCase()}</span>
+            </div>
+            <div>
+              <p class="text-xs text-blue-600 font-medium">Changing password for</p>
+              <p class="text-sm font-bold text-gray-900">${username}</p>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+            <div style="position:relative;">
+              <input id="swal-new-password" type="password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+              <button type="button" id="toggle-new-pw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;padding:0;display:flex;align-items:center;">
+                <svg id="icon-new-eye" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="icon-new-eye-off" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+            <div style="position:relative;">
+              <input id="swal-confirm-password" type="password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Confirm new password">
+              <button type="button" id="toggle-confirm-pw" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;padding:0;display:flex;align-items:center;">
+                <svg id="icon-confirm-eye" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="icon-confirm-eye-off" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div id="swal-password-requirements" class="mt-2 p-3 bg-gray-50 rounded-lg">
+            <p class="text-xs font-medium text-gray-600 mb-2">Password Requirements:</p>
+            <div class="space-y-1">
+              <div id="req-uppercase" class="flex items-center text-xs text-gray-400">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                At least 1 capital letter
+              </div>
+              <div id="req-number" class="flex items-center text-xs text-gray-400">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                At least 1 number
+              </div>
+              <div id="req-special" class="flex items-center text-xs text-gray-400">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                At least 1 special character
+              </div>
+              <div id="req-match" class="flex items-center text-xs text-gray-400">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                Passwords match
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonColor: "#3b82f6",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Change Password",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+      didOpen: () => {
+        const newPwInput = document.getElementById("swal-new-password");
+        const confirmPwInput = document.getElementById("swal-confirm-password");
+
+        // Toggle visibility for New Password
+        const toggleNewPw = document.getElementById("toggle-new-pw");
+        toggleNewPw.addEventListener("click", () => {
+          const isPassword = newPwInput.type === "password";
+          newPwInput.type = isPassword ? "text" : "password";
+          document.getElementById("icon-new-eye").style.display = isPassword ? "none" : "block";
+          document.getElementById("icon-new-eye-off").style.display = isPassword ? "block" : "none";
+        });
+
+        // Toggle visibility for Confirm Password
+        const toggleConfirmPw = document.getElementById("toggle-confirm-pw");
+        toggleConfirmPw.addEventListener("click", () => {
+          const isPassword = confirmPwInput.type === "password";
+          confirmPwInput.type = isPassword ? "text" : "password";
+          document.getElementById("icon-confirm-eye").style.display = isPassword ? "none" : "block";
+          document.getElementById("icon-confirm-eye-off").style.display = isPassword ? "block" : "none";
+        });
+
+        const updateIndicators = () => {
+          const pw = newPwInput.value;
+          const cpw = confirmPwInput.value;
+
+          const setReq = (id, met) => {
+            const el = document.getElementById(id);
+            if (el) el.className = `flex items-center text-xs ${met ? "text-green-600" : "text-gray-400"}`;
+          };
+
+          setReq("req-uppercase", /[A-Z]/.test(pw));
+          setReq("req-number", /\d/.test(pw));
+          setReq("req-special", /[!@#$%^&*(),.?":{}|<>]/.test(pw));
+          setReq("req-match", pw && cpw && pw === cpw);
+        };
+
+        newPwInput.addEventListener("input", updateIndicators);
+        confirmPwInput.addEventListener("input", updateIndicators);
+      },
+      preConfirm: () => {
+        const newPassword = document.getElementById("swal-new-password").value;
+        const confirmPassword = document.getElementById("swal-confirm-password").value;
+
+        if (!newPassword || !confirmPassword) {
+          swal.showValidationMessage("Please fill in both password fields");
+          return false;
+        }
+
+        const validation = validatePassword(newPassword);
+        if (!validation.isValid) {
+          swal.showValidationMessage(
+            "Password must contain at least 1 capital letter, 1 number, and 1 special character"
+          );
+          return false;
+        }
+
+        if (newPassword !== confirmPassword) {
+          swal.showValidationMessage("Passwords do not match");
+          return false;
+        }
+
+        return { newPassword };
+      },
+    });
+
+    if (formValues) {
+      try {
+        const response = await fetch(
+          `http://localhost:3001/accounts/changePassword/${accountId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ newPassword: formValues.newPassword }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (response.ok) {
+          await swal.fire({
+            title: "Password Changed!",
+            html: `<p class="text-gray-700">The password for <strong>${username}</strong> has been updated successfully.</p>`,
+            icon: "success",
+            confirmButtonColor: "#10b981",
+            confirmButtonText: "Great!",
+          });
+          fetchAccounts();
+        } else {
+          throw new Error(data.message || "Failed to change password");
+        }
+      } catch (err) {
+        console.error("Error changing password:", err);
+        await swal.fire({
+          title: "Error",
+          text: err.message || "Failed to change password. Please try again.",
+          icon: "error",
+          confirmButtonColor: "#ef4444",
+          confirmButtonText: "Okay",
+        });
+      }
+    }
   };
 
   // Delete account
@@ -718,7 +892,16 @@ function ManageAccount() {
                         {formatDate(account.createdAt)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={() =>
+                              handleChangePassword(account.id, account.username)
+                            }
+                            className="text-blue-600 hover:text-blue-900 cursor-pointer"
+                            title="Change password"
+                          >
+                            <FaKey />
+                          </button>
                           <button
                             onClick={() =>
                               handleDeleteAccount(account.id, account.username)

@@ -6,6 +6,7 @@ import Upload from "./Module/upload/Upload";
 import Layout from "./Components/Layout";
 import ViewStudent from "./Module/dashboard/ViewStudent";
 
+import Settings from "./Module/superadmin/Settings";
 import ManageAccount from "./Module/superadmin/ManageAccount";
 
 function App() {
@@ -38,11 +39,21 @@ function App() {
           </Layout>
         }
       />
+
       <Route
         path="/manage-accounts"
         element={
           <Layout>
             <ManageAccount />
+          </Layout>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <Layout>
+            <Settings />
           </Layout>
         }
       />

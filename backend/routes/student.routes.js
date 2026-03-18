@@ -246,6 +246,35 @@ router.get("/getFilterOptions", async (req, res) => {
   }
 });
 
+// Get distinct sections for a specific course
+router.get("/getSectionsByCourse", async (req, res) => {
+  try {
+    const { course } = req.query;
+    if (!course) {
+      return res.json({ sections: [] });
+    }
+
+    const sections = await Student.findAll({
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      where: {
+        course: course,
+        section: { [Op.not]: null },
+      },
+      order: [["section", "ASC"]],
+      raw: true,
+    });
+
+    res.json({
+      sections: sections.map((item) => item.section).filter(Boolean),
+    });
+  } catch (err) {
+    console.error("Sections by course error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Export students to Excel or CSV
 // scope: "all" (default) | "page" | "selected"
 // "page"     – requires page + limit + optional query/sortBy/sortOrder
@@ -585,19 +614,63 @@ function isValidDate(dateString) {
   return date instanceof Date && !isNaN(date);
 }
 
-// Enroll student
+// Enroll student by ID or by student_number/card_serial_number
 router.patch("/enrollStudent/:id", async (req, res) => {
   try {
-    const student = await Student.findByPk(req.params.id);
-    if (!student) return res.status(404).json({ message: "Student not found" });
+    const { id } = req.params;
+    const { studentNumber, cardSerialNumber } = req.body;
+
+    // Check if both are empty
+    if (!studentNumber && !cardSerialNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Either student number or card serial number must be provided",
+      });
+    }
+
+    let student;
+
+    // If studentNumber provided, use it
+    if (studentNumber) {
+      student = await Student.findOne({
+        where: { student_number: studentNumber.toUpperCase() },
+      });
+    } else if (cardSerialNumber) {
+      // Otherwise use cardSerialNumber
+      student = await Student.findOne({
+        where: { card_serial_number: cardSerialNumber },
+      });
+    }
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    if (student.isEnrolled) {
+      return res.status(400).json({
+        success: false,
+        message: "Student is already enrolled",
+      });
+    }
 
     student.isEnrolled = true;
     student.date_enrolled = new Date();
     await student.save();
 
-    res.json({ message: "Student enrolled successfully", student });
+    res.json({
+      success: true,
+      message: "Student enrolled successfully",
+      student,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Enroll error:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
 });
 

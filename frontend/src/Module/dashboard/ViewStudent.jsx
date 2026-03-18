@@ -17,9 +17,9 @@ function ViewStudent() {
 
   // State for dropdown options
   const [options, setOptions] = useState({
-    courses:   [],
+    courses: [],
     yearLevels: [],
-    sections:  [],
+    sections: [],
     semesters: [],
   });
 
@@ -50,7 +50,9 @@ function ViewStudent() {
   useEffect(() => {
     const fetchOptions = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/students/getFilterOptions`); //use getFilterOptions endpoint to fetch all dropdown options 
+        const response = await axios.get(
+          `${BASE_URL}/students/getFilterOptions`,
+        ); //use getFilterOptions endpoint to fetch all dropdown options
         const data = response.data;
         setOptions({
           courses: data.courses || [],
@@ -214,8 +216,12 @@ function ViewStudent() {
 
           <div>
             {/*active or enrolled*/}
-            <span className="mt-4 px-5 py-2 rounded-md text-white text-sm font-semibold bg-green-500">
-              Enrolled
+            <span
+              className={`mt-4 px-5 py-2 rounded-md text-white text-sm font-semibold ${
+                student.isEnrolled ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              {student.isEnrolled ? "Enrolled" : "Not Enrolled"}
             </span>
           </div>
         </div>
@@ -232,14 +238,17 @@ function ViewStudent() {
               </label>
               <input
                 type="text"
-                disabled ={!isEditing}
+                disabled={!isEditing}
                 value={
-                  isEditing ? editData.card_serial_number : student.card_serial_number || ""
+                  isEditing
+                    ? editData.card_serial_number
+                    : student.card_serial_number || ""
                 }
-                onChange={(e) => handleChange("card_serial_number", e.target.value)}
+                onChange={(e) =>
+                  handleChange("card_serial_number", e.target.value)
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="Serial Number"
               />
-
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -305,7 +314,9 @@ function ViewStudent() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Course
+                </label>
                 {isEditing ? (
                   <select
                     value={editData.course || ""}
@@ -329,7 +340,9 @@ function ViewStudent() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Section</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Section
+                </label>
                 {isEditing ? (
                   <select
                     value={editData.section || ""}
@@ -355,7 +368,9 @@ function ViewStudent() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Year Level
+                </label>
                 {isEditing ? (
                   <select
                     value={editData.year_level || ""}
@@ -365,7 +380,14 @@ function ViewStudent() {
                     <option value="">— Select year —</option>
                     {options.yearLevels.map((yr) => (
                       <option key={yr} value={yr}>
-                        {yr === 1 ? "1st" : yr === 2 ? "2nd" : yr === 3 ? "3rd" : `${yr}th`} Year
+                        {yr === 1
+                          ? "1st"
+                          : yr === 2
+                            ? "2nd"
+                            : yr === 3
+                              ? "3rd"
+                              : `${yr}th`}{" "}
+                        Year
                       </option>
                     ))}
                   </select>
@@ -378,10 +400,10 @@ function ViewStudent() {
                         ? student.year_level === 1
                           ? "1st Year"
                           : student.year_level === 2
-                          ? "2nd Year"
-                          : student.year_level === 3
-                          ? "3rd Year"
-                          : `${student.year_level}th Year`
+                            ? "2nd Year"
+                            : student.year_level === 3
+                              ? "3rd Year"
+                              : `${student.year_level}th Year`
                         : "—"
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
@@ -389,7 +411,9 @@ function ViewStudent() {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Semester
+                </label>
                 {isEditing ? (
                   <select
                     value={editData.semester || ""}
@@ -399,7 +423,8 @@ function ViewStudent() {
                     <option value="">— Select semester —</option>
                     {options.semesters.map((sem) => (
                       <option key={sem} value={sem}>
-                        {sem === 1 ? "1st" : sem === 2 ? "2nd" : `${sem}th`} Semester
+                        {sem === 1 ? "1st" : sem === 2 ? "2nd" : `${sem}th`}{" "}
+                        Semester
                       </option>
                     ))}
                   </select>
@@ -409,11 +434,11 @@ function ViewStudent() {
                     disabled
                     value={
                       student.semester
-                        ? student.semester === 1
+                        ? student.semester === "1"
                           ? "1st Semester"
-                          : student.semester === 2
-                          ? "2nd Semester"
-                          : `${student.semester}th Semester`
+                          : student.semester === "2"
+                            ? "2nd Semester"
+                            : `${student.semester}th Semester`
                         : "—"
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
