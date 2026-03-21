@@ -137,23 +137,23 @@ function Dashboard() {
   }, []);
 
   //fetch filter options default
-  useEffect(() => {
-    // Only fetch defaults on first load
-    fetch("http://localhost:3001/settings/default-filters")
-      .then((res) => res.json())
-      .then((defaults) => {
-        // Only set if filters are empty (or you can always set if you want to force defaults)
-        setFilters((prev) => ({
-          ...prev,
-          yearLevel: defaults.yearLevel || "",
-          semester: defaults.semester || "",
-          course: defaults.course || "",
-          section: defaults.section || "",
-          // academicYear: defaults.academicYear || defaultAcademicYear,
-        }));
-      });
-    // eslint-disable-next-line
-  }, []);
+  // useEffect(() => {
+  //   // Only fetch defaults on first load
+  //   fetch("http://localhost:3001/settings/default-filters")
+  //     .then((res) => res.json())
+  //     .then((defaults) => {
+  //       // Only set if filters are empty (or you can always set if you want to force defaults)
+  //       setFilters((prev) => ({
+  //         ...prev,
+  //         yearLevel: defaults.yearLevel || "",
+  //         semester: defaults.semester || "",
+  //         course: defaults.course || "",
+  //         section: defaults.section || "",
+  //         // academicYear: defaults.academicYear || defaultAcademicYear,
+  //       }));
+  //     });
+  //   // eslint-disable-next-line
+  // }, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -169,14 +169,14 @@ function Dashboard() {
           { value: "", label: "" },
           ...data.yearLevels.map((year) => ({
             value: year.toString(),
-            label: `${getYearLabel(year)} Year`,
+            label: `${getYearLabel(year)}`,
           })),
         ],
         semesters: [
           { value: "", label: "" },
           ...data.semesters.map((sem) => ({
             value: sem.toString(),
-            label: `${getSemesterLabel(sem)} Semester`,
+            label: `${getSemesterLabel(sem)}`,
           })),
         ],
         courses: [
@@ -213,12 +213,12 @@ function Dashboard() {
   // Helper functions for labels
   const getYearLabel = (year) => {
     const labels = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
-    return labels[year] || `${year}th`;
+    return labels[year] || `${year}`;
   };
 
   const getSemesterLabel = (semester) => {
     const labels = { 1: "1st", 2: "2nd" };
-    return labels[semester] || `${semester}th`;
+    return labels[semester] || `${semester}`;
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -255,7 +255,7 @@ function Dashboard() {
           { value: "", label: "" },
           ...data.sections.map((section) => ({
             value: section.toString(),
-            label: `Section ${section}`,
+            label: `${section}`,
           })),
         ],
       }));
