@@ -38,21 +38,39 @@ function buildWhereClause(query, filters) {
 
   // Handle search query
   if (query && query.trim() !== "") {
+    const searchQuery = query.trim().toUpperCase();
     andConditions.push({
       [Op.or]: [
-        { student_number: { [Op.like]: `%${query}%` } },
-        { first_name: { [Op.like]: `%${query}%` } },
-        { middle_name: { [Op.like]: `%${query}%` } },
-        { last_name: { [Op.like]: `%${query}%` } },
-        { course: { [Op.like]: `%${query}%` } },
-        { card_type: { [Op.like]: `%${query}%` } },
-        { card_status: { [Op.like]: `%${query}%` } },
-        { card_serial_number: { [Op.like]: `%${query}%` } },
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("student_number")),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("first_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("middle_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("last_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("course")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_type")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_status")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("card_serial_number")),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
       ],
     });
   }
 
-  // Handle filters - these need to be combined with AND logic
   if (filters.yearLevel) {
     andConditions.push({ year_level: filters.yearLevel });
   }
@@ -62,7 +80,8 @@ function buildWhereClause(query, filters) {
   }
 
   if (filters.course) {
-    andConditions.push({ course: { [Op.like]: `%${filters.course}%` } });
+    const courseName = filters.course.trim().toUpperCase();
+    andConditions.push({ course: { [Op.like]: `%${courseName}%` } });
   }
 
   if (filters.section) {

@@ -32,26 +32,25 @@ function Dashboard() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const academicYear =
-    currentMonth >= 6
-      ? `${currentYear}-${currentYear + 1}`
-      : `${currentYear - 1}-${currentYear}`;
-  const currentSemester = currentMonth >= 6 ? "1st" : "2nd";
+  // const academicYear =
+  //   currentMonth >= 6
+  //     ? `${currentYear}-${currentYear + 1}`
+  //     : `${currentYear - 1}-${currentYear}`;
 
   //uncomment kapag need
   const defaultAyStart = currentMonth >= 6 ? currentYear : currentYear - 1;
-  const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
+  // const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
 
   const [filters, setFilters] = useState(() => {
-    const saved = loadFilters();
-    if (saved) return saved;
+    // const saved = loadFilters();
+    // if (saved) return saved;
 
     return {
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-      academicYear: defaultAcademicYear,
+      // academicYear: "",
     };
   });
 
@@ -82,11 +81,11 @@ function Dashboard() {
     if (filters.section) filterParams.append("section", filters.section);
 
     //uncomment kapag need
-    if (filters.academicYear) {
-      const [fromYear, toYear] = filters.academicYear.split("-");
-      filterParams.append("dateYearFrom", fromYear);
-      filterParams.append("dateYearTo", toYear);
-    }
+    // if (filters.academicYear) {
+    //   const [fromYear, toYear] = filters.academicYear.split("-");
+    //   filterParams.append("dateYearFrom", fromYear);
+    //   filterParams.append("dateYearTo", toYear);
+    // }
 
     // if (filters.dateYearFrom)
     //   filterParams.append("dateYearFrom", filters.dateYearFrom);
@@ -107,11 +106,11 @@ function Dashboard() {
     if (filters.section) filterParams.append("section", filters.section);
 
     //uncomment kapag need
-    if (filters.academicYear) {
-      const [fromYear, toYear] = filters.academicYear.split("-");
-      filterParams.append("dateYearFrom", fromYear);
-      filterParams.append("dateYearTo", toYear);
-    }
+    // if (filters.academicYear) {
+    //   const [fromYear, toYear] = filters.academicYear.split("-");
+    //   filterParams.append("dateYearFrom", fromYear);
+    //   filterParams.append("dateYearTo", toYear);
+    // }
 
     // if (filters.dateYearFrom)
     //   filterParams.append("dateYearFrom", filters.dateYearFrom);
@@ -150,7 +149,7 @@ function Dashboard() {
           semester: defaults.semester || "",
           course: defaults.course || "",
           section: defaults.section || "",
-          academicYear: defaults.academicYear || defaultAcademicYear,
+          // academicYear: defaults.academicYear || defaultAcademicYear,
         }));
       });
     // eslint-disable-next-line
@@ -273,7 +272,7 @@ function Dashboard() {
       course: "",
       section: "",
       //uncomment kapag need
-      academicYear: "",
+      // academicYear: "",
       // dateYearFrom: "",
       // dateYearTo: "",
     };
@@ -660,10 +659,10 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
-  const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
-    const start = defaultAyStart - i;
-    return `${start}-${start + 1}`;
-  });
+  // const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
+  //   const start = defaultAyStart - i;
+  //   return `${start}-${start + 1}`;
+  // });
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -677,12 +676,12 @@ function Dashboard() {
               Manage and view student records
             </p>
             {/*Uncomment kapag need*/}
-            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
+            {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
               {filters.semester
                 ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
                 : "All Semester"}{" "}
               A.Y. {filters.academicYear ? filters.academicYear : academicYear}
-            </span>
+            </span> */}
 
             {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
               {filters.semester
@@ -780,7 +779,7 @@ function Dashboard() {
           </div>
 
           {filterOptionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(5)].map((_, index) => (
                 <div key={index} className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -790,7 +789,7 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Year Level Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -945,7 +944,7 @@ function Dashboard() {
                 </div>
 
                 {/* Academic Year Filter */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Academic Year
                   </label>
@@ -980,7 +979,7 @@ function Dashboard() {
                       </svg>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Date Year Range Filter */}
                 {/* <div className="relative " ref={dateYearRef}>
