@@ -10,7 +10,10 @@ const csv = require("csv-parser");
 const fs = require("fs");
 
 // Configure multer for file uploads
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 // Allowed sort columns whitelist (prevent SQL injection)
 const ALLOWED_SORT_COLUMNS = {
@@ -31,44 +34,63 @@ function getSortOrder(sortBy, sortOrder) {
 
 function buildWhereClause(query, filters) {
   let whereClause = {};
+  const andConditions = [];
 
   // Handle search query
   if (query && query.trim() !== "") {
-    whereClause[Op.or] = [
-      { student_number: { [Op.like]: `%${query}%` } },
-      { first_name: { [Op.like]: `%${query}%` } },
-      { middle_name: { [Op.like]: `%${query}%` } },
-      { last_name: { [Op.like]: `%${query}%` } },
-      { course: { [Op.like]: `%${query}%` } },
-      { card_type: { [Op.like]: `%${query}%` } },
-      { card_status: { [Op.like]: `%${query}%` } },
-      { card_serial_number: { [Op.like]: `%${query}%` } },
-    ];
+    const searchQuery = query.trim().toUpperCase();
+    andConditions.push({
+      [Op.or]: [
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("student_number")),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("first_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("middle_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("last_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("course")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_type")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_status")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("card_serial_number")),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
+      ],
+    });
   }
 
-  // Handle filters - these need to be combined with AND logic
   if (filters.yearLevel) {
-    whereClause.year_level = filters.yearLevel;
+    andConditions.push({ year_level: filters.yearLevel });
   }
 
   if (filters.semester) {
-    whereClause.semester = filters.semester;
+    andConditions.push({ semester: filters.semester });
   }
 
   if (filters.course) {
-    whereClause.course = { [Op.like]: `%${filters.course}%` };
+    const courseName = filters.course.trim().toUpperCase();
+    andConditions.push({ course: { [Op.like]: `%${courseName}%` } });
   }
 
   if (filters.section) {
-    whereClause.section = filters.section;
+    andConditions.push({ section: filters.section });
   }
 
   if (filters.dateYearFrom || filters.dateYearTo) {
-    if (!whereClause[Op.and]) whereClause[Op.and] = [];
-
     if (filters.dateYearFrom && filters.dateYearTo) {
-      // Both: YEAR(date_enrolled) BETWEEN from AND to
-      whereClause[Op.and].push(
+      andConditions.push(
         sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
           [Op.between]: [
             parseInt(filters.dateYearFrom),
@@ -77,20 +99,26 @@ function buildWhereClause(query, filters) {
         }),
       );
     } else if (filters.dateYearFrom) {
-      // Only from: YEAR(date_enrolled) >= from
-      whereClause[Op.and].push(
+      andConditions.push(
         sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
           [Op.gte]: parseInt(filters.dateYearFrom),
         }),
       );
     } else {
-      // Only to: YEAR(date_enrolled) <= to
-      whereClause[Op.and].push(
+      andConditions.push(
         sequelize.where(sequelize.fn("YEAR", sequelize.col("date_enrolled")), {
           [Op.lte]: parseInt(filters.dateYearTo),
         }),
       );
     }
+  }
+
+  // Combine all conditions with AND logic
+  if (andConditions.length > 0) {
+    whereClause =
+      andConditions.length === 1
+        ? andConditions[0]
+        : { [Op.and]: andConditions };
   }
 
   return whereClause;
@@ -437,6 +465,19 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
     const validatedData = [];
     const errors = [];
 
+    // Define required and optional columns
+    const requiredFields = ["student_number"];
+    const optionalFields = [
+      "first_name",
+      "last_name",
+      "middle_name",
+      "course",
+      "major",
+      "section",
+      "semester",
+      "year_level",
+    ];
+
     // Validate data
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
@@ -444,53 +485,16 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
       const rowErrors = [];
 
       // Check required fields
-      const requiredFields = [
-        "card_id_control_number",
-        "card_type",
-        "student_number",
-        "first_name",
-        "last_name",
-      ];
-
       for (const field of requiredFields) {
         if (!row[field] || row[field].toString().trim() === "") {
           rowErrors.push(`Missing required field: ${field}`);
         }
       }
 
-      // Validate data types and formats
-      if (
-        row.card_id_control_number &&
-        isNaN(parseInt(row.card_id_control_number))
-      ) {
-        rowErrors.push("card_id_control_number must be a number");
-      }
-
-      if (
-        row.year_level &&
-        (isNaN(parseInt(row.year_level)) ||
-          parseInt(row.year_level) < 1 ||
-          parseInt(row.year_level) > 4)
-      ) {
-        rowErrors.push("year_level must be a number between 1 and 4");
-      }
-
-      // Validate date formats
-      if (row.date_enrolled && !isValidDate(row.date_enrolled)) {
-        rowErrors.push(
-          "date_enrolled must be a valid date (YYYY-MM-DD format)",
-        );
-      }
-
-      if (row.date_issued && !isValidDate(row.date_issued)) {
-        rowErrors.push(
-          "date_issued must be a valid date (YYYY-MM-DD HH:MM:SS format)",
-        );
-      }
-
       // Check for duplicate student numbers in the file
       const duplicateInFile = validatedData.find(
-        (existingRow) => existingRow.student_number === row.student_number,
+        (existingRow) =>
+          existingRow.student_number === row.student_number?.toString().trim(),
       );
       if (duplicateInFile) {
         rowErrors.push(
@@ -505,50 +509,57 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
           data: row,
         });
       } else {
-        // Clean and format the data
+        // Clean and format the data - only include required and optional columns
         const cleanedRow = {
-          card_id_control_number: parseInt(row.card_id_control_number),
-          date_enrolled: row.date_enrolled || null,
-          card_serial_number: null, //default to null since it's not required and may not be provided
-          card_type: row.card_type.toString().trim(),
           student_number: row.student_number.toString().trim(),
-          first_name: row.first_name.toString().trim(),
-          middle_name: row.middle_name
-            ? row.middle_name.toString().trim()
-            : null,
-          last_name: row.last_name.toString().trim(),
-          course: row.course ? row.course.toString().trim() : null,
-          year_level: row.year_level ? parseInt(row.year_level) : null,
-          card_status: row.card_status
-            ? row.card_status.toString().trim()
-            : "Active",
-          date_issued: row.date_issued || null,
+
+          isEnrolled: false, // Default value
         };
+
+        // Add optional fields if they exist
+        if (row.first_name && row.first_name.toString().trim() !== "") {
+          cleanedRow.first_name = row.first_name.toString().trim();
+        }
+        if (row.last_name && row.last_name.toString().trim() !== "") {
+          cleanedRow.last_name = row.last_name.toString().trim();
+        }
+        if (row.middle_name && row.middle_name.toString().trim() !== "") {
+          cleanedRow.middle_name = row.middle_name.toString().trim();
+        }
+        if (row.course && row.course.toString().trim() !== "") {
+          cleanedRow.course = row.course.toString().trim();
+        }
+        if (row.major && row.major.toString().trim() !== "") {
+          cleanedRow.major = row.major.toString().trim();
+        }
+        if (row.section && row.section.toString().trim() !== "") {
+          cleanedRow.section = row.section.toString().trim();
+        }
+        if (row.semester && row.semester.toString().trim() !== "") {
+          cleanedRow.semester = row.semester.toString().trim();
+        }
+        if (row.year_level && row.year_level.toString().trim() !== "") {
+          cleanedRow.year_level = row.year_level.toString().trim();
+        }
+
         validatedData.push(cleanedRow);
       }
     }
 
-    // Check for existing records in database
+    // Check for existing records in database - only check student_number
     const existingRecords = [];
     if (validatedData.length > 0) {
       const studentNumbers = validatedData.map((row) => row.student_number);
-      const controlNumbers = validatedData.map(
-        (row) => row.card_id_control_number,
-      );
 
       const existing = await Student.findAll({
         where: {
-          [Op.or]: [
-            { student_number: { [Op.in]: studentNumbers } },
-            { card_id_control_number: { [Op.in]: controlNumbers } },
-          ],
+          student_number: { [Op.in]: studentNumbers },
         },
       });
 
       existing.forEach((student) => {
         existingRecords.push({
           student_number: student.student_number,
-          card_id_control_number: student.card_id_control_number,
         });
       });
     }

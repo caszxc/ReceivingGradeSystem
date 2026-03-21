@@ -73,17 +73,35 @@ const Student = sequelize.define(
         );
       },
     },
+    major: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "major",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
+    },
     year_level: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     section: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     semester: {
       type: DataTypes.STRING,
       allowNull: true,
+      set(value) {
+        // Automatically convert to uppercase
+        this.setDataValue(
+          "semester",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
     },
     card_status: {
       type: DataTypes.STRING,

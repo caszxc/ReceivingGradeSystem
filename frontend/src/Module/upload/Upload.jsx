@@ -165,7 +165,7 @@ const Upload = () => {
   };
 
   return (
-    <div className="p-6 bg-blue-200 h-screen">
+    <div className="p-6 bg-blue-200 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -189,22 +189,20 @@ const Upload = () => {
                 <div>
                   <strong>Required columns:</strong>
                   <ul className="mt-1 space-y-1">
-                    {/* <li>• card_id_control_number</li> */}
-                    {/* <li>• card_type</li> */}
                     <li>• student_number</li>
-                    <li>• first_name</li>
-                    <li>• last_name</li>
                   </ul>
                 </div>
                 <div>
                   <strong>Optional columns:</strong>
                   <ul className="mt-1 space-y-1">
-                    {/* <li>• date_enrolled</li> */}
+                    <li>• first_name</li>
+                    <li>• last_name</li>
                     <li>• middle_name</li>
                     <li>• course</li>
-                    <li>• year_level (1-4)</li>
-                    {/* <li>• card_status</li>
-                    <li>• date_issued</li> */}
+                    <li>• major</li>
+                    <li>• section</li>
+                    <li>• semester</li>
+                    <li>• year_level</li>
                   </ul>
                 </div>
               </div>
@@ -653,8 +651,8 @@ const Upload = () => {
             {uploadResult &&
               uploadResult.validData &&
               uploadResult.validData.length > 0 && (
-                <div className="flex gap-4 items-center">
-                  <div className="">
+                <div className="flex gap-4 items-center rounded-lg">
+                  {/* <div className="">
                     <input
                       type="file"
                       accept=".xlsx,.xls,.csv"
@@ -666,7 +664,7 @@ const Upload = () => {
                     >
                       Add File
                     </label>
-                  </div>
+                  </div> */}
 
                   <div className="bg-white p-2 flex items-center justify-between space-x-4 flex-grow">
                     <p className="text-sm text-gray-600 mt-1">
