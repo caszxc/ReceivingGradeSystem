@@ -94,12 +94,18 @@ const usePagination = ({
   //   fetchData(1, "", currentItemsPerPage);
   // };
 
-  const handleSearch = (query) => {
+  const handleSearch = (query, options = {}) => {
+    const { immediate = false } = options;
     setSearchQuery(query);
     setCurrentPage(1);
 
     // Debounce: clear previous timeout
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (immediate) {
+      fetchData(1, query, currentItemsPerPage);
+      return;
+    }
 
     debounceRef.current = setTimeout(() => {
       fetchData(1, query, currentItemsPerPage);
