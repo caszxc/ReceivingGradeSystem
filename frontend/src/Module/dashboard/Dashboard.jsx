@@ -1190,9 +1190,9 @@ function Dashboard() {
                       title="Select all on this page"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Serial Number
-                  </th>
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Number
+                  </th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Student Number
                   </th>
@@ -1253,26 +1253,26 @@ function Dashboard() {
                           />
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
                               value={
-                                editData.card_serial_number ||
-                                student.card_serial_number
+                                editData.student_number ||
+                                student.student_number
                               }
                               onChange={(e) =>
                                 setEditData({
                                   ...editData,
-                                  card_serial_number: e.target.value,
+                                  student_number: e.target.value,
                                 })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
                           ) : (
-                            student.card_serial_number || "—"
+                            student.student_number || "—"
                           )}
-                        </td>
+                        </td> */}
 
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
