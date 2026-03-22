@@ -622,6 +622,18 @@ router.post("/confirmUpload", async (req, res) => {
       return res.status(400).json({ error: "No valid data to upload" });
     }
 
+    // Auto-assign course_id based on course name
+    for (const student of validatedData) {
+      if (student.course) {
+        const courseRecord = await Course.findOne({
+          where: { name: student.course.toUpperCase() },
+        });
+        if (courseRecord) {
+          student.course_id = courseRecord.id; // ← Set course_id automatically
+        }
+      }
+    }
+
     const createdStudents = await Student.bulkCreate(validatedData, {
       validate: true,
       ignoreDuplicates: false,
@@ -907,63 +919,63 @@ router.get("/getImage/:id", async (req, res) => {
   }
 });
 
-router.post("/migrateCourseIds", async (req, res) => {
-  try {
-    console.log("Starting course migration...");
-    const { Course } = require("../models/association");
+// router.post("/migrateCourseIds", async (req, res) => {
+//   try {
+//     console.log("Starting course migration...");
+//     const { Course } = require("../models/association");
 
-    const coursesToInsert = [
-      "BACHELOR OF ARTS IN COMMUNICATION",
-      "BACHELOR OF EARLY CHILDHOOD EDUCATION",
-      "BACHELOR OF SCIENCE IN ACCOUNTANCY",
-      "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION",
-      "BACHELOR OF SCIENCE IN CIVIL ENGINEERING",
-      "BACHELOR OF SCIENCE IN ELECTRICAL ENGINEERING",
-      "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY",
-      "BACHELOR OF SCIENCE IN PSYCHOLOGY",
-      "BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION",
-      "BACHELOR OF SCIENCE IN SOCIAL WORK",
-      "BACHELOR OF SECONDARY EDUCATION",
-      "CERTIFICATE IN TEACHING PROGRAM",
-      "MASTER IN PUBLIC ADMINISTRATION",
-      "MASTER OF ARTS IN EDUCATION",
-    ];
+//     const coursesToInsert = [
+//       "BACHELOR OF ARTS IN COMMUNICATION",
+//       "BACHELOR OF EARLY CHILDHOOD EDUCATION",
+//       "BACHELOR OF SCIENCE IN ACCOUNTANCY",
+//       "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION",
+//       "BACHELOR OF SCIENCE IN CIVIL ENGINEERING",
+//       "BACHELOR OF SCIENCE IN ELECTRICAL ENGINEERING",
+//       "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY",
+//       "BACHELOR OF SCIENCE IN PSYCHOLOGY",
+//       "BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION",
+//       "BACHELOR OF SCIENCE IN SOCIAL WORK",
+//       "BACHELOR OF SECONDARY EDUCATION",
+//       "CERTIFICATE IN TEACHING PROGRAM",
+//       "MASTER IN PUBLIC ADMINISTRATION",
+//       "MASTER OF ARTS IN EDUCATION",
+//     ];
 
-    // Insert courses
-    for (const courseName of coursesToInsert) {
-      await Course.findOrCreate({
-        where: { name: courseName },
-        defaults: { name: courseName, isActive: true },
-      });
-    }
-    console.log(`Inserted ${coursesToInsert.length} courses`);
+//     // Insert courses
+//     for (const courseName of coursesToInsert) {
+//       await Course.findOrCreate({
+//         where: { name: courseName },
+//         defaults: { name: courseName, isActive: true },
+//       });
+//     }
+//     console.log(`Inserted ${coursesToInsert.length} courses`);
 
-    // Update all students
-    let updated = 0;
-    const students = await Student.findAll();
-    for (const student of students) {
-      if (student.course) {
-        const courseRecord = await Course.findOne({
-          where: { name: student.course.toUpperCase() },
-        });
-        if (courseRecord) {
-          await student.update({ course_id: courseRecord.id });
-          updated++;
-        }
-      }
-    }
+//     // Update all students
+//     let updated = 0;
+//     const students = await Student.findAll();
+//     for (const student of students) {
+//       if (student.course) {
+//         const courseRecord = await Course.findOne({
+//           where: { name: student.course.toUpperCase() },
+//         });
+//         if (courseRecord) {
+//           await student.update({ course_id: courseRecord.id });
+//           updated++;
+//         }
+//       }
+//     }
 
-    console.log(`Updated ${updated} student records`);
-    res.json({
-      success: true,
-      message: "Migration complete!",
-      coursesInserted: coursesToInsert.length,
-      studentsUpdated: updated,
-    });
-  } catch (err) {
-    console.error("Migration error:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
+//     console.log(`Updated ${updated} student records`);
+//     res.json({
+//       success: true,
+//       message: "Migration complete!",
+//       coursesInserted: coursesToInsert.length,
+//       studentsUpdated: updated,
+//     });
+//   } catch (err) {
+//     console.error("Migration error:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 module.exports = router;

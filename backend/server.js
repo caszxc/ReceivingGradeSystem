@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const db = require("./models/association");
+const seedCourses = require("./seeds/courseSeed");
 
 const app = express();
 const PORT = 3001;
@@ -16,9 +17,12 @@ app.use("/auth", require("./routes/authentication.route"));
 app.use("/accounts", require("./routes/accountManagement.route"));
 app.use("/settings", require("./routes/settings.route"));
 
-// Sync DB and start server
-db.sequelize.sync({ alter: true }).then(() => {
+
+
+// Sync DB and seed on startup
+db.sequelize.sync({ alter: true }).then(async () => {
   console.log("Database synced");
+  await seedCourses();
 });
 
 app.listen(PORT, () => {
