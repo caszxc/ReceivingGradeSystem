@@ -345,6 +345,9 @@ function Dashboard() {
 
   // Add student function
   const addStudent = () => {
+    let selectedCourse = ""; // Track selected course for section fetching
+    let availableSections = []; // Track available sections
+
     swal
       .fire({
         title: "Add New Student",
@@ -384,42 +387,75 @@ function Dashboard() {
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Course
             </label>
-          <select id="course_id" class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer">
-            <option value="">Select Course</option>
-            <!-- Options will be populated by JavaScript -->
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-            </svg>
-          </div>
+            <select id="course_id" class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer">
+              <option value="">Select Course</option>
+              ${filterOptions.courses
+                .slice(1)
+                .map((c) => `<option value="${c.value}">${c.label}</option>`)
+                .join("")}
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Year Level
             </label>
-            <div className="relative">
-              <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg  focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
-                <option value="">Select Year</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
-               
-            </div>
+            <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
+              <option value="">Select Year Level</option>
+              ${filterOptions.yearLevels
+                .slice(1)
+                .map((y) => `<option value="${y.value}">${y.label}</option>`)
+                .join("")}
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Section
             </label>
-            <input id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <select id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer" disabled>
+              <option value="">Select a course first</option>
+            </select>
           </div>
         </div>
       </div>
     `,
         focusConfirm: false,
         showCancelButton: true,
+        didOpen: () => {
+          // Add event listener to course dropdown
+          const courseSelect = document.getElementById("course_id");
+          const sectionSelect = document.getElementById("section");
+
+          courseSelect.addEventListener("change", async (e) => {
+            selectedCourse = e.target.value;
+
+            if (selectedCourse) {
+              try {
+                // Fetch sections for selected course
+                const response = await fetch(
+                  `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
+                );
+                const data = await response.json();
+                availableSections = data.sections || [];
+
+                // Update section dropdown
+                sectionSelect.disabled = false;
+                sectionSelect.innerHTML = `
+                <option value="">Select Section</option>
+                ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
+              `;
+              } catch (error) {
+                console.error("Error fetching sections:", error);
+                sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;
+                sectionSelect.disabled = true;
+              }
+            } else {
+              // Reset section dropdown
+              sectionSelect.disabled = true;
+              sectionSelect.innerHTML = `<option value="">Select a course first</option>`;
+              availableSections = [];
+            }
+          });
+        },
         preConfirm: () => {
           const student_number =
             document.getElementById("student_number").value;
@@ -452,6 +488,12 @@ function Dashboard() {
             year_level,
             section,
           } = result.value;
+
+          // Get course name from filterOptions
+          const courseObj = filterOptions.courses.find(
+            (c) => c.value == course_id,
+          );
+          const course = courseObj ? courseObj.label : "";
 
           // Create full name for display
           const fullNameParts = [first_name, middle_name, last_name].filter(
