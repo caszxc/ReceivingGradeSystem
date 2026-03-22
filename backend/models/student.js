@@ -73,6 +73,10 @@ const Student = sequelize.define(
         );
       },
     },
+    course_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     major: {
       type: DataTypes.STRING,
       allowNull: true,

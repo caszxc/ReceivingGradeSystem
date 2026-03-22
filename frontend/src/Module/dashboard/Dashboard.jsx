@@ -182,8 +182,8 @@ function Dashboard() {
         courses: [
           { value: "", label: "" },
           ...data.courses.map((course) => ({
-            value: course,
-            label: course,
+            value: course.id,
+            label: course.name,
           })),
         ],
         sections: [{ value: "", label: "" }],
@@ -384,7 +384,15 @@ function Dashboard() {
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Course
             </label>
-            <input id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
+          <select id="course_id" class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer">
+            <option value="">Select Course</option>
+            <!-- Options will be populated by JavaScript -->
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -418,7 +426,7 @@ function Dashboard() {
           const first_name = document.getElementById("first_name").value;
           const middle_name = document.getElementById("middle_name").value;
           const last_name = document.getElementById("last_name").value;
-          const course = document.getElementById("course").value;
+          const course_id = document.getElementById("course_id").value;
           const year_level = document.getElementById("year_level").value;
           const section = document.getElementById("section").value;
 
@@ -427,7 +435,7 @@ function Dashboard() {
             first_name,
             middle_name,
             last_name,
-            course,
+            course_id,
             year_level,
             section,
           };
@@ -440,7 +448,7 @@ function Dashboard() {
             first_name,
             middle_name,
             last_name,
-            course,
+            course_id,
             year_level,
             section,
           } = result.value;
@@ -492,7 +500,7 @@ function Dashboard() {
                     first_name,
                     middle_name,
                     last_name,
-                    course,
+                    course_id: parseInt(course_id) || null,
                     year_level,
                     section,
                   }),
@@ -1325,19 +1333,27 @@ function Dashboard() {
 
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
-                            <input
-                              type="text"
-                              value={editData.course || student.course || ""}
+                            <select
+                              value={
+                                editData.course_id || student.course_id || ""
+                              }
                               onChange={(e) =>
                                 setEditData({
                                   ...editData,
-                                  course: e.target.value,
+                                  course_id: e.target.value,
                                 })
                               }
                               className="border px-2 py-1 rounded w-full"
-                            />
+                            >
+                              <option value="">— Select course —</option>
+                              {filterOptions.courses.map((course) => (
+                                <option key={course.id} value={course.id}>
+                                  {course.name}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
-                            student.course || "—"
+                            student.courseData?.name || student.course || "—"
                           )}
                         </td>
 

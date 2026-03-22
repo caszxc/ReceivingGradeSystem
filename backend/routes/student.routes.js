@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const sharp = require("sharp");
-const { Student, StudentImage } = require("../models/association");
+const { Student, StudentImage, Course } = require("../models/association");
 const { Op } = require("sequelize");
 const sequelize = require("../config/database");
 const multer = require("multer");
@@ -80,8 +80,11 @@ function buildWhereClause(query, filters) {
   }
 
   if (filters.course) {
-    const courseName = filters.course.trim().toUpperCase();
-    andConditions.push({ course: { [Op.like]: `%${courseName}%` } });
+    // Filter by course_id (numeric), not course name
+    const courseId = parseInt(filters.course);
+    if (!isNaN(courseId)) {
+      andConditions.push({ course_id: courseId }); // ✅ Match the ID
+    }
   }
 
   if (filters.section) {
@@ -149,6 +152,9 @@ router.get("/getStudent", async (req, res) => {
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
+      include: [
+        { model: Course, attributes: ["id", "name"], as: "courseData" },
+      ],
     });
     res.json(result);
   } catch (err) {
@@ -186,6 +192,9 @@ router.get("/searchStudent", async (req, res) => {
       limit,
       offset,
       order: getSortOrder(sortBy, sortOrder),
+      include: [
+        { model: Course, attributes: ["id", "name"], as: "courseData" },
+      ],
     });
     res.json(result);
   } catch (err) {
@@ -195,43 +204,50 @@ router.get("/searchStudent", async (req, res) => {
 
 router.get("/getFilterOptions", async (req, res) => {
   try {
-    // Get distinct year levels
-    const yearLevels = await Student.findAll({
-      attributes: [
-        [sequelize.fn("DISTINCT", sequelize.col("year_level")), "year_level"],
-      ],
-      where: {
-        year_level: { [Op.not]: null },
-      },
-      order: [["year_level", "ASC"]],
-      raw: true,
-    });
+    const yearLevels = [
+      "11",
+      "CTP",
+      "I",
+      "II",
+      "III",
+      "IV",
+      "MAED",
+      "MPA",
+      "V",
+    ];
+    const semesters = ["1ST SEMESTER", "2ND SEMESTER"];
 
-    // Get distinct semesters
-    const semesters = await Student.findAll({
-      attributes: [
-        [sequelize.fn("DISTINCT", sequelize.col("semester")), "semester"],
-      ],
-      where: {
-        semester: { [Op.not]: null },
-      },
-      order: [["semester", "ASC"]],
-      raw: true,
-    });
+    // Get distinct year levels
+    // const yearLevels = await Student.findAll({
+    //   attributes: [
+    //     [sequelize.fn("DISTINCT", sequelize.col("year_level")), "year_level"],
+    //   ],
+    //   where: {
+    //     year_level: { [Op.not]: null },
+    //   },
+    //   order: [["year_level", "ASC"]],
+    //   raw: true,
+    // });
+
+    // // Get distinct semesters
+    // const semesters = await Student.findAll({
+    //   attributes: [
+    //     [sequelize.fn("DISTINCT", sequelize.col("semester")), "semester"],
+    //   ],
+    //   where: {
+    //     semester: { [Op.not]: null },
+    //   },
+    //   order: [["semester", "ASC"]],
+    //   raw: true,
+    // });
 
     // Get distinct courses
-    const courses = await Student.findAll({
-      attributes: [
-        [sequelize.fn("DISTINCT", sequelize.col("course")), "course"],
-      ],
-      where: {
-        course: { [Op.not]: null },
-        course: { [Op.ne]: "" },
-      },
-      order: [["course", "ASC"]],
+    const courses = await Course.findAll({
+      where: { isActive: true },
+      attributes: ["id", "name"],
+      order: [["name", "ASC"]],
       raw: true,
     });
-
     // Get distinct sections
     const sections = await Student.findAll({
       attributes: [
@@ -262,9 +278,12 @@ router.get("/getFilterOptions", async (req, res) => {
     });
 
     res.json({
-      yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
-      semesters: semesters.map((item) => item.semester).filter(Boolean),
-      courses: courses.map((item) => item.course).filter(Boolean),
+      // yearLevels: yearLevels.map((item) => item.year_level).filter(Boolean),
+      // semesters: semesters.map((item) => item.semester).filter(Boolean),
+      yearLevels: yearLevels,
+      semesters: semesters,
+      // courses: courses.map((item) => item.course).filter(Boolean),
+      courses: courses,
       sections: sections.map((item) => item.section).filter(Boolean),
       dateYears: dateYears.map((item) => item.date_year).filter(Boolean),
     });
@@ -287,7 +306,7 @@ router.get("/getSectionsByCourse", async (req, res) => {
         [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
       ],
       where: {
-        course: course,
+        course_id: parseInt(course),
         section: { [Op.not]: null },
       },
       order: [["section", "ASC"]],
@@ -694,7 +713,7 @@ router.post("/addStudent", async (req, res) => {
       first_name,
       middle_name,
       last_name,
-      course,
+      course_id,
       year_level,
       section,
     } = req.body;
@@ -715,9 +734,9 @@ router.post("/addStudent", async (req, res) => {
       first_name: first_name || null,
       middle_name: middle_name || null,
       last_name: last_name || null,
-      course: course || null,
-      year_level: year_level ? parseInt(year_level) : null,
-      section: section ? parseInt(section) : null,
+      course_id: course_id ? parseInt(course_id) : null, //  Parse only course_id
+      year_level: year_level || null, // Keep as STRING
+      section: section || null,
     });
 
     res.json({
@@ -742,10 +761,14 @@ router.get("/viewStudent/:id", async (req, res) => {
         "student_number",
         "card_serial_number",
         "course",
+        "course_id",
         "section",
         "year_level",
         "semester",
         "isEnrolled",
+      ],
+      include: [
+        { model: Course, attributes: ["id", "name"], as: "courseData" },
       ],
     });
     if (!student) {
@@ -770,30 +793,35 @@ router.put("/updateStudent/:id", async (req, res) => {
       middle_name,
       last_name,
       student_number,
-      course,
+      course_id,
       section,
       year_level,
       semester,
     } = req.body;
 
+    // Only semester should be parsed to integer (1 or 2)
+    // year_level and section are STRINGS - keep as is!
     await student.update({
       card_serial_number: card_serial_number ?? student.card_serial_number,
       first_name: first_name ?? student.first_name,
       middle_name: middle_name ?? student.middle_name,
       last_name: last_name ?? student.last_name,
       student_number: student_number ?? student.student_number,
-      course: course ?? student.course,
-      section: section ? parseInt(section) : student.section,
-      year_level: year_level ? parseInt(year_level) : student.year_level,
-      semester: semester ? parseInt(semester) : student.semester,
+      // course: course ?? student.course,
+      course_id: course_id ?? student.course_id, // ← UPDATE COURSE ID, not name
+      section: section ?? student.section, // ← KEEP AS STRING (no parseInt)
+      year_level: year_level ?? student.year_level, // ← KEEP AS STRING
+      semester: semester || student.semester,
     });
 
+    console.log("Update successful");
     res.json({
       success: true,
       message: "Student updated successfully",
       student,
     });
   } catch (err) {
+    console.error("Update error:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -875,6 +903,65 @@ router.get("/getImage/:id", async (req, res) => {
     res.set("Cache-Control", "public, max-age=3600");
     res.send(image.image_data);
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/migrateCourseIds", async (req, res) => {
+  try {
+    console.log("Starting course migration...");
+    const { Course } = require("../models/association");
+
+    const coursesToInsert = [
+      "BACHELOR OF ARTS IN COMMUNICATION",
+      "BACHELOR OF EARLY CHILDHOOD EDUCATION",
+      "BACHELOR OF SCIENCE IN ACCOUNTANCY",
+      "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION",
+      "BACHELOR OF SCIENCE IN CIVIL ENGINEERING",
+      "BACHELOR OF SCIENCE IN ELECTRICAL ENGINEERING",
+      "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY",
+      "BACHELOR OF SCIENCE IN PSYCHOLOGY",
+      "BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION",
+      "BACHELOR OF SCIENCE IN SOCIAL WORK",
+      "BACHELOR OF SECONDARY EDUCATION",
+      "CERTIFICATE IN TEACHING PROGRAM",
+      "MASTER IN PUBLIC ADMINISTRATION",
+      "MASTER OF ARTS IN EDUCATION",
+    ];
+
+    // Insert courses
+    for (const courseName of coursesToInsert) {
+      await Course.findOrCreate({
+        where: { name: courseName },
+        defaults: { name: courseName, isActive: true },
+      });
+    }
+    console.log(`Inserted ${coursesToInsert.length} courses`);
+
+    // Update all students
+    let updated = 0;
+    const students = await Student.findAll();
+    for (const student of students) {
+      if (student.course) {
+        const courseRecord = await Course.findOne({
+          where: { name: student.course.toUpperCase() },
+        });
+        if (courseRecord) {
+          await student.update({ course_id: courseRecord.id });
+          updated++;
+        }
+      }
+    }
+
+    console.log(`Updated ${updated} student records`);
+    res.json({
+      success: true,
+      message: "Migration complete!",
+      coursesInserted: coursesToInsert.length,
+      studentsUpdated: updated,
+    });
+  } catch (err) {
+    console.error("Migration error:", err);
     res.status(500).json({ error: err.message });
   }
 });
