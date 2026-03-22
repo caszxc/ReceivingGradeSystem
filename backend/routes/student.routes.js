@@ -19,7 +19,7 @@ const upload = multer({
 const ALLOWED_SORT_COLUMNS = {
   last_name: "last_name",
   student_number: "student_number",
-  course: "course",
+  // course: "course",
   year_level: "year_level",
   card_type: "card_type",
   date_enrolled: "date_enrolled",
@@ -54,9 +54,9 @@ function buildWhereClause(query, filters) {
         sequelize.where(sequelize.fn("UPPER", sequelize.col("last_name")), {
           [Op.like]: `%${searchQuery}%`,
         }),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("course")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
+        // sequelize.where(sequelize.fn("UPPER", sequelize.col("course")), {
+        //   [Op.like]: `%${searchQuery}%`,
+        // }),
         sequelize.where(sequelize.fn("UPPER", sequelize.col("card_type")), {
           [Op.like]: `%${searchQuery}%`,
         }),
@@ -490,7 +490,7 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
       "first_name",
       "last_name",
       "middle_name",
-      "course",
+      // "course",
       "major",
       "section",
       "semester",
@@ -546,7 +546,14 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
           cleanedRow.middle_name = row.middle_name.toString().trim();
         }
         if (row.course && row.course.toString().trim() !== "") {
-          cleanedRow.course = row.course.toString().trim();
+          const courseExists = await Course.findOne({
+            where: { name: row.course.toString().trim().toUpperCase() },
+          });
+          if (!courseExists) {
+            rowErrors.push(`Course not found: ${row.course}`);
+          } else {
+            cleanedRow.course = row.course.toString().trim();
+          }
         }
         if (row.major && row.major.toString().trim() !== "") {
           cleanedRow.major = row.major.toString().trim();
@@ -629,8 +636,9 @@ router.post("/confirmUpload", async (req, res) => {
           where: { name: student.course.toUpperCase() },
         });
         if (courseRecord) {
-          student.course_id = courseRecord.id; // ← Set course_id automatically
+          student.course_id = courseRecord.id;
         }
+        delete student.course; // ← Remove course field before saving
       }
     }
 
@@ -772,7 +780,7 @@ router.get("/viewStudent/:id", async (req, res) => {
         "last_name",
         "student_number",
         "card_serial_number",
-        "course",
+        // "course",
         "course_id",
         "section",
         "year_level",
