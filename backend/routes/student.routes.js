@@ -369,7 +369,13 @@ router.get("/exportStudents", async (req, res) => {
       whereClause = buildWhereClause(query || "", filters);
     }
 
-    let findOptions = { where: whereClause, order: orderClause };
+    let findOptions = {
+      where: whereClause,
+      order: orderClause,
+      include: [
+        { model: Course, attributes: ["id", "name"], as: "courseData" },
+      ],
+    };
 
     // For "page" scope, apply pagination
     if (scope === "page") {
@@ -388,6 +394,9 @@ router.get("/exportStudents", async (req, res) => {
         .filter(Boolean)
         .join(", "),
       "Student No.": s.student_number || "",
+      Course: s.courseData?.name || "",
+      "Year Level": s.year_level || "",
+      Section: s.section || "",
       Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 

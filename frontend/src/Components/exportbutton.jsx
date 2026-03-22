@@ -11,11 +11,17 @@ function getSemesterLabel(sem) {
     : `Semester ${sem}`;
 }
 
-function buildFilterSummary(filters) {
+function buildFilterSummary(filters, students = []) {
   const parts = [];
   if (filters?.yearLevel) parts.push(`Year Level: ${filters.yearLevel}`);
   if (filters?.semester) parts.push(getSemesterLabel(filters.semester));
-  if (filters?.course) parts.push(`Course: ${filters.course}`);
+  if (filters?.course) {
+    const courseName =
+      students.length > 0 && students[0].courseData?.name
+        ? students[0].courseData.name
+        : filters.course;
+    parts.push(`Course: ${courseName}`);
+  }
   if (filters?.section) parts.push(`Section: ${filters.section}`);
 
   //uncomment kapag need
@@ -153,7 +159,10 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
       ? `MASTERLIST ENROLLMENT ${semLabel.toUpperCase()} A.Y (${ayFrom}-${ayTo})`
       : "MASTERLIST ENROLLMENT";
 
-  const courseName = filters?.course || "";
+  const courseName =
+    students.length > 0 && students[0].courseData?.name
+      ? students[0].courseData.name
+      : "";
   const sectionName = filters?.section || "";
 
   // ── Draw header (first page) ──────────────────────────────────────────────
@@ -587,8 +596,7 @@ function ExportButton({
     [preview],
   );
 
-  const filterSummary = buildFilterSummary(filters);
-
+  const filterSummary = buildFilterSummary(filters, preview.students);
   return (
     <>
       {/* ── Dropdown trigger ───────────────────────────────────────────────── */}
