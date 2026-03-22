@@ -25,9 +25,9 @@ const seedCourses = async () => {
         defaults: { name: courseName, isActive: true },
       });
     }
-    console.log("✅ Courses seeded successfully");
+    console.log(" Courses seeded successfully");
   } catch (error) {
-    console.error("❌ Seed error:", error);
+    console.error(" Seed error:", error);
   }
 };
 
