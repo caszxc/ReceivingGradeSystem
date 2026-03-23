@@ -38,7 +38,7 @@ function buildWhereClause(query, filters) {
 
   // Handle search query
   if (query && query.trim() !== "") {
-    const searchQuery = query.trim().toUpperCase().replace(/\s+/g, " ");
+    const searchQuery = query.trim().toUpperCase();
     andConditions.push({
       [Op.or]: [
         sequelize.where(
@@ -65,32 +65,6 @@ function buildWhereClause(query, filters) {
         }),
         sequelize.where(
           sequelize.fn("UPPER", sequelize.col("card_serial_number")),
-          { [Op.like]: `%${searchQuery}%` },
-        ),
-        sequelize.where(
-          sequelize.fn(
-            "UPPER",
-            sequelize.fn(
-              "CONCAT_WS",
-              " ",
-              sequelize.col("first_name"),
-              sequelize.col("middle_name"),
-              sequelize.col("last_name"),
-            ),
-          ),
-          { [Op.like]: `%${searchQuery}%` },
-        ),
-        sequelize.where(
-          sequelize.fn(
-            "UPPER",
-            sequelize.fn(
-              "CONCAT_WS",
-              " ",
-              sequelize.col("last_name"),
-              sequelize.col("first_name"),
-              sequelize.col("middle_name"),
-            ),
-          ),
           { [Op.like]: `%${searchQuery}%` },
         ),
       ],

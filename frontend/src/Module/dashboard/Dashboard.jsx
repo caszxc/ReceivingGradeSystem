@@ -22,6 +22,7 @@ function saveFilters(filters) {
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
+  const dropdownRef = useRef(null);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
   const [dateYearDropdownOpen, setDateYearDropdownOpen] = useState(false);
 
@@ -124,6 +125,9 @@ function Dashboard() {
 
   useEffect(() => {
     function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
       if (dateYearRef.current && !dateYearRef.current.contains(event.target)) {
         setDateYearDropdownOpen(false);
       }
@@ -314,7 +318,7 @@ function Dashboard() {
 
   const onSearchSubmit = (e) => {
     e.preventDefault();
-    handleSearch(searchQuery, { immediate: true });
+    handleSearch(searchQuery);
   };
 
   useEffect(() => {
@@ -734,15 +738,9 @@ function Dashboard() {
                 placeholder="Search students by name, student number, course, etc..."
                 className="w-full bg-white px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Search
-            </button>
           </form>
 
           <div className="flex items-center gap-3">
