@@ -32,26 +32,25 @@ function Dashboard() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const academicYear =
-    currentMonth >= 6
-      ? `${currentYear}-${currentYear + 1}`
-      : `${currentYear - 1}-${currentYear}`;
-  const currentSemester = currentMonth >= 6 ? "1st" : "2nd";
+  // const academicYear =
+  //   currentMonth >= 6
+  //     ? `${currentYear}-${currentYear + 1}`
+  //     : `${currentYear - 1}-${currentYear}`;
 
   //uncomment kapag need
   const defaultAyStart = currentMonth >= 6 ? currentYear : currentYear - 1;
-  const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
+  // const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
 
   const [filters, setFilters] = useState(() => {
-    const saved = loadFilters();
-    if (saved) return saved;
+    // const saved = loadFilters();
+    // if (saved) return saved;
 
     return {
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-      academicYear: defaultAcademicYear,
+      // academicYear: "",
     };
   });
 
@@ -82,11 +81,11 @@ function Dashboard() {
     if (filters.section) filterParams.append("section", filters.section);
 
     //uncomment kapag need
-    if (filters.academicYear) {
-      const [fromYear, toYear] = filters.academicYear.split("-");
-      filterParams.append("dateYearFrom", fromYear);
-      filterParams.append("dateYearTo", toYear);
-    }
+    // if (filters.academicYear) {
+    //   const [fromYear, toYear] = filters.academicYear.split("-");
+    //   filterParams.append("dateYearFrom", fromYear);
+    //   filterParams.append("dateYearTo", toYear);
+    // }
 
     // if (filters.dateYearFrom)
     //   filterParams.append("dateYearFrom", filters.dateYearFrom);
@@ -107,11 +106,11 @@ function Dashboard() {
     if (filters.section) filterParams.append("section", filters.section);
 
     //uncomment kapag need
-    if (filters.academicYear) {
-      const [fromYear, toYear] = filters.academicYear.split("-");
-      filterParams.append("dateYearFrom", fromYear);
-      filterParams.append("dateYearTo", toYear);
-    }
+    // if (filters.academicYear) {
+    //   const [fromYear, toYear] = filters.academicYear.split("-");
+    //   filterParams.append("dateYearFrom", fromYear);
+    //   filterParams.append("dateYearTo", toYear);
+    // }
 
     // if (filters.dateYearFrom)
     //   filterParams.append("dateYearFrom", filters.dateYearFrom);
@@ -138,23 +137,23 @@ function Dashboard() {
   }, []);
 
   //fetch filter options default
-  useEffect(() => {
-    // Only fetch defaults on first load
-    fetch("http://localhost:3001/settings/default-filters")
-      .then((res) => res.json())
-      .then((defaults) => {
-        // Only set if filters are empty (or you can always set if you want to force defaults)
-        setFilters((prev) => ({
-          ...prev,
-          yearLevel: defaults.yearLevel || "",
-          semester: defaults.semester || "",
-          course: defaults.course || "",
-          section: defaults.section || "",
-          academicYear: defaults.academicYear || defaultAcademicYear,
-        }));
-      });
-    // eslint-disable-next-line
-  }, []);
+  // useEffect(() => {
+  //   // Only fetch defaults on first load
+  //   fetch("http://localhost:3001/settings/default-filters")
+  //     .then((res) => res.json())
+  //     .then((defaults) => {
+  //       // Only set if filters are empty (or you can always set if you want to force defaults)
+  //       setFilters((prev) => ({
+  //         ...prev,
+  //         yearLevel: defaults.yearLevel || "",
+  //         semester: defaults.semester || "",
+  //         course: defaults.course || "",
+  //         section: defaults.section || "",
+  //         // academicYear: defaults.academicYear || defaultAcademicYear,
+  //       }));
+  //     });
+  //   // eslint-disable-next-line
+  // }, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -170,14 +169,14 @@ function Dashboard() {
           { value: "", label: "" },
           ...data.yearLevels.map((year) => ({
             value: year.toString(),
-            label: `${getYearLabel(year)} Year`,
+            label: `${getYearLabel(year)}`,
           })),
         ],
         semesters: [
           { value: "", label: "" },
           ...data.semesters.map((sem) => ({
             value: sem.toString(),
-            label: `${getSemesterLabel(sem)} Semester`,
+            label: `${getSemesterLabel(sem)}`,
           })),
         ],
         courses: [
@@ -214,12 +213,12 @@ function Dashboard() {
   // Helper functions for labels
   const getYearLabel = (year) => {
     const labels = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
-    return labels[year] || `${year}th`;
+    return labels[year] || `${year}`;
   };
 
   const getSemesterLabel = (semester) => {
     const labels = { 1: "1st", 2: "2nd" };
-    return labels[semester] || `${semester}th`;
+    return labels[semester] || `${semester}`;
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -256,7 +255,7 @@ function Dashboard() {
           { value: "", label: "" },
           ...data.sections.map((section) => ({
             value: section.toString(),
-            label: `Section ${section}`,
+            label: `${section}`,
           })),
         ],
       }));
@@ -273,7 +272,7 @@ function Dashboard() {
       course: "",
       section: "",
       //uncomment kapag need
-      academicYear: "",
+      // academicYear: "",
       // dateYearFrom: "",
       // dateYearTo: "",
     };
@@ -660,10 +659,10 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
-  const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
-    const start = defaultAyStart - i;
-    return `${start}-${start + 1}`;
-  });
+  // const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
+  //   const start = defaultAyStart - i;
+  //   return `${start}-${start + 1}`;
+  // });
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -677,12 +676,12 @@ function Dashboard() {
               Manage and view student records
             </p>
             {/*Uncomment kapag need*/}
-            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
+            {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
               {filters.semester
                 ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
                 : "All Semester"}{" "}
               A.Y. {filters.academicYear ? filters.academicYear : academicYear}
-            </span>
+            </span> */}
 
             {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
               {filters.semester
@@ -780,7 +779,7 @@ function Dashboard() {
           </div>
 
           {filterOptionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(5)].map((_, index) => (
                 <div key={index} className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -790,7 +789,7 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Year Level Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -945,7 +944,7 @@ function Dashboard() {
                 </div>
 
                 {/* Academic Year Filter */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Academic Year
                   </label>
@@ -980,7 +979,7 @@ function Dashboard() {
                       </svg>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Date Year Range Filter */}
                 {/* <div className="relative " ref={dateYearRef}>
@@ -1190,9 +1189,9 @@ function Dashboard() {
                       title="Select all on this page"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Serial Number
-                  </th>
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Number
+                  </th> */}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Student Number
                   </th>
@@ -1253,26 +1252,26 @@ function Dashboard() {
                           />
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
                               value={
-                                editData.card_serial_number ||
-                                student.card_serial_number
+                                editData.student_number ||
+                                student.student_number
                               }
                               onChange={(e) =>
                                 setEditData({
                                   ...editData,
-                                  card_serial_number: e.target.value,
+                                  student_number: e.target.value,
                                 })
                               }
                               className="border px-2 py-1 rounded w-full"
                             />
                           ) : (
-                            student.card_serial_number || "—"
+                            student.student_number || "—"
                           )}
-                        </td>
+                        </td> */}
 
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
