@@ -73,24 +73,17 @@ function Dashboard() {
 
   // ── Fetch functions ──────────────────────────────────────────────────────────
 
-  const fetchStudents = async ({ page, limit }) => {
+  const fetchStudents = async ({ page, limit, filters: filterOverride }) => {
+    const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
-    if (filters.yearLevel) filterParams.append("yearLevel", filters.yearLevel);
-    if (filters.semester) filterParams.append("semester", filters.semester);
-    if (filters.course) filterParams.append("course", filters.course);
-    if (filters.section) filterParams.append("section", filters.section);
-
-    //uncomment kapag need
-    // if (filters.academicYear) {
-    //   const [fromYear, toYear] = filters.academicYear.split("-");
-    //   filterParams.append("dateYearFrom", fromYear);
-    //   filterParams.append("dateYearTo", toYear);
-    // }
-
-    // if (filters.dateYearFrom)
-    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
-    // if (filters.dateYearTo)
-    //   filterParams.append("dateYearTo", filters.dateYearTo);
+    if (activeFilters.yearLevel)
+      filterParams.append("yearLevel", activeFilters.yearLevel);
+    if (activeFilters.semester)
+      filterParams.append("semester", activeFilters.semester);
+    if (activeFilters.course)
+      filterParams.append("course", activeFilters.course);
+    if (activeFilters.section)
+      filterParams.append("section", activeFilters.section);
 
     const response = await fetch(
       `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
@@ -98,24 +91,22 @@ function Dashboard() {
     return await response.json();
   };
 
-  const searchStudents = async ({ query, page, limit }) => {
+  const searchStudents = async ({
+    query,
+    page,
+    limit,
+    filters: filterOverride,
+  }) => {
+    const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
-    if (filters.yearLevel) filterParams.append("yearLevel", filters.yearLevel);
-    if (filters.semester) filterParams.append("semester", filters.semester);
-    if (filters.course) filterParams.append("course", filters.course);
-    if (filters.section) filterParams.append("section", filters.section);
-
-    //uncomment kapag need
-    // if (filters.academicYear) {
-    //   const [fromYear, toYear] = filters.academicYear.split("-");
-    //   filterParams.append("dateYearFrom", fromYear);
-    //   filterParams.append("dateYearTo", toYear);
-    // }
-
-    // if (filters.dateYearFrom)
-    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
-    // if (filters.dateYearTo)
-    //   filterParams.append("dateYearTo", filters.dateYearTo);
+    if (activeFilters.yearLevel)
+      filterParams.append("yearLevel", activeFilters.yearLevel);
+    if (activeFilters.semester)
+      filterParams.append("semester", activeFilters.semester);
+    if (activeFilters.course)
+      filterParams.append("course", activeFilters.course);
+    if (activeFilters.section)
+      filterParams.append("section", activeFilters.section);
 
     const response = await fetch(
       `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
@@ -239,7 +230,7 @@ function Dashboard() {
 
     setFilters(newFilters);
     saveFilters(newFilters);
-    fetchData(1, searchQuery, itemsPerPage);
+    fetchData(1, searchQuery, itemsPerPage, newFilters);
     setSelectedIds(new Set());
   };
 
@@ -264,21 +255,16 @@ function Dashboard() {
     }
   };
 
-  // Add clear filters function (update the existing one)
   const clearFilters = () => {
     const cleared = {
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-      //uncomment kapag need
-      // academicYear: "",
-      // dateYearFrom: "",
-      // dateYearTo: "",
     };
     setFilters(cleared);
     saveFilters(cleared);
-    fetchData(1, searchQuery, itemsPerPage);
+    fetchData(1, searchQuery, itemsPerPage, cleared);
     setSelectedIds(new Set());
   };
 
