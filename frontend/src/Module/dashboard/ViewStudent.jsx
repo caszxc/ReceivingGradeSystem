@@ -184,6 +184,43 @@ function ViewStudent() {
     );
   }
 
+  const handleAddToAlumni = async () => {
+    const result = await swal.fire({
+      title: "Add to Alumni?",
+      text: "Are you sure you want to update this student?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, update",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.put(`${BASE_URL}/students/updateStudent/${id}`, {
+        year_level: "ALUMNI",
+      });
+      await swal.fire({
+        title: "Updated!",
+        text: "Student has been moved to Alumni.",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+      // Refresh the student data
+      const response = await axios.get(
+        `${BASE_URL}/students/viewStudent/${id}`,
+      );
+      setStudent(response.data);
+    } catch (error) {
+      console.error("Failed to update student:", error);
+      swal.fire({
+        title: "Error",
+        text: "Failed to update student to Alumni.",
+        icon: "error",
+      });
+    }
+  };
+
   if (!student) {
     return (
       <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
@@ -520,13 +557,24 @@ function ViewStudent() {
           </form>
           <div className="flex justify-end items-end ">
             {!isEditing && (
-              <button
-                type="button"
-                className="px-6 py-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
-                onClick={handleEdit}
-              >
-                Update
-              </button>
+              <>
+                {student.year_level !== "ALUMNI" && (
+                  <button
+                    type="button"
+                    className="px-6 py-2 rounded-md bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200 transition"
+                    onClick={handleAddToAlumni}
+                  >
+                    Add to Alumni
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="px-6 py-2 mx-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
+                  onClick={handleEdit}
+                >
+                  Update
+                </button>
+              </>
             )}
             {isEditing && (
               <>

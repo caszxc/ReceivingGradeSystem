@@ -214,6 +214,7 @@ router.get("/getFilterOptions", async (req, res) => {
       "MAED",
       "MPA",
       "V",
+      "ALUMNI",
     ];
     const semesters = ["1ST SEMESTER", "2ND SEMESTER"];
 
