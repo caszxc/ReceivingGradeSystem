@@ -73,24 +73,17 @@ function Dashboard() {
 
   // ── Fetch functions ──────────────────────────────────────────────────────────
 
-  const fetchStudents = async ({ page, limit }) => {
+  const fetchStudents = async ({ page, limit, filters: filterOverride }) => {
+    const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
-    if (filters.yearLevel) filterParams.append("yearLevel", filters.yearLevel);
-    if (filters.semester) filterParams.append("semester", filters.semester);
-    if (filters.course) filterParams.append("course", filters.course);
-    if (filters.section) filterParams.append("section", filters.section);
-
-    //uncomment kapag need
-    // if (filters.academicYear) {
-    //   const [fromYear, toYear] = filters.academicYear.split("-");
-    //   filterParams.append("dateYearFrom", fromYear);
-    //   filterParams.append("dateYearTo", toYear);
-    // }
-
-    // if (filters.dateYearFrom)
-    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
-    // if (filters.dateYearTo)
-    //   filterParams.append("dateYearTo", filters.dateYearTo);
+    if (activeFilters.yearLevel)
+      filterParams.append("yearLevel", activeFilters.yearLevel);
+    if (activeFilters.semester)
+      filterParams.append("semester", activeFilters.semester);
+    if (activeFilters.course)
+      filterParams.append("course", activeFilters.course);
+    if (activeFilters.section)
+      filterParams.append("section", activeFilters.section);
 
     const response = await fetch(
       `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
@@ -98,24 +91,22 @@ function Dashboard() {
     return await response.json();
   };
 
-  const searchStudents = async ({ query, page, limit }) => {
+  const searchStudents = async ({
+    query,
+    page,
+    limit,
+    filters: filterOverride,
+  }) => {
+    const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
-    if (filters.yearLevel) filterParams.append("yearLevel", filters.yearLevel);
-    if (filters.semester) filterParams.append("semester", filters.semester);
-    if (filters.course) filterParams.append("course", filters.course);
-    if (filters.section) filterParams.append("section", filters.section);
-
-    //uncomment kapag need
-    // if (filters.academicYear) {
-    //   const [fromYear, toYear] = filters.academicYear.split("-");
-    //   filterParams.append("dateYearFrom", fromYear);
-    //   filterParams.append("dateYearTo", toYear);
-    // }
-
-    // if (filters.dateYearFrom)
-    //   filterParams.append("dateYearFrom", filters.dateYearFrom);
-    // if (filters.dateYearTo)
-    //   filterParams.append("dateYearTo", filters.dateYearTo);
+    if (activeFilters.yearLevel)
+      filterParams.append("yearLevel", activeFilters.yearLevel);
+    if (activeFilters.semester)
+      filterParams.append("semester", activeFilters.semester);
+    if (activeFilters.course)
+      filterParams.append("course", activeFilters.course);
+    if (activeFilters.section)
+      filterParams.append("section", activeFilters.section);
 
     const response = await fetch(
       `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
@@ -182,8 +173,8 @@ function Dashboard() {
         courses: [
           { value: "", label: "" },
           ...data.courses.map((course) => ({
-            value: course,
-            label: course,
+            value: course.id,
+            label: course.name,
           })),
         ],
         sections: [{ value: "", label: "" }],
@@ -239,7 +230,7 @@ function Dashboard() {
 
     setFilters(newFilters);
     saveFilters(newFilters);
-    fetchData(1, searchQuery, itemsPerPage);
+    fetchData(1, searchQuery, itemsPerPage, newFilters);
     setSelectedIds(new Set());
   };
 
@@ -264,21 +255,16 @@ function Dashboard() {
     }
   };
 
-  // Add clear filters function (update the existing one)
   const clearFilters = () => {
     const cleared = {
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-      //uncomment kapag need
-      // academicYear: "",
-      // dateYearFrom: "",
-      // dateYearTo: "",
     };
     setFilters(cleared);
     saveFilters(cleared);
-    fetchData(1, searchQuery, itemsPerPage);
+    fetchData(1, searchQuery, itemsPerPage, cleared);
     setSelectedIds(new Set());
   };
 
@@ -345,6 +331,9 @@ function Dashboard() {
 
   // Add student function
   const addStudent = () => {
+    let selectedCourse = ""; // Track selected course for section fetching
+    let availableSections = []; // Track available sections
+
     swal
       .fire({
         title: "Add New Student",
@@ -384,41 +373,82 @@ function Dashboard() {
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Course
             </label>
-            <input id="course" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
+            <select id="course_id" class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer">
+              <option value="">Select Course</option>
+              ${filterOptions.courses
+                .slice(1)
+                .map((c) => `<option value="${c.value}">${c.label}</option>`)
+                .join("")}
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Year Level
             </label>
-            <div className="relative">
-              <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg  focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
-                <option value="">Select Year</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
-               
-            </div>
+            <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
+              <option value="">Select Year Level</option>
+              ${filterOptions.yearLevels
+                .slice(1)
+                .map((y) => `<option value="${y.value}">${y.label}</option>`)
+                .join("")}
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Section
             </label>
-            <input id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <select id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer" disabled>
+              <option value="">Select a course first</option>
+            </select>
           </div>
         </div>
       </div>
     `,
         focusConfirm: false,
         showCancelButton: true,
+        didOpen: () => {
+          // Add event listener to course dropdown
+          const courseSelect = document.getElementById("course_id");
+          const sectionSelect = document.getElementById("section");
+
+          courseSelect.addEventListener("change", async (e) => {
+            selectedCourse = e.target.value;
+
+            if (selectedCourse) {
+              try {
+                // Fetch sections for selected course
+                const response = await fetch(
+                  `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
+                );
+                const data = await response.json();
+                availableSections = data.sections || [];
+
+                // Update section dropdown
+                sectionSelect.disabled = false;
+                sectionSelect.innerHTML = `
+                <option value="">Select Section</option>
+                ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
+              `;
+              } catch (error) {
+                console.error("Error fetching sections:", error);
+                sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;
+                sectionSelect.disabled = true;
+              }
+            } else {
+              // Reset section dropdown
+              sectionSelect.disabled = true;
+              sectionSelect.innerHTML = `<option value="">Select a course first</option>`;
+              availableSections = [];
+            }
+          });
+        },
         preConfirm: () => {
           const student_number =
             document.getElementById("student_number").value;
           const first_name = document.getElementById("first_name").value;
           const middle_name = document.getElementById("middle_name").value;
           const last_name = document.getElementById("last_name").value;
-          const course = document.getElementById("course").value;
+          const course_id = document.getElementById("course_id").value;
           const year_level = document.getElementById("year_level").value;
           const section = document.getElementById("section").value;
 
@@ -427,7 +457,7 @@ function Dashboard() {
             first_name,
             middle_name,
             last_name,
-            course,
+            course_id,
             year_level,
             section,
           };
@@ -440,10 +470,16 @@ function Dashboard() {
             first_name,
             middle_name,
             last_name,
-            course,
+            course_id,
             year_level,
             section,
           } = result.value;
+
+          // Get course name from filterOptions
+          const courseObj = filterOptions.courses.find(
+            (c) => c.value == course_id,
+          );
+          const course = courseObj ? courseObj.label : "";
 
           // Create full name for display
           const fullNameParts = [first_name, middle_name, last_name].filter(
@@ -492,7 +528,7 @@ function Dashboard() {
                     first_name,
                     middle_name,
                     last_name,
-                    course,
+                    course_id: parseInt(course_id) || null,
                     year_level,
                     section,
                   }),
@@ -1325,19 +1361,27 @@ function Dashboard() {
 
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {isEditing ? (
-                            <input
-                              type="text"
-                              value={editData.course || student.course || ""}
+                            <select
+                              value={
+                                editData.course_id || student.course_id || ""
+                              }
                               onChange={(e) =>
                                 setEditData({
                                   ...editData,
-                                  course: e.target.value,
+                                  course_id: e.target.value,
                                 })
                               }
                               className="border px-2 py-1 rounded w-full"
-                            />
+                            >
+                              <option value="">— Select course —</option>
+                              {filterOptions.courses.map((course) => (
+                                <option key={course.id} value={course.id}>
+                                  {course.name}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
-                            student.course || "—"
+                            student.courseData?.name || student.course || "—"
                           )}
                         </td>
 

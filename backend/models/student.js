@@ -62,16 +62,20 @@ const Student = sequelize.define(
         );
       },
     },
-    course: {
-      type: DataTypes.STRING,
+    // course: {
+    //   type: DataTypes.STRING,
+    //   allowNull: true,
+    //   set(value) {
+    //     // Automatically convert to uppercase
+    //     this.setDataValue(
+    //       "course",
+    //       value ? value.toString().toUpperCase() : value,
+    //     );
+    //   },
+    // },
+    course_id: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      set(value) {
-        // Automatically convert to uppercase
-        this.setDataValue(
-          "course",
-          value ? value.toString().toUpperCase() : value,
-        );
-      },
     },
     major: {
       type: DataTypes.STRING,

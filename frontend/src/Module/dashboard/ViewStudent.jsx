@@ -68,6 +68,25 @@ function ViewStudent() {
     fetchOptions();
   }, []);
 
+  const fetchSectionsByCourse = async (courseId) => {
+    if (!courseId) {
+      setOptions((prev) => ({ ...prev, sections: [] }));
+      return;
+    }
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/students/getSectionsByCourse?course=${courseId}`,
+      );
+      setOptions((prev) => ({
+        ...prev,
+        sections: response.data.sections || [],
+      }));
+    } catch (error) {
+      console.error("Failed to fetch sections:", error);
+      setOptions((prev) => ({ ...prev, sections: [] }));
+    }
+  };
+
   const handleEdit = () => {
     setEditData({
       card_serial_number: student.card_serial_number || "",
@@ -75,7 +94,7 @@ function ViewStudent() {
       middle_name: student.middle_name || "",
       last_name: student.last_name || "",
       student_number: student.student_number || "",
-      course: student.course || "",
+      course_id: student.course_id || "",
       section: student.section || "",
       year_level: student.year_level || "",
       semester: student.semester || "",
@@ -164,6 +183,43 @@ function ViewStudent() {
       </div>
     );
   }
+
+  const handleAddToAlumni = async () => {
+    const result = await swal.fire({
+      title: "Add to Alumni?",
+      text: "Are you sure you want to update this student?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, update",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await axios.put(`${BASE_URL}/students/updateStudent/${id}`, {
+        year_level: "ALUMNI",
+      });
+      await swal.fire({
+        title: "Updated!",
+        text: "Student has been moved to Alumni.",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+      // Refresh the student data
+      const response = await axios.get(
+        `${BASE_URL}/students/viewStudent/${id}`,
+      );
+      setStudent(response.data);
+    } catch (error) {
+      console.error("Failed to update student:", error);
+      swal.fire({
+        title: "Error",
+        text: "Failed to update student to Alumni.",
+        icon: "error",
+      });
+    }
+  };
 
   if (!student) {
     return (
@@ -320,14 +376,20 @@ function ViewStudent() {
                 <div className="relative">
                   {isEditing ? (
                     <select
-                      value={editData.course || ""}
-                      onChange={(e) => handleChange("course", e.target.value)}
+                      value={editData.course_id || ""}
+                      onChange={(e) => {
+                        handleChange(
+                          "course_id",
+                          e.target.value ? parseInt(e.target.value) : "",
+                        );
+                        fetchSectionsByCourse(e.target.value);
+                      }}
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
                       <option value="">— Select course —</option>
                       {options.courses.map((course) => (
-                        <option key={course} value={course}>
-                          {course}
+                        <option key={course.id} value={course.id}>
+                          {course.name}
                         </option>
                       ))}
                     </select>
@@ -335,7 +397,7 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={student.course || "—"}
+                      value={student.courseData?.name || student.course || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
@@ -370,7 +432,7 @@ function ViewStudent() {
                       <option value="">— Select section —</option>
                       {options.sections.map((sec) => (
                         <option key={sec} value={sec}>
-                          Section {sec}
+                          {sec}
                         </option>
                       ))}
                     </select>
@@ -378,9 +440,7 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={
-                        student.section ? `Section ${student.section}` : "—"
-                      }
+                      value={student.section || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
@@ -420,14 +480,7 @@ function ViewStudent() {
                       <option value="">— Select year —</option>
                       {options.yearLevels.map((yr) => (
                         <option key={yr} value={yr}>
-                          {yr === 1
-                            ? "1st"
-                            : yr === 2
-                              ? "2nd"
-                              : yr === 3
-                                ? "3rd"
-                                : `${yr}th`}{" "}
-                          Year
+                          {yr}
                         </option>
                       ))}
                     </select>
@@ -435,17 +488,7 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={
-                        student.year_level
-                          ? student.year_level === 1
-                            ? "1st Year"
-                            : student.year_level === 2
-                              ? "2nd Year"
-                              : student.year_level === 3
-                                ? "3rd Year"
-                                : `${student.year_level}th Year`
-                          : "—"
-                      }
+                      value={student.year_level || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
@@ -481,8 +524,7 @@ function ViewStudent() {
                       <option value="">— Select semester —</option>
                       {options.semesters.map((sem) => (
                         <option key={sem} value={sem}>
-                          {sem === 1 ? "1st" : sem === 2 ? "2nd" : `${sem}nd`}{" "}
-                          Semester
+                          {sem}
                         </option>
                       ))}
                     </select>
@@ -490,15 +532,7 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={
-                        student.semester
-                          ? student.semester === "1"
-                            ? "1st Semester"
-                            : student.semester === "2"
-                              ? "2nd Semester"
-                              : `${student.semester}nd Semester`
-                          : "—"
-                      }
+                      value={student.semester || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
@@ -523,13 +557,24 @@ function ViewStudent() {
           </form>
           <div className="flex justify-end items-end ">
             {!isEditing && (
-              <button
-                type="button"
-                className="px-6 py-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
-                onClick={handleEdit}
-              >
-                Update
-              </button>
+              <>
+                {student.year_level !== "ALUMNI" && (
+                  <button
+                    type="button"
+                    className="px-6 py-2 rounded-md bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200 transition"
+                    onClick={handleAddToAlumni}
+                  >
+                    Add to Alumni
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="px-6 py-2 mx-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"
+                  onClick={handleEdit}
+                >
+                  Update
+                </button>
+              </>
             )}
             {isEditing && (
               <>

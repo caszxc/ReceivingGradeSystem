@@ -3,6 +3,7 @@ const Student = require("./student");
 const Account = require("./account");
 const StudentImage = require("./studentProfile");
 const DefaultFilter = require("./defaultFilter");
+const Course = require("./course");
 
 // Import future models here when needed:
 // const Attendance = require("./attendance");
@@ -15,6 +16,15 @@ const DefaultFilter = require("./defaultFilter");
 Student.hasOne(StudentImage, { foreignKey: "student_id", as: "profileImage" });
 StudentImage.belongsTo(Student, { foreignKey: "student_id" });
 
+Student.belongsTo(Course, {
+  foreignKey: "course_id",
+  as: "courseData",
+});
+
+Course.hasMany(Student, {
+  foreignKey: "course_id",
+});
+
 const db = {
   sequelize,
   Sequelize: require("sequelize"),
@@ -23,6 +33,7 @@ const db = {
   Account,
   StudentImage,
   DefaultFilter,
+  Course,
 };
 
 module.exports = db;
