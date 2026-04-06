@@ -9,17 +9,6 @@ import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-const FILTERS_KEY = "dashboardFilters";
-
-function loadFilters() {
-  const saved = localStorage.getItem(FILTERS_KEY);
-  return saved ? JSON.parse(saved) : null;
-}
-
-function saveFilters(filters) {
-  localStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
-}
-
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
   const dropdownRef = useRef(null);
@@ -29,22 +18,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const dateYearRef = useRef(null);
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  // const academicYear =
-  //   currentMonth >= 6
-  //     ? `${currentYear}-${currentYear + 1}`
-  //     : `${currentYear - 1}-${currentYear}`;
-
-  //uncomment kapag need
-  const defaultAyStart = currentMonth >= 6 ? currentYear : currentYear - 1;
-  // const defaultAcademicYear = `${defaultAyStart}-${defaultAyStart + 1}`;
-
   const [filters, setFilters] = useState(() => {
-    // const saved = loadFilters();
-    // if (saved) return saved;
-
     return {
       yearLevel: "",
       semester: "",
@@ -126,25 +100,6 @@ function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  //fetch filter options default
-  // useEffect(() => {
-  //   // Only fetch defaults on first load
-  //   fetch("http://localhost:3001/settings/default-filters")
-  //     .then((res) => res.json())
-  //     .then((defaults) => {
-  //       // Only set if filters are empty (or you can always set if you want to force defaults)
-  //       setFilters((prev) => ({
-  //         ...prev,
-  //         yearLevel: defaults.yearLevel || "",
-  //         semester: defaults.semester || "",
-  //         course: defaults.course || "",
-  //         section: defaults.section || "",
-  //         // academicYear: defaults.academicYear || defaultAcademicYear,
-  //       }));
-  //     });
-  //   // eslint-disable-next-line
-  // }, []);
 
   const fetchFilterOptions = async () => {
     try {
@@ -338,71 +293,70 @@ function Dashboard() {
       .fire({
         title: "Add New Student",
         html: `
-      <div class="space-y-4 text-left">
-         
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Student Number
-          </label>
-          <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+              Student Number
+            </label>
+            <input id="student_number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                First Name
+              </label>
+              <input id="first_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Middle Name
+              </label>
+              <input id="middle_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Last Name
+              </label>
+              <input id="last_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Course
+              </label>
+              <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+                <option value="">Select Course</option>
+                ${filterOptions.courses
+                  .slice(1)
+                  .map((c) => `<option value="${c.value}">${c.label}</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Year Level
+              </label>
+              <select id="year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+                <option value="">Select Year Level</option>
+                ${filterOptions.yearLevels
+                  .slice(1)
+                  .map((y) => `<option value="${y.value}">${y.label}</option>`)
+                  .join("")}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Section
+              </label>
+              <select id="section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
+                <option value="">Select a course first</option>
+              </select>
+            </div>
+          </div>
         </div>
-        
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              First Name
-            </label>
-            <input id="first_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Middle Name
-            </label>
-            <input id="middle_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Last Name
-            </label>
-            <input id="last_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none" style="text-transform: uppercase">
-          </div>
-        </div>
-        
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Course
-            </label>
-            <select id="course_id" class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer">
-              <option value="">Select Course</option>
-              ${filterOptions.courses
-                .slice(1)
-                .map((c) => `<option value="${c.value}">${c.label}</option>`)
-                .join("")}
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Year Level
-            </label>
-            <select id="year_level" class="w-full px-3 py-2 pr-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer">
-              <option value="">Select Year Level</option>
-              ${filterOptions.yearLevels
-                .slice(1)
-                .map((y) => `<option value="${y.value}">${y.label}</option>`)
-                .join("")}
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Section
-            </label>
-            <select id="section" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer" disabled>
-              <option value="">Select a course first</option>
-            </select>
-          </div>
-        </div>
-      </div>
     `,
         focusConfirm: false,
         showCancelButton: true,
@@ -695,11 +649,6 @@ function Dashboard() {
     setSelectedIds(next);
   };
 
-  // const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
-  //   const start = defaultAyStart - i;
-  //   return `${start}-${start + 1}`;
-  // });
-
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 bg-blue-200 min-h-screen">
@@ -711,23 +660,6 @@ function Dashboard() {
             <p className="text-gray-600 mt-2">
               Manage and view student records
             </p>
-            {/*Uncomment kapag need*/}
-            {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
-              {filters.semester
-                ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
-                : "All Semester"}{" "}
-              A.Y. {filters.academicYear ? filters.academicYear : academicYear}
-            </span> */}
-
-            {/* <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-md">
-              {filters.semester
-                ? `${getSemesterLabel(parseInt(filters.semester))} Semester`
-                : "All Semester"}{" "}
-              A.Y.{" "}
-              {filters.dateYearFrom && filters.dateYearTo
-                ? `${filters.dateYearFrom}-${filters.dateYearTo}`
-                : academicYear}
-            </span> */}
           </div>
 
           {/* ── Toolbar ─────────────────────────────────────────────────────── */}
@@ -815,7 +747,7 @@ function Dashboard() {
           </div>
 
           {filterOptionsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4">
               {[...Array(5)].map((_, index) => (
                 <div key={index} className="animate-pulse">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -825,7 +757,44 @@ function Dashboard() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-4">
+                {/* Academic Year */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Academic Year
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={filters.yearLevel}
+                      onChange={(e) =>
+                        handleFilterChange("yearLevel", e.target.value)
+                      }
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
+                    >
+                      {filterOptions.yearLevels.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      <svg
+                        className="h-4 w-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Year Level Filter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -978,234 +947,7 @@ function Dashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Academic Year Filter */}
-                {/* <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Academic Year
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={filters.academicYear}
-                      onChange={(e) =>
-                        handleFilterChange("academicYear", e.target.value)
-                      }
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
-                    >
-                      <option value=""></option>
-                      {academicYearOptions.map((ay) => (
-                        <option key={ay} value={ay}>
-                          A.Y {ay}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      <svg
-                        className="h-4 w-4 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div> */}
-
-                {/* Date Year Range Filter */}
-                {/* <div className="relative " ref={dateYearRef}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date Year
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDateYearDropdownOpen(!dateYearDropdownOpen)
-                    }
-                    className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer text-left text-sm"
-                  >
-                    {filters.dateYearFrom || filters.dateYearTo
-                      ? `${filters.dateYearFrom || "..."} — ${filters.dateYearTo || "..."}`
-                      : "All Years"}
-                  </button>
-                  <div
-                    className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
-                    style={{ top: "28px" }}
-                  >
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-
-                  {dateYearDropdownOpen && (
-                    <div className="absolute z-10 mt-1 w-64 bg-white border border-gray-300 rounded-lg shadow-lg p-3 left-1/2 -translate-x-1/2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-500 mb-1">
-                            From
-                          </label>
-                          <select
-                            value={filters.dateYearFrom}
-                            onChange={(e) =>
-                              handleFilterChange("dateYearFrom", e.target.value)
-                            }
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            {filterOptions.dateYears
-                              .filter((opt) => opt.value !== "")
-                              .map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        <span className="text-gray-400 mt-5">—</span>
-                        <div className="flex-1">
-                          <label className="block text-xs text-gray-500 mb-1">
-                            To
-                          </label>
-                          <select
-                            value={filters.dateYearTo}
-                            onChange={(e) =>
-                              handleFilterChange("dateYearTo", e.target.value)
-                            }
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm bg-white cursor-pointer"
-                          >
-                            <option value="">—</option>
-                            {filterOptions.dateYears
-                              .filter(
-                                (opt) =>
-                                  opt.value !== "" &&
-                                  (!filters.dateYearFrom ||
-                                    parseInt(opt.value) >=
-                                      parseInt(filters.dateYearFrom)),
-                              )
-                              .map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div> */}
               </div>
-
-              {/* Active Filters Display */}
-              {/* {(filters.yearLevel ||
-                filters.semester ||
-                filters.course ||
-                filters.section ||
-                filters.dateYearFrom ||
-                filters.dateYearTo) && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      Active filters:
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {filters.yearLevel && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          Year:{" "}
-                          {
-                            filterOptions.yearLevels.find(
-                              (opt) => opt.value === filters.yearLevel,
-                            )?.label
-                          }
-                          <button
-                            onClick={() => handleFilterChange("yearLevel", "")}
-                            className="ml-1 text-blue-600 hover:text-blue-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      {filters.semester && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Semester:{" "}
-                          {
-                            filterOptions.semesters.find(
-                              (opt) => opt.value === filters.semester,
-                            )?.label
-                          }
-                          <button
-                            onClick={() => handleFilterChange("semester", "")}
-                            className="ml-1 text-green-600 hover:text-green-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      {filters.course && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Course: {filters.course}
-                          <button
-                            onClick={() => handleFilterChange("course", "")}
-                            className="ml-1 text-purple-600 hover:text-purple-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      {filters.section && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Section:{" "}
-                          {
-                            filterOptions.sections.find(
-                              (opt) => opt.value === filters.section,
-                            )?.label
-                          }
-                          <button
-                            onClick={() => handleFilterChange("section", "")}
-                            className="ml-1 text-yellow-600 hover:text-yellow-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      {(filters.dateYearFrom || filters.dateYearTo) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                          Date Year: {filters.dateYearFrom || "..."} —{" "}
-                          {filters.dateYearTo || "..."}
-                          <button
-                            onClick={() => {
-                              handleFilterChange("dateYearFrom", "");
-                              setFilters((prev) => ({
-                                ...prev,
-                                dateYearFrom: "",
-                                dateYearTo: "",
-                              }));
-                              fetchData(1, searchQuery, itemsPerPage);
-                            }}
-                            className="ml-1 text-orange-600 hover:text-orange-800"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )} */}
             </>
           )}
         </div>
@@ -1216,37 +958,35 @@ function Dashboard() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 w-10">
+                  <th className="px-4 py-3 w-6">
                     <input
                       type="checkbox"
                       checked={allCurrentSelected}
                       onChange={toggleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+                      className="h-3 w-3 rounded border-gray-300 text-blue-600 cursor-pointer"
                       title="Select all on this page"
                     />
                   </th>
-                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Student Number
-                  </th> */}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Student Number
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Full Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Course
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Semester
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Year Level
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Section
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Action
                   </th>
                 </tr>
@@ -1256,7 +996,7 @@ function Dashboard() {
                   <tr>
                     <td
                       colSpan="9"
-                      className="px-6 py-4 text-center text-gray-500"
+                      className="px-4 py-4 text-center text-gray-500"
                     >
                       Loading…
                     </td>
@@ -1265,7 +1005,7 @@ function Dashboard() {
                   <tr>
                     <td
                       colSpan="9"
-                      className="px-6 py-4 text-center text-gray-500"
+                      className="px-4 py-4 text-center text-gray-500"
                     >
                       No students found
                     </td>
@@ -1284,32 +1024,11 @@ function Dashboard() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelectRow(student.id)}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 cursor-pointer"
+                            className="h-3 w-3 rounded border-gray-300 text-blue-600 cursor-pointer"
                           />
                         </td>
 
-                        {/* <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={
-                                editData.student_number ||
-                                student.student_number
-                              }
-                              onChange={(e) =>
-                                setEditData({
-                                  ...editData,
-                                  student_number: e.target.value,
-                                })
-                              }
-                              className="border px-2 py-1 rounded w-full"
-                            />
-                          ) : (
-                            student.student_number || "—"
-                          )}
-                        </td> */}
-
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -1330,7 +1049,7 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -1359,7 +1078,7 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <select
                               value={
@@ -1385,7 +1104,7 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="number"
@@ -1407,7 +1126,7 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="number"
@@ -1429,7 +1148,7 @@ function Dashboard() {
                           )}
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-xs font-medium text-gray-900">
                           {isEditing ? (
                             <input
                               type="text"
@@ -1448,23 +1167,23 @@ function Dashboard() {
                         </td>
 
                         <td>
-                          <div className="flex gap-1 px-6 py-4 whitespace-nowrap">
+                          <div className="flex gap-1 px-4 py-4 whitespace-nowrap">
                             <button
                               onClick={() =>
                                 navigate(`/view-student/${student.id}`)
                               }
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs cursor-pointer"
                             >
                               View
                             </button>
-                            <button
+                            {/* <button
                               onClick={() => {
                                 // delete logic
                               }}
-                              className="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                              className="ml-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-xs cursor-pointer"
                             >
                               Delete
-                            </button>
+                            </button> */}
                           </div>
                         </td>
                       </tr>

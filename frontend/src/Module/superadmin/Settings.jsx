@@ -139,7 +139,7 @@ function Settings() {
 
   return (
     <div className="p-6 bg-blue-200 min-h-screen">
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-8">
+      {/* <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-sm p-8">
         <h2 className="text-3xl text-gray-900 mb-6">Default Filter Settings</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div>
@@ -328,7 +328,7 @@ function Settings() {
             Save Defaults
           </button>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

@@ -231,10 +231,16 @@ function ViewStudent() {
 
   return (
     <div className="p-6 bg-blue-200 overflow-hidden h-screen">
-      <div>
-        <h1 className="text-[2rem] "> View Student Profile</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-[2rem]">View Student Profile</h1>
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="px-4 py-2 bg-gray-500 text-white cursor-pointer rounded-lg hover:bg-gray-600 transition"
+        >
+          Back
+        </button>
       </div>
-      <div className="py-4  flex flex-row  space-x-6">
+      <div className="py-4 flex flex-row space-x-6">
         {/*profile Image*/}
         <div className="h-[85vh] bg-white p-6 rounded-lg shadow-md  w-1/3 flex  gap-3 flex-col items-center">
           <div className="relative group">
