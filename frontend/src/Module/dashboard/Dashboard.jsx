@@ -521,93 +521,349 @@ function Dashboard() {
   };
 
   const enrollStudent = () => {
-    swal
-      .fire({
-        title: "Enroll Student",
-        html: `
-      <div class="space-y-4 text-left">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Card Serial Number
-          </label>
-          <input id="card_serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+    let selectedStudent = null;
+    let selectedCourse = "";
+    let availableSections = [];
+
+    // Step 1: Search Interface
+    const showSearchDialog = () => {
+      swal
+        .fire({
+          title: "Enroll Student - Search",
+          html: `
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+              Student Name
+            </label>
+            <input id="search_name" placeholder="Enter student name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+          </div>
+          
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+              Student Number
+            </label>
+            <input id="search_student_number" placeholder="Enter student number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+          </div>
+
+          <div id="search_results_container" class="hidden mt-4">
+            <label class="block text-xs font-medium text-gray-700 mb-2">
+              Search Results
+            </label>
+            <div id="search_results" class="border border-gray-300 rounded-lg max-h-48 overflow-y-auto"></div>
+          </div>
         </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Student Number
-          </label>
-          <input id="student_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-        </div>
-      </div>
-    `,
-        showCancelButton: true,
-        confirmButtonText: "Enroll",
-        cancelButtonText: "Cancel",
-        focusConfirm: false,
-        preConfirm: () => {
-          const cardSerialNumber = document
-            .getElementById("card_serial_number")
-            .value.trim();
-          const studentNumber = document
-            .getElementById("student_number")
-            .value.trim();
-
-          // Check if both are empty
-          if (!cardSerialNumber && !studentNumber) {
-            swal.showValidationMessage(
-              "Either card serial number or student number must be provided",
+      `,
+          showCancelButton: true,
+          confirmButtonText: "Next",
+          cancelButtonText: "Cancel",
+          confirmButtonColor: "#3b82f6",
+          cancelButtonColor: "#6b7280",
+          focusConfirm: false,
+          didOpen: async () => {
+            const searchButton = swal.getConfirmButton();
+            const searchNameInput = document.getElementById("search_name");
+            const searchNumberInput = document.getElementById(
+              "search_student_number",
             );
-            return false;
-          }
-
-          return { cardSerialNumber, studentNumber };
-        },
-      })
-      .then(async (result) => {
-        if (result.isConfirmed) {
-          const { cardSerialNumber, studentNumber } = result.value;
-
-          try {
-            // Enroll the student with either serial number or student number
-            const enrollRes = await fetch(
-              `http://localhost:3001/students/enrollStudent/0`,
-              {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  cardSerialNumber: cardSerialNumber || undefined,
-                  studentNumber: studentNumber || undefined,
-                }),
-              },
+            const searchResultsContainer = document.getElementById(
+              "search_results_container",
             );
+            const searchResults = document.getElementById("search_results");
 
-            const enrollData = await enrollRes.json();
+            // Search function
+            const performSearch = async () => {
+              const name = searchNameInput.value.trim();
+              const studentNumber = searchNumberInput.value.trim();
 
-            if (enrollRes.ok) {
-              swal.fire(
-                "Success",
-                `${enrollData.student.first_name} ${enrollData.student.last_name} has been enrolled successfully`,
-                "success",
+              if (!name && !studentNumber) {
+                swal.showValidationMessage(
+                  "Enter at least one search criterion",
+                );
+                return;
+              }
+
+              try {
+                searchResults.innerHTML =
+                  '<div class="text-xs text-gray-500 p-2">Searching...</div>';
+                searchResultsContainer.classList.remove("hidden");
+
+                const searchQuery = name || studentNumber;
+                const response = await fetch(
+                  `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
+                );
+                const data = await response.json();
+
+                if (data.rows && data.rows.length > 0) {
+                  let resultsHTML = '<div class="divide-y divide-gray-200">';
+                  data.rows.forEach((student) => {
+                    const fullName = [
+                      student.first_name,
+                      student.middle_name,
+                      student.last_name,
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+
+                    resultsHTML += `
+                  <div class="p-2 hover:bg-blue-50 cursor-pointer student-result text-xs" data-id="${student.id}" data-name="${fullName}" data-number="${student.student_number}">
+                    <div class="font-medium">${fullName}</div>
+                    <div class="text-gray-500">ID: ${student.student_number}</div>
+                  </div>
+                `;
+                  });
+                  resultsHTML += "</div>";
+                  searchResults.innerHTML = resultsHTML;
+
+                  document.querySelectorAll(".student-result").forEach((el) => {
+                    el.addEventListener("click", () => {
+                      const studentId = el.getAttribute("data-id");
+                      const studentName = el.getAttribute("data-name");
+                      const studentNumber = el.getAttribute("data-number");
+
+                      selectedStudent = {
+                        id: studentId,
+                        name: studentName,
+                        number: studentNumber,
+                      };
+
+                      searchResults.innerHTML = `<div class="p-2 bg-green-50 border border-green-300 rounded text-xs font-medium text-green-700">
+                      Selected: ${studentName} (${studentNumber})
+                    </div>`;
+                    });
+                  });
+                } else {
+                  searchResults.innerHTML =
+                    '<div class="text-xs text-red-500 p-2">No students found</div>';
+                }
+              } catch (error) {
+                searchResults.innerHTML =
+                  '<div class="text-xs text-red-500 p-2">Error searching students</div>';
+                console.error("Search error:", error);
+              }
+            };
+
+            const createSearchButton = document.createElement("button");
+            createSearchButton.textContent = "Search";
+            createSearchButton.className =
+              "px-3 py-2 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 mr-2";
+            createSearchButton.addEventListener("click", performSearch);
+
+            const searchContainer = document.querySelector(
+              ".swal2-html-container",
+            );
+            if (searchContainer) {
+              const buttonWrapper = document.createElement("div");
+              buttonWrapper.className = "mt-4";
+              buttonWrapper.appendChild(createSearchButton);
+              searchContainer.appendChild(buttonWrapper);
+            }
+          },
+          preConfirm: () => {
+            if (!selectedStudent) {
+              swal.showValidationMessage(
+                "Please select a student from the results",
               );
-              // Refresh the data
-              fetchData(currentPage, searchQuery, itemsPerPage);
-            } else {
+              return false;
+            }
+            return selectedStudent;
+          },
+        })
+        .then(async (result) => {
+          if (result.isConfirmed) {
+            selectedStudent = result.value;
+            showEnrollmentDialog();
+          }
+        });
+    };
+
+    // Step 2: Enrollment Details
+    const showEnrollmentDialog = () => {
+      // Build semester options - FIX: Get value and label from object
+      const semesterOptions = filterOptions.semesters
+        .filter((s) => s.value !== "") // Skip empty option
+        .map((s) => `<option value="${s.value}">${s.label}</option>`)
+        .join("");
+
+      // Build course options - FIX: Get value and label from object
+      const courseOptions = filterOptions.courses
+        .filter((c) => c.value !== "") // Skip empty option
+        .map((c) => `<option value="${c.value}">${c.label}</option>`)
+        .join("");
+
+      // Build year level options - NEW: Add year level
+      const yearLevelOptions = filterOptions.yearLevels
+        .filter((y) => y.value !== "") // Skip empty option
+        .map((y) => `<option value="${y.value}">${y.label}</option>`)
+        .join("");
+
+      swal
+        .fire({
+          title: "Enroll Student - Details",
+          html: `
+        <div class="space-y-4 text-left">
+          <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div class="text-xs font-medium text-gray-700">Student Information</div>
+            <div class="text-xs text-gray-600 mt-1">${selectedStudent.name}</div>
+            <div class="text-xs text-gray-600">${selectedStudent.number}</div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Year Level
+              </label>
+              <select id="enroll_year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+                <option value="">Select Year Level</option>
+                ${yearLevelOptions}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Semester
+              </label>
+              <select id="enroll_semester" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+                <option value="">Select Semester</option>
+                ${semesterOptions}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Course
+              </label>
+              <select id="enroll_course" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+                <option value="">Select Course</option>
+                ${courseOptions}
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">
+                Section
+              </label>
+              <select id="enroll_section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
+                <option value="">Select a course first</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      `,
+          showCancelButton: true,
+          confirmButtonText: "Enroll",
+          cancelButtonText: "Back",
+          confirmButtonColor: "#10b981",
+          cancelButtonColor: "#6b7280",
+          focusConfirm: false,
+          didOpen: () => {
+            const courseSelect = document.getElementById("enroll_course");
+            const sectionSelect = document.getElementById("enroll_section");
+
+            courseSelect.addEventListener("change", async (e) => {
+              selectedCourse = e.target.value;
+
+              if (selectedCourse) {
+                try {
+                  const response = await fetch(
+                    `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
+                  );
+                  const data = await response.json();
+                  availableSections = data.sections || [];
+
+                  sectionSelect.disabled = false;
+                  sectionSelect.innerHTML = `
+                  <option value="">Select Section</option>
+                  ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
+                `;
+                } catch (error) {
+                  console.error("Error fetching sections:", error);
+                  sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;
+                  sectionSelect.disabled = true;
+                }
+              } else {
+                sectionSelect.disabled = true;
+                sectionSelect.innerHTML = `<option value="">Select a course first</option>`;
+                availableSections = [];
+              }
+            });
+          },
+          preConfirm: () => {
+            const yearLevel =
+              document.getElementById("enroll_year_level").value;
+            const semester = document.getElementById("enroll_semester").value;
+            const courseId = document.getElementById("enroll_course").value;
+            const section = document.getElementById("enroll_section").value;
+
+            if (!yearLevel) {
+              swal.showValidationMessage("Please select a year level");
+              return false;
+            }
+            if (!semester) {
+              swal.showValidationMessage("Please select a semester");
+              return false;
+            }
+            if (!courseId) {
+              swal.showValidationMessage("Please select a course");
+              return false;
+            }
+            if (!section) {
+              swal.showValidationMessage("Please select a section");
+              return false;
+            }
+
+            return { yearLevel, semester, courseId, section };
+          },
+        })
+        .then(async (result) => {
+          if (result.isConfirmed) {
+            const { yearLevel, semester, courseId, section } = result.value;
+
+            try {
+              const enrollRes = await fetch(
+                `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
+                {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    year_level: yearLevel,
+                    semester,
+                    course_id: parseInt(courseId),
+                    section,
+                  }),
+                },
+              );
+
+              const enrollData = await enrollRes.json();
+
+              if (enrollRes.ok) {
+                swal.fire(
+                  "Success",
+                  `${selectedStudent.name} has been enrolled successfully`,
+                  "success",
+                );
+                fetchData(currentPage, searchQuery, itemsPerPage);
+              } else {
+                swal.fire(
+                  "Error",
+                  enrollData.message || "Failed to enroll student",
+                  "error",
+                );
+              }
+            } catch (error) {
               swal.fire(
                 "Error",
-                enrollData.message || "Failed to enroll student",
+                error.message || "Failed to enroll student",
                 "error",
               );
             }
-          } catch (error) {
-            swal.fire(
-              "Error",
-              error.message || "Failed to enroll student",
-              "error",
-            );
+          } else if (result.isDismissed && result.dismiss === "cancel") {
+            showSearchDialog();
           }
-        }
-      });
+        });
+    };
+
+    showSearchDialog();
   };
 
   // Initial load

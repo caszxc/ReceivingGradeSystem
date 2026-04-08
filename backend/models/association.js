@@ -2,8 +2,9 @@ const sequelize = require("../config/database");
 const Student = require("./student");
 const Account = require("./account");
 const StudentImage = require("./studentProfile");
-const DefaultFilter = require("./defaultFilter");
 const Course = require("./course");
+const AcademicYear = require("./academicYear");
+const StudentEnrollment = require("./studentEnrollment");
 
 // Import future models here when needed:
 // const Attendance = require("./attendance");
@@ -25,15 +26,31 @@ Course.hasMany(Student, {
   foreignKey: "course_id",
 });
 
+// Student ←→ StudentEnrollment
+Student.hasMany(StudentEnrollment, {
+  foreignKey: "student_id",
+});
+StudentEnrollment.belongsTo(Student, {
+  foreignKey: "student_id",
+});
+
+// StudentEnrollment ←→ AcademicYear
+StudentEnrollment.belongsTo(AcademicYear, {
+  foreignKey: "academic_year_id",
+});
+AcademicYear.hasMany(StudentEnrollment, {
+  foreignKey: "academic_year_id",
+});
+
 const db = {
   sequelize,
   Sequelize: require("sequelize"),
-
   Student,
   Account,
   StudentImage,
-  DefaultFilter,
   Course,
+  AcademicYear,
+  StudentEnrollment,
 };
 
 module.exports = db;

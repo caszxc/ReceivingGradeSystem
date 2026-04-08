@@ -242,7 +242,7 @@ router.get("/getFilterOptions", async (req, res) => {
       "V",
       "ALUMNI",
     ];
-    const semesters = ["1ST SEMESTER", "2ND SEMESTER"];
+    const semesters = ["1ST SEMESTER", "2ND SEMESTER", "SUMMER"];
 
     // Get distinct year levels
     // const yearLevels = await Student.findAll({

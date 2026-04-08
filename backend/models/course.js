@@ -12,7 +12,7 @@ const Course = sequelize.define(
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: true,
+      // unique: true,
     },
     code: {
       type: DataTypes.STRING(50),
@@ -30,7 +30,7 @@ const Course = sequelize.define(
   {
     timestamps: true,
     tableName: "Courses",
-  }
+  },
 );
 
 module.exports = Course;
