@@ -564,7 +564,7 @@ function ViewStudent() {
           <div className="flex justify-end items-end ">
             {!isEditing && (
               <>
-                {student.year_level !== "ALUMNI" && (
+                {/* {student.year_level !== "ALUMNI" && (
                   <button
                     type="button"
                     className="px-6 py-2 rounded-md bg-amber-100 text-amber-700 font-semibold hover:bg-amber-200 transition"
@@ -572,7 +572,7 @@ function ViewStudent() {
                   >
                     Add to Alumni
                   </button>
-                )}
+                )} */}
                 <button
                   type="button"
                   className="px-6 py-2 mx-2 rounded-md bg-blue-100 text-blue-700 font-semibold hover:bg-blue-200 transition"

@@ -20,11 +20,11 @@ function Dashboard() {
 
   const [filters, setFilters] = useState(() => {
     return {
+      academicYear: "",
       yearLevel: "",
       semester: "",
       course: "",
       section: "",
-      // academicYear: "",
     };
   });
 
@@ -50,6 +50,8 @@ function Dashboard() {
   const fetchStudents = async ({ page, limit, filters: filterOverride }) => {
     const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
+    if (activeFilters.academicYear)
+      filterParams.append("academicYear", activeFilters.academicYear);
     if (activeFilters.yearLevel)
       filterParams.append("yearLevel", activeFilters.yearLevel);
     if (activeFilters.semester)
@@ -73,6 +75,8 @@ function Dashboard() {
   }) => {
     const activeFilters = filterOverride || filters;
     const filterParams = new URLSearchParams();
+    if (activeFilters.academicYear)
+      filterParams.append("academicYear", activeFilters.academicYear);
     if (activeFilters.yearLevel)
       filterParams.append("yearLevel", activeFilters.yearLevel);
     if (activeFilters.semester)
@@ -109,6 +113,9 @@ function Dashboard() {
       );
       const data = await response.json();
 
+      // Set default academic year to active one if available
+      const defaultAcademicYear = data.activeAcademicYear?.id || "";
+
       // Transform the data into the format expected by the UI
       setFilterOptions({
         yearLevels: [
@@ -140,7 +147,21 @@ function Dashboard() {
             label: year.toString(),
           })),
         ],
+        academicYears: [
+          { value: "", label: "" },
+          ...data.academicYears.map((year) => ({
+            value: year.id,
+            label: `${year.academic_year}${year.isActive ? " (Active)" : ""}`,
+            isActive: year.isActive,
+          })),
+        ],
       });
+
+      // Set default academic year filter to active one
+      setFilters((prev) => ({
+        ...prev,
+        academicYear: defaultAcademicYear,
+      }));
     } catch (error) {
       console.error("Error fetching filter options:", error);
       // Set fallback options if API fails
@@ -150,6 +171,7 @@ function Dashboard() {
         courses: [{ value: "", label: "All Courses" }],
         sections: [{ value: "", label: "All Sections" }],
         dateYears: [{ value: "", label: "All Years" }],
+        academicYears: [{ value: "", label: "No Academic Years" }],
       });
     } finally {
       setFilterOptionsLoading(false);
@@ -212,6 +234,7 @@ function Dashboard() {
 
   const clearFilters = () => {
     const cleared = {
+      academicYear: filters.academicYear,
       yearLevel: "",
       semester: "",
       course: "",
@@ -983,6 +1006,7 @@ function Dashboard() {
               itemsPerPage={itemsPerPage}
               selectedIds={selectedIds}
               filters={filters}
+              filterOptions={filterOptions}
             />
             <AddStudentButton onAdd={addStudent} />
             <EnrollStudentButton onEnroll={enrollStudent} />
@@ -1021,13 +1045,13 @@ function Dashboard() {
                   </label>
                   <div className="relative">
                     <select
-                      value={filters.yearLevel}
+                      value={filters.academicYear}
                       onChange={(e) =>
-                        handleFilterChange("yearLevel", e.target.value)
+                        handleFilterChange("academicYear", e.target.value)
                       }
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
-                      {filterOptions.yearLevels.map((option) => (
+                      {filterOptions.academicYears.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>

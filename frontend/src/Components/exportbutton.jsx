@@ -11,7 +11,7 @@ function getSemesterLabel(sem) {
     : `Semester ${sem}`;
 }
 
-function buildFilterSummary(filters, students = []) {
+function buildFilterSummary(filters, students = [], filterOptions = {}) {
   const parts = [];
   if (filters?.yearLevel) parts.push(`Year Level: ${filters.yearLevel}`);
   if (filters?.semester) parts.push(getSemesterLabel(filters.semester));
@@ -24,16 +24,17 @@ function buildFilterSummary(filters, students = []) {
   }
   if (filters?.section) parts.push(`Section: ${filters.section}`);
 
-  //uncomment kapag need
+  // Get academic year name from filterOptions
   if (filters?.academicYear) {
-    parts.push(`A.Y. ${filters.academicYear}`);
+    const academicYearObj = filterOptions.academicYears?.find(
+      (ay) => ay.value == filters.academicYear,
+    );
+    const ayName = academicYearObj
+      ? academicYearObj.label.replace(" (Active)", "")
+      : filters.academicYear;
+    parts.push(`A.Y. ${ayName}`);
   }
 
-  // if (filters?.dateYearFrom || filters?.dateYearTo) {
-  //   const from = filters.dateYearFrom || "…";
-  //   const to = filters.dateYearTo || "…";
-  //   parts.push(`A.Y. ${from}–${to}`);
-  // }
   return parts.length ? parts.join("  |  ") : "All Records";
 }
 
@@ -49,7 +50,6 @@ async function fetchStudentData({
   filters,
 }) {
   if (scope === "selected") {
-    // Fetch a large set and filter client-side by the selected IDs
     const p = new URLSearchParams({
       sortBy,
       sortOrder,
@@ -57,14 +57,12 @@ async function fetchStudentData({
       page: 1,
     });
 
-    if (filters?.academicYear) {
-      const [fromYear, toYear] = filters.academicYear.split("-");
-      p.set("dateYearFrom", fromYear);
-      p.set("dateYearTo", toYear);
-    }
+    if (filters?.academicYear) p.set("academicYear", filters.academicYear);
+    if (filters?.yearLevel) p.set("yearLevel", filters.yearLevel);
+    if (filters?.semester) p.set("semester", filters.semester);
+    if (filters?.course) p.set("course", filters.course);
+    if (filters?.section) p.set("section", filters.section);
 
-    // if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
-    // if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
     const res = await fetch(
       `http://localhost:3001/students/getStudent?${p.toString()}`,
     );
@@ -76,24 +74,15 @@ async function fetchStudentData({
   const p = new URLSearchParams({ sortBy, sortOrder, limit: 99999, page: 1 });
   if (searchQuery && searchQuery.trim() !== "")
     p.set("query", searchQuery.trim());
+  if (filters?.academicYear) p.set("academicYear", filters.academicYear);
   if (filters?.yearLevel) p.set("yearLevel", filters.yearLevel);
   if (filters?.semester) p.set("semester", filters.semester);
   if (filters?.course) p.set("course", filters.course);
   if (filters?.section) p.set("section", filters.section);
 
-  if (filters?.academicYear) {
-    const [fromYear, toYear] = filters.academicYear.split("-");
-    p.set("dateYearFrom", fromYear);
-    p.set("dateYearTo", toYear);
-  }
-
-  //uncomment kapag need
-  // if (filters?.dateYearFrom) p.set("dateYearFrom", filters.dateYearFrom);
-  // if (filters?.dateYearTo) p.set("dateYearTo", filters.dateYearTo);
-
   if (scope === "page") {
-    p.set("page", currentPage);
     p.set("limit", itemsPerPage);
+    p.set("page", currentPage);
   }
 
   const endpoint =
@@ -123,7 +112,14 @@ function loadImageAsDataUrl(src) {
 }
 
 // ── PDF renderer ──────────────────────────────────────────────────────────────
-async function renderPdf({ students, filters, scope, now, withSignature }) {
+async function renderPdf({
+  students,
+  filters,
+  filterOptions,
+  scope,
+  now,
+  withSignature,
+}) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -140,14 +136,22 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
 
   // ── Build dynamic header text from filters ────────────────────────────────
   const semLabel = filters?.semester ? getSemesterLabel(filters.semester) : "";
-  const ayFrom = filters?.academicYear
-    ? filters.academicYear.split("-")[0]
-    : "";
-  const ayTo = filters?.academicYear ? filters.academicYear.split("-")[1] : "";
 
-  //uncomment kapag need
-  // const ayFrom = filters?.dateYearFrom || "";
-  // const ayTo = filters?.dateYearTo || "";
+  // Look up academic year name from filterOptions
+  let ayFrom = "";
+  let ayTo = "";
+  if (filters?.academicYear && filterOptions?.academicYears) {
+    const academicYearObj = filterOptions.academicYears.find(
+      (ay) => ay.id == filters.academicYear || ay.value == filters.academicYear,
+    );
+    if (academicYearObj) {
+      const ayName = academicYearObj.academic_year || academicYearObj.label;
+      const parts = ayName.split("-");
+      ayFrom = parts[0];
+      ayTo = parts[1];
+    }
+  }
+
   const schoolYear = ayFrom && ayTo ? `School Year ${ayFrom} - ${ayTo}` : "";
   const semesterLine =
     semLabel && schoolYear
@@ -300,11 +304,8 @@ async function renderPdf({ students, filters, scope, now, withSignature }) {
     },
   });
 
-  const ayLabel =
-    filters.dateYearFrom && filters.dateYearTo
-      ? `AY_${filters.dateYearFrom}-${filters.dateYearTo}`
-      : "ALL";
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const ayLabel = ayFrom && ayTo ? `AY_${ayFrom}-${ayTo}` : "ALL";
   doc.save(`student_masterlist_${ayLabel}_${timestamp}.pdf`);
 }
 
@@ -323,34 +324,28 @@ async function downloadFile({
   const params = new URLSearchParams({ format, scope, sortBy, sortOrder });
 
   if (scope === "page") {
-    params.set("page", currentPage);
     params.set("limit", itemsPerPage);
+    params.set("page", currentPage);
   }
-  if (searchQuery && searchQuery.trim() !== "") {
+  if (searchQuery && searchQuery.trim() !== "")
     params.set("query", searchQuery.trim());
-  }
   if (scope === "selected") {
-    [...selectedIds].forEach((id) => params.append("ids[]", id));
+    params.set("ids", Array.from(selectedIds).join(","));
   }
+
+  // Add all filters
+  if (filters?.academicYear) params.set("academicYear", filters.academicYear);
   if (filters?.yearLevel) params.set("yearLevel", filters.yearLevel);
   if (filters?.semester) params.set("semester", filters.semester);
   if (filters?.course) params.set("course", filters.course);
   if (filters?.section) params.set("section", filters.section);
 
-  if (filters?.academicYear) {
-    const [fromYear, toYear] = filters.academicYear.split("-");
-    params.set("dateYearFrom", fromYear);
-    params.set("dateYearTo", toYear);
-  }
-
-  //uncomment kapag need
-  // if (filters?.dateYearFrom) params.set("dateYearFrom", filters.dateYearFrom);
-  // if (filters?.dateYearTo) params.set("dateYearTo", filters.dateYearTo);
-
   const response = await fetch(
     `http://localhost:3001/students/exportStudents?${params.toString()}`,
   );
-  if (!response.ok) throw new Error("Export failed");
+  if (!response.ok) {
+    throw new Error("Export failed");
+  }
 
   const blob = await response.blob();
   const objectUrl = URL.createObjectURL(blob);
@@ -481,6 +476,7 @@ function ExportButton({
   currentPage,
   itemsPerPage,
   selectedIds, // Set<number>
+  filterOptions = {},
   filters = {},
 }) {
   const [open, setOpen] = useState(false);
@@ -581,6 +577,7 @@ function ExportButton({
           await renderPdf({
             students,
             filters: params.filters,
+            filterOptions, // Add this line
             scope,
             now: new Date(),
             withSignature,
@@ -593,10 +590,15 @@ function ExportButton({
         alert("Export failed. Please try again.");
       }
     },
-    [preview],
+    [preview, filterOptions], // Add filterOptions to dependencies
   );
 
-  const filterSummary = buildFilterSummary(filters, preview.students);
+  const filterSummary = buildFilterSummary(
+    filters,
+    preview.students,
+    filterOptions,
+  );
+
   return (
     <>
       {/* ── Dropdown trigger ───────────────────────────────────────────────── */}

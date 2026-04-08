@@ -45,6 +45,24 @@ function Settings() {
       return;
     }
 
+    // Show confirmation modal
+    const result = await Swal.fire({
+      icon: "info",
+      title: "Create Academic Year?",
+      html: `<div class="text-left">
+      <p class="text-sm text-gray-700">You are about to create a new academic year:</p>
+      <p class="mt-3 text-lg font-bold text-blue-600">${newYearInput}</p>
+      <p class="mt-3 text-xs text-gray-600">The new academic year will be created as <strong>inactive</strong>. You can activate it later from the table below.</p>
+    </div>`,
+      showCancelButton: true,
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, create it",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       const response = await fetch(
         "http://localhost:3001/settings/createAcademicYear",
@@ -76,8 +94,29 @@ function Settings() {
 
   // Set academic year as active
   const handleSetActive = async (id) => {
+    const year = academicYears.find((y) => y.id === id);
+    if (!year) return;
+
     setError("");
     setSuccess("");
+
+    // Show confirmation modal
+    const result = await Swal.fire({
+      icon: "warning",
+      title: "Set as Active Year?",
+      html: `<div class="text-left">
+      <p class="text-sm text-gray-700">You are about to set this as the active academic year:</p>
+      <p class="mt-3 text-lg font-bold text-blue-600">${year.academic_year}</p>
+      <p class="mt-3 text-xs text-gray-600">The current active year will be set to inactive. All new enrollments will use this year.</p>
+    </div>`,
+      showCancelButton: true,
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, set as active",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const response = await fetch(
@@ -93,7 +132,7 @@ function Settings() {
 
       Swal.fire({
         icon: "success",
-        title: "Active Year Changed",
+        title: "Active Year Changed!",
         text: data.message,
         confirmButtonColor: "#2563eb",
       });
@@ -108,7 +147,11 @@ function Settings() {
     const result = await Swal.fire({
       icon: "warning",
       title: "Delete Academic Year?",
-      text: `Are you sure you want to delete ${academicYear}? This action cannot be undone.`,
+      html: `<div class="text-left">
+      <p class="text-sm text-gray-700">You are about to delete:</p>
+      <p class="mt-3 text-lg font-bold text-red-600">${academicYear}</p>
+      <p class="mt-3 text-xs text-gray-600"><strong>Warning:</strong> This action cannot be undone. You can only delete academic years that have no enrollments.</p>
+    </div>`,
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#6b7280",
