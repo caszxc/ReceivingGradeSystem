@@ -14,7 +14,7 @@ function Dashboard() {
   const dropdownRef = useRef(null);
   const [filterOptionsLoading, setFilterOptionsLoading] = useState(true);
   const [dateYearDropdownOpen, setDateYearDropdownOpen] = useState(false);
-
+  const isFirstRender = useRef(true);
   const navigate = useNavigate();
   const dateYearRef = useRef(null);
 
@@ -37,6 +37,7 @@ function Dashboard() {
   });
   // ── Sort state ───────────────────────────────────────────────────────────────
   const [sortBy, setSortBy] = useState("last_name");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // ── Row selection ────────────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -105,6 +106,7 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch filter options for dropdowns
   const fetchFilterOptions = async () => {
     try {
       setFilterOptionsLoading(true);
@@ -114,7 +116,7 @@ function Dashboard() {
       const data = await response.json();
 
       // Set default academic year to active one if available
-      const defaultAcademicYear = data.activeAcademicYear?.id || "";
+      const defaultAcademicYear = data.activeAcademicYear?.id;
 
       // Transform the data into the format expected by the UI
       setFilterOptions({
@@ -158,10 +160,11 @@ function Dashboard() {
       });
 
       // Set default academic year filter to active one
-      setFilters((prev) => ({
-        ...prev,
-        academicYear: defaultAcademicYear,
-      }));
+      // setFilters((prev) => ({
+      //   ...prev,
+      //   academicYear: defaultAcademicYear,
+      // }));
+      return defaultAcademicYear;
     } catch (error) {
       console.error("Error fetching filter options:", error);
       // Set fallback options if API fails
@@ -177,6 +180,27 @@ function Dashboard() {
       setFilterOptionsLoading(false);
     }
   };
+
+  // Fetch filters
+  useEffect(() => {
+    fetchFilterOptions().then((defaultAcademicYear) => {
+      if (defaultAcademicYear) {
+        setFilters((prev) => ({
+          ...prev,
+          academicYear: defaultAcademicYear,
+        }));
+      }
+      setIsInitialized(true);
+    });
+  }, []);
+
+  // Display filtered data
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    fetchData(1, searchQuery, itemsPerPage);
+    setSelectedIds(new Set());
+  }, [sortBy, sortOrder, filters, isInitialized]);
 
   // Helper functions for labels
   const getYearLabel = (year) => {
@@ -285,10 +309,6 @@ function Dashboard() {
     handleSearch(searchQuery);
   };
 
-  useEffect(() => {
-    fetchFilterOptions();
-  }, []);
-
   // Helper function to format full name safely
   const formatFullName = (firstName, middleName, lastName) => {
     const nameParts = [
@@ -299,13 +319,6 @@ function Dashboard() {
 
     return nameParts.length > 0 ? nameParts.join(" ") : "";
   };
-
-  // ── Re-fetch when sort changes ───────────────────────────────────────────────
-  useEffect(() => {
-    fetchData(1, searchQuery, itemsPerPage);
-    setSelectedIds(new Set());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, sortOrder, filters]);
 
   // Add student function
   const addStudent = () => {
@@ -889,11 +902,11 @@ function Dashboard() {
     showSearchDialog();
   };
 
-  // Initial load
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // // Initial load
+  // useEffect(() => {
+  //   fetchData();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   // Dropdown options
   const sortFields = [
