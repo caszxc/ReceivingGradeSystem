@@ -769,23 +769,36 @@ function Dashboard() {
         });
     };
 
-    // Step 2: Enrollment Details
-    const showEnrollmentDialog = () => {
-      // Build semester options - FIX: Get value and label from object
+    const showEnrollmentDialog = async () => {
+      // Fetch latest enrollment for this student
+      let latestEnrollment = null;
+      try {
+        const enrollResponse = await fetch(
+          `http://localhost:3001/students/getLatestEnrollment/${selectedStudent.id}`,
+        );
+        const enrollData = await enrollResponse.json();
+        if (enrollData.success && enrollData.enrollment) {
+          latestEnrollment = enrollData.enrollment;
+        }
+      } catch (err) {
+        console.error("Error fetching latest enrollment:", err);
+      }
+
+      // Build semester options
       const semesterOptions = filterOptions.semesters
-        .filter((s) => s.value !== "") // Skip empty option
+        .filter((s) => s.value !== "")
         .map((s) => `<option value="${s.value}">${s.label}</option>`)
         .join("");
 
-      // Build course options - FIX: Get value and label from object
+      // Build course options
       const courseOptions = filterOptions.courses
-        .filter((c) => c.value !== "") // Skip empty option
+        .filter((c) => c.value !== "")
         .map((c) => `<option value="${c.value}">${c.label}</option>`)
         .join("");
 
-      // Build year level options - NEW: Add year level
+      // Build year level options
       const yearLevelOptions = filterOptions.yearLevels
-        .filter((y) => y.value !== "") // Skip empty option
+        .filter((y) => y.value !== "")
         .map((y) => `<option value="${y.value}">${y.label}</option>`)
         .join("");
 
@@ -793,55 +806,55 @@ function Dashboard() {
         .fire({
           title: "Enroll Student - Details",
           html: `
-        <div class="space-y-4 text-left">
-          <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-            <div class="text-xs font-medium text-gray-700">Student Information</div>
-            <div class="text-xs text-gray-600 mt-1">${selectedStudent.name}</div>
-            <div class="text-xs text-gray-600">${selectedStudent.number}</div>
-          </div>
+    <div class="space-y-4 text-left">
+      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+        <div class="text-xs font-medium text-gray-700">Student Information</div>
+        <div class="text-xs text-gray-600 mt-1">${selectedStudent.name}</div>
+        <div class="text-xs text-gray-600">${selectedStudent.number}</div>
+      </div>
 
-          <div class="grid grid-cols-1 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">
-                Year Level
-              </label>
-              <select id="enroll_year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
-                <option value="">Select Year Level</option>
-                ${yearLevelOptions}
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">
-                Semester
-              </label>
-              <select id="enroll_semester" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
-                <option value="">Select Semester</option>
-                ${semesterOptions}
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">
-                Course
-              </label>
-              <select id="enroll_course" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
-                <option value="">Select Course</option>
-                ${courseOptions}
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">
-                Section
-              </label>
-              <select id="enroll_section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
-                <option value="">Select a course first</option>
-              </select>
-            </div>
-          </div>
+      <div class="grid grid-cols-1 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Year Level
+          </label>
+          <select id="enroll_year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+            <option value="">Select Year Level</option>
+            ${yearLevelOptions}
+          </select>
         </div>
-      `,
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Semester
+          </label>
+          <select id="enroll_semester" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+            <option value="">Select Semester</option>
+            ${semesterOptions}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Course
+          </label>
+          <select id="enroll_course" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+            <option value="">Select Course</option>
+            ${courseOptions}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Section
+          </label>
+          <select id="enroll_section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
+            <option value="">Select a course first</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `,
           showCancelButton: true,
           confirmButtonText: "Enroll",
           cancelButtonText: "Back",
@@ -849,8 +862,47 @@ function Dashboard() {
           cancelButtonColor: "#6b7280",
           focusConfirm: false,
           didOpen: () => {
+            const yearLevelSelect =
+              document.getElementById("enroll_year_level");
+            const semesterSelect = document.getElementById("enroll_semester");
             const courseSelect = document.getElementById("enroll_course");
             const sectionSelect = document.getElementById("enroll_section");
+
+            // Pre-populate with latest enrollment data
+            if (latestEnrollment) {
+              if (latestEnrollment.year_level) {
+                yearLevelSelect.value = latestEnrollment.year_level;
+              }
+              if (latestEnrollment.semester) {
+                semesterSelect.value = latestEnrollment.semester;
+              }
+
+              // Populate course from the returned course_id
+              if (latestEnrollment.course_id) {
+                courseSelect.value = latestEnrollment.course_id;
+
+                // Fetch sections for this course
+                fetch(
+                  `http://localhost:3001/students/getSectionsByCourse?course=${latestEnrollment.course_id}`,
+                )
+                  .then((res) => res.json())
+                  .then((data) => {
+                    availableSections = data.sections || [];
+                    sectionSelect.disabled = false;
+                    sectionSelect.innerHTML = `
+            <option value="">Select Section</option>
+            ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
+          `;
+                    // Populate section if it exists
+                    if (latestEnrollment.section) {
+                      sectionSelect.value = latestEnrollment.section;
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Error fetching sections:", error);
+                  });
+              }
+            }
 
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
@@ -865,9 +917,9 @@ function Dashboard() {
 
                   sectionSelect.disabled = false;
                   sectionSelect.innerHTML = `
-                  <option value="">Select Section</option>
-                  ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
-                `;
+          <option value="">Select Section</option>
+          ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
+        `;
                 } catch (error) {
                   console.error("Error fetching sections:", error);
                   sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;

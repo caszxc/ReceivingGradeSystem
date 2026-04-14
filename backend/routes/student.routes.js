@@ -1068,63 +1068,43 @@ router.get("/getImage/:id", async (req, res) => {
   }
 });
 
-// router.post("/migrateCourseIds", async (req, res) => {
-//   try {
-//     console.log("Starting course migration...");
-//     const { Course } = require("../models/association");
+router.get("/getLatestEnrollment/:studentId", async (req, res) => {
+  try {
+    const { studentId } = req.params;
 
-//     const coursesToInsert = [
-//       "BACHELOR OF ARTS IN COMMUNICATION",
-//       "BACHELOR OF EARLY CHILDHOOD EDUCATION",
-//       "BACHELOR OF SCIENCE IN ACCOUNTANCY",
-//       "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION",
-//       "BACHELOR OF SCIENCE IN CIVIL ENGINEERING",
-//       "BACHELOR OF SCIENCE IN ELECTRICAL ENGINEERING",
-//       "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY",
-//       "BACHELOR OF SCIENCE IN PSYCHOLOGY",
-//       "BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION",
-//       "BACHELOR OF SCIENCE IN SOCIAL WORK",
-//       "BACHELOR OF SECONDARY EDUCATION",
-//       "CERTIFICATE IN TEACHING PROGRAM",
-//       "MASTER IN PUBLIC ADMINISTRATION",
-//       "MASTER OF ARTS IN EDUCATION",
-//     ];
+    // Get both the student and latest enrollment
+    const student = await Student.findByPk(studentId, {
+      attributes: ["id", "course_id"],
+    });
 
-//     // Insert courses
-//     for (const courseName of coursesToInsert) {
-//       await Course.findOrCreate({
-//         where: { name: courseName },
-//         defaults: { name: courseName, isActive: true },
-//       });
-//     }
-//     console.log(`Inserted ${coursesToInsert.length} courses`);
+    const enrollment = await StudentEnrollment.findOne({
+      where: { student_id: studentId },
+      order: [["createdAt", "DESC"]],
+    });
 
-//     // Update all students
-//     let updated = 0;
-//     const students = await Student.findAll();
-//     for (const student of students) {
-//       if (student.course) {
-//         const courseRecord = await Course.findOne({
-//           where: { name: student.course.toUpperCase() },
-//         });
-//         if (courseRecord) {
-//           await student.update({ course_id: courseRecord.id });
-//           updated++;
-//         }
-//       }
-//     }
+    if (!enrollment && !student) {
+      return res.json({
+        success: false,
+        message: "Student not found",
+        enrollment: null,
+      });
+    }
 
-//     console.log(`Updated ${updated} student records`);
-//     res.json({
-//       success: true,
-//       message: "Migration complete!",
-//       coursesInserted: coursesToInsert.length,
-//       studentsUpdated: updated,
-//     });
-//   } catch (err) {
-//     console.error("Migration error:", err);
-//     res.status(500).json({ error: err.message });
-//   }
-// });
+    res.json({
+      success: true,
+      enrollment: {
+        semester: enrollment ? enrollment.semester : "",
+        year_level: enrollment ? enrollment.year_level : "",
+        section: enrollment ? enrollment.section : "",
+        course_id: student ? student.course_id : null,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
 
 module.exports = router;
