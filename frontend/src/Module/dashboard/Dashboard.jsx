@@ -561,35 +561,41 @@ function Dashboard() {
     let selectedCourse = "";
     let availableSections = [];
 
-    // Step 1: Search Interface
     const showSearchDialog = () => {
       swal
         .fire({
           title: "Enroll Student - Search",
           html: `
-        <div class="space-y-4 text-left">
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">
-              Student Name
-            </label>
-            <input id="search_name" placeholder="Enter student name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
-          </div>
-          
-          <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">
-              Student Number
-            </label>
-            <input id="search_student_number" placeholder="Enter student number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
-          </div>
-
-          <div id="search_results_container" class="hidden mt-4">
-            <label class="block text-xs font-medium text-gray-700 mb-2">
-              Search Results
-            </label>
-            <div id="search_results" class="border border-gray-300 rounded-lg max-h-48 overflow-y-auto"></div>
-          </div>
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Serial Number
+          </label>
+          <input id="search_serial_number" placeholder="Enter card serial number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
         </div>
-      `,
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Student Number
+          </label>
+          <input id="search_student_number" placeholder="Enter student number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Name
+          </label>
+          <input id="search_name" placeholder="Enter student name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
+        </div>
+
+        <div id="search_results_container" class="hidden mt-4">
+          <label class="block text-xs font-medium text-gray-700 mb-2">
+            Search Results
+          </label>
+          <div id="search_results" class="border border-gray-300 rounded-lg max-h-48 overflow-y-auto"></div>
+        </div>
+      </div>
+    `,
           showCancelButton: true,
           confirmButtonText: "Next",
           cancelButtonText: "Cancel",
@@ -598,21 +604,25 @@ function Dashboard() {
           focusConfirm: false,
           didOpen: async () => {
             const searchButton = swal.getConfirmButton();
-            const searchNameInput = document.getElementById("search_name");
+            const searchSerialInput = document.getElementById(
+              "search_serial_number",
+            );
             const searchNumberInput = document.getElementById(
               "search_student_number",
             );
+            const searchNameInput = document.getElementById("search_name");
             const searchResultsContainer = document.getElementById(
               "search_results_container",
             );
             const searchResults = document.getElementById("search_results");
 
             // Search function
-            const performSearch = async () => {
-              const name = searchNameInput.value.trim();
+            const performSearch = async (sourceInput = null) => {
+              const serial = searchSerialInput.value.trim();
               const studentNumber = searchNumberInput.value.trim();
+              const name = searchNameInput.value.trim();
 
-              if (!name && !studentNumber) {
+              if (!serial && !studentNumber && !name) {
                 swal.showValidationMessage(
                   "Enter at least one search criterion",
                 );
@@ -624,13 +634,43 @@ function Dashboard() {
                   '<div class="text-xs text-gray-500 p-2">Searching...</div>';
                 searchResultsContainer.classList.remove("hidden");
 
-                const searchQuery = name || studentNumber;
+                const searchQuery = serial || studentNumber || name;
                 const response = await fetch(
                   `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
                 );
                 const data = await response.json();
 
                 if (data.rows && data.rows.length > 0) {
+                  // Auto-select if searching by serial or student number and only 1 result
+                  if ((serial || studentNumber) && data.rows.length === 1) {
+                    const student = data.rows[0];
+                    const fullName = [
+                      student.first_name,
+                      student.middle_name,
+                      student.last_name,
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+
+                    selectedStudent = {
+                      id: student.id,
+                      name: fullName,
+                      number: student.student_number,
+                    };
+
+                    searchResults.innerHTML = `<div class="p-2 bg-green-50 border border-green-300 rounded text-xs font-medium text-green-700">
+                    Auto-selected: ${fullName} (${student.student_number})
+                  </div>`;
+
+                    // Auto-proceed to enrollment dialog after a short delay
+                    setTimeout(() => {
+                      swal.close();
+                      showEnrollmentDialog();
+                    }, 500);
+                    return;
+                  }
+
+                  // Show results for manual selection
                   let resultsHTML = '<div class="divide-y divide-gray-200">';
                   data.rows.forEach((student) => {
                     const fullName = [
@@ -642,11 +682,12 @@ function Dashboard() {
                       .join(" ");
 
                     resultsHTML += `
-                  <div class="p-2 hover:bg-blue-50 cursor-pointer student-result text-xs" data-id="${student.id}" data-name="${fullName}" data-number="${student.student_number}">
-                    <div class="font-medium">${fullName}</div>
-                    <div class="text-gray-500">ID: ${student.student_number}</div>
-                  </div>
-                `;
+                <div class="p-2 hover:bg-blue-50 cursor-pointer student-result text-xs" data-id="${student.id}" data-name="${fullName}" data-number="${student.student_number}" data-serial="${student.card_serial_number || ""}">
+                  <div class="font-medium">${fullName}</div>
+                  <div class="text-gray-500">Student #: ${student.student_number}</div>
+                  <div class="text-gray-500">Serial: ${student.card_serial_number || "N/A"}</div>
+                </div>
+              `;
                   });
                   resultsHTML += "</div>";
                   searchResults.innerHTML = resultsHTML;
@@ -664,8 +705,8 @@ function Dashboard() {
                       };
 
                       searchResults.innerHTML = `<div class="p-2 bg-green-50 border border-green-300 rounded text-xs font-medium text-green-700">
-                      Selected: ${studentName} (${studentNumber})
-                    </div>`;
+                    Selected: ${studentName} (${studentNumber})
+                  </div>`;
                     });
                   });
                 } else {
@@ -679,11 +720,23 @@ function Dashboard() {
               }
             };
 
+            // Auto-search and auto-select on Enter for serial or student number
+            const handleEnterKey = async (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                await performSearch(e.target.id);
+              }
+            };
+
+            searchSerialInput.addEventListener("keypress", handleEnterKey);
+            searchNumberInput.addEventListener("keypress", handleEnterKey);
+            searchNameInput.addEventListener("keypress", handleEnterKey);
+
             const createSearchButton = document.createElement("button");
             createSearchButton.textContent = "Search";
             createSearchButton.className =
               "px-3 py-2 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 mr-2";
-            createSearchButton.addEventListener("click", performSearch);
+            createSearchButton.addEventListener("click", () => performSearch());
 
             const searchContainer = document.querySelector(
               ".swal2-html-container",
@@ -694,6 +747,9 @@ function Dashboard() {
               buttonWrapper.appendChild(createSearchButton);
               searchContainer.appendChild(buttonWrapper);
             }
+
+            // Focus on serial number input by default
+            searchSerialInput.focus();
           },
           preConfirm: () => {
             if (!selectedStudent) {
