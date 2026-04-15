@@ -429,7 +429,7 @@ function ViewStudent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900">
+                <label className="block text-sm font-medium text-gray-900 mb-1">
                   Section
                 </label>
                 {isEditing ? (
@@ -439,7 +439,7 @@ function ViewStudent() {
                       value={editData.section || ""}
                       onChange={(e) => handleChange("section", e.target.value)}
                       placeholder="Select or type new section"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
                       autocomplete="off"
                     />
                     <datalist id="viewstudent_section_list">
@@ -449,9 +449,12 @@ function ViewStudent() {
                     </datalist>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-700">
-                    {student.section || "N/A"}
-                  </p>
+                  <input
+                    type="text"
+                    disabled
+                    value={student.section || "—"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
                 )}
               </div>
             </div>

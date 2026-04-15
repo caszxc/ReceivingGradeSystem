@@ -406,7 +406,8 @@ function Dashboard() {
         didOpen: () => {
           // Add event listener to course dropdown
           const courseSelect = document.getElementById("course_id");
-          const sectionSelect = document.getElementById("section");
+          const sectionInput = document.getElementById("add_section");
+          const sectionDatalist = document.getElementById("add_section_list");
 
           courseSelect.addEventListener("change", async (e) => {
             selectedCourse = e.target.value;
@@ -420,21 +421,20 @@ function Dashboard() {
                 const data = await response.json();
                 availableSections = data.sections || [];
 
-                // Update section dropdown
-                sectionSelect.disabled = false;
-                sectionSelect.innerHTML = `
-                <option value="">Select Section</option>
-                ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
-              `;
+                // Update section datalist
+                sectionInput.disabled = false;
+                sectionDatalist.innerHTML = availableSections
+                  .map((s) => `<option value="${s}"></option>`)
+                  .join("");
               } catch (error) {
                 console.error("Error fetching sections:", error);
-                sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;
-                sectionSelect.disabled = true;
+                sectionInput.disabled = true;
               }
             } else {
-              // Reset section dropdown
-              sectionSelect.disabled = true;
-              sectionSelect.innerHTML = `<option value="">Select a course first</option>`;
+              // Reset section input
+              sectionInput.disabled = true;
+              sectionInput.value = "";
+              sectionDatalist.innerHTML = "";
               availableSections = [];
             }
           });
@@ -447,7 +447,7 @@ function Dashboard() {
           const last_name = document.getElementById("last_name").value;
           const course_id = document.getElementById("course_id").value;
           const year_level = document.getElementById("year_level").value;
-          const section = document.getElementById("section").value;
+          const section = document.getElementById("add_section").value;
 
           return {
             student_number,
