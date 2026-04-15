@@ -140,6 +140,10 @@ function ViewStudent() {
 
   const handleChange = (field, value) => {
     setEditData({ ...editData, [field]: value });
+
+    if (field === "course_id" && value) {
+      fetchSectionsByCourse(value);
+    }
   };
 
   const handleImageUpload = async (e) => {
@@ -425,48 +429,30 @@ function ViewStudent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-900">
                   Section
                 </label>
-                <div className="relative">
-                  {isEditing ? (
-                    <select
+                {isEditing ? (
+                  <div className="relative mt-1">
+                    <input
+                      list="viewstudent_section_list"
                       value={editData.section || ""}
                       onChange={(e) => handleChange("section", e.target.value)}
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
-                    >
-                      <option value="">— Select section —</option>
-                      {options.sections.map((sec) => (
-                        <option key={sec} value={sec}>
-                          {sec}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      disabled
-                      value={student.section || "—"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                      placeholder="Select or type new section"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      autocomplete="off"
                     />
-                  )}
-
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                    <datalist id="viewstudent_section_list">
+                      {options.sections.map((section) => (
+                        <option key={section} value={section} />
+                      ))}
+                    </datalist>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-700">
+                    {student.section || "N/A"}
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

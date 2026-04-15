@@ -387,9 +387,16 @@ function Dashboard() {
               <label class="block text-xs font-medium text-gray-700 mb-1">
                 Section
               </label>
-              <select id="section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
-                <option value="">Select a course first</option>
-              </select>
+              <div class="relative">
+                <input 
+                  id="add_section" 
+                  list="add_section_list"
+                  placeholder="Select or type new section" 
+                  class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+                  autocomplete="off"
+                />
+                <datalist id="add_section_list"></datalist>
+              </div>
             </div>
           </div>
         </div>
@@ -848,9 +855,16 @@ function Dashboard() {
           <label class="block text-xs font-medium text-gray-700 mb-1">
             Section
           </label>
-          <select id="enroll_section" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs" disabled>
-            <option value="">Select a course first</option>
-          </select>
+          <div class="relative">
+            <input 
+              id="enroll_section" 
+              list="enroll_section_list"
+              placeholder="Select or type new section" 
+              class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-xs"
+              autocomplete="off"
+            />
+            <datalist id="enroll_section_list"></datalist>
+          </div>
         </div>
       </div>
     </div>
@@ -866,7 +880,10 @@ function Dashboard() {
               document.getElementById("enroll_year_level");
             const semesterSelect = document.getElementById("enroll_semester");
             const courseSelect = document.getElementById("enroll_course");
-            const sectionSelect = document.getElementById("enroll_section");
+            const sectionInput = document.getElementById("enroll_section");
+            const sectionDatalist = document.getElementById(
+              "enroll_section_list",
+            );
 
             // Pre-populate with latest enrollment data
             if (latestEnrollment) {
@@ -877,7 +894,6 @@ function Dashboard() {
                 semesterSelect.value = latestEnrollment.semester;
               }
 
-              // Populate course from the returned course_id
               if (latestEnrollment.course_id) {
                 courseSelect.value = latestEnrollment.course_id;
 
@@ -888,14 +904,11 @@ function Dashboard() {
                   .then((res) => res.json())
                   .then((data) => {
                     availableSections = data.sections || [];
-                    sectionSelect.disabled = false;
-                    sectionSelect.innerHTML = `
-            <option value="">Select Section</option>
-            ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
-          `;
-                    // Populate section if it exists
+                    sectionDatalist.innerHTML = availableSections
+                      .map((s) => `<option value="${s}"></option>`)
+                      .join("");
                     if (latestEnrollment.section) {
-                      sectionSelect.value = latestEnrollment.section;
+                      sectionInput.value = latestEnrollment.section;
                     }
                   })
                   .catch((error) => {
@@ -906,6 +919,7 @@ function Dashboard() {
 
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
+              sectionInput.value = ""; // Clear section when course changes
 
               if (selectedCourse) {
                 try {
@@ -915,19 +929,17 @@ function Dashboard() {
                   const data = await response.json();
                   availableSections = data.sections || [];
 
-                  sectionSelect.disabled = false;
-                  sectionSelect.innerHTML = `
-          <option value="">Select Section</option>
-          ${availableSections.map((s) => `<option value="${s}">${s}</option>`).join("")}
-        `;
+                  sectionInput.disabled = false;
+                  sectionDatalist.innerHTML = availableSections
+                    .map((s) => `<option value="${s}"></option>`)
+                    .join("");
                 } catch (error) {
                   console.error("Error fetching sections:", error);
-                  sectionSelect.innerHTML = `<option value="">Error loading sections</option>`;
-                  sectionSelect.disabled = true;
                 }
               } else {
-                sectionSelect.disabled = true;
-                sectionSelect.innerHTML = `<option value="">Select a course first</option>`;
+                sectionInput.disabled = true;
+                sectionInput.value = "";
+                sectionDatalist.innerHTML = "";
                 availableSections = [];
               }
             });
@@ -952,7 +964,7 @@ function Dashboard() {
               return false;
             }
             if (!section) {
-              swal.showValidationMessage("Please select a section");
+              swal.showValidationMessage("Please enter a section");
               return false;
             }
 

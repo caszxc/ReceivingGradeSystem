@@ -1107,4 +1107,36 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
   }
 });
 
+// Create or get section
+router.post("/createSection", async (req, res) => {
+  try {
+    const { section, course_id } = req.body;
+
+    if (!section || !course_id) {
+      return res
+        .status(400)
+        .json({ error: "Section and course_id are required" });
+    }
+
+    // Check if section already exists for this course
+    const existing = await Student.findOne({
+      where: { section, course_id },
+      attributes: ["section"],
+    });
+
+    if (existing) {
+      return res.json({ success: true, section });
+    }
+
+    // Section will be automatically created when student is saved with it
+    res.json({
+      success: true,
+      section,
+      message: "Section ready to be created",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
