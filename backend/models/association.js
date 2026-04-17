@@ -42,6 +42,13 @@ AcademicYear.hasMany(StudentEnrollment, {
   foreignKey: "academic_year_id",
 });
 
+StudentEnrollment.belongsTo(Course, {
+  foreignKey: "course_id",
+});
+Course.hasMany(StudentEnrollment, {
+  foreignKey: "course_id",
+});
+
 const db = {
   sequelize,
   Sequelize: require("sequelize"),

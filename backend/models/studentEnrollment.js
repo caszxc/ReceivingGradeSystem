@@ -22,6 +22,20 @@ const StudentEnrollment = sequelize.define(
     section: {
       type: DataTypes.STRING,
     },
+    major: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      set(value) {
+        this.setDataValue(
+          "major",
+          value ? value.toString().toUpperCase() : value,
+        );
+      },
+    },
+    course_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     date_enrolled: {
       type: DataTypes.DATEONLY,
     },

@@ -32,6 +32,7 @@ function Dashboard() {
     yearLevels: [],
     semesters: [],
     courses: [],
+    coursesWithMajors: [],
     sections: [],
     dateYears: [],
   });
@@ -115,10 +116,8 @@ function Dashboard() {
       );
       const data = await response.json();
 
-      // Set default academic year to active one if available
       const defaultAcademicYear = data.activeAcademicYear?.id;
 
-      // Transform the data into the format expected by the UI
       setFilterOptions({
         yearLevels: [
           { value: "", label: "" },
@@ -141,6 +140,7 @@ function Dashboard() {
             label: course.name,
           })),
         ],
+        coursesWithMajors: data.coursesWithMajors || [], // NEW - store full data with majors
         sections: [{ value: "", label: "" }],
         dateYears: [
           { value: "", label: "" },
@@ -159,19 +159,14 @@ function Dashboard() {
         ],
       });
 
-      // Set default academic year filter to active one
-      // setFilters((prev) => ({
-      //   ...prev,
-      //   academicYear: defaultAcademicYear,
-      // }));
       return defaultAcademicYear;
     } catch (error) {
       console.error("Error fetching filter options:", error);
-      // Set fallback options if API fails
       setFilterOptions({
         yearLevels: [{ value: "", label: "All Year Levels" }],
         semesters: [{ value: "", label: "All Semesters" }],
         courses: [{ value: "", label: "All Courses" }],
+        coursesWithMajors: [],
         sections: [{ value: "", label: "All Sections" }],
         dateYears: [{ value: "", label: "All Years" }],
         academicYears: [{ value: "", label: "No Academic Years" }],
@@ -365,9 +360,20 @@ function Dashboard() {
               </label>
               <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Course</option>
-                ${filterOptions.courses
-                  .slice(1)
-                  .map((c) => `<option value="${c.value}">${c.label}</option>`)
+                ${filterOptions.coursesWithMajors
+                  .map((course) => {
+                    let optionsHtml = `<option value="${course.id}">${course.name}</option>`;
+                    if (course.majors && course.majors.length > 0) {
+                      const majorsHtml = course.majors
+                        .map(
+                          (major) =>
+                            `<option value="${course.id}">&nbsp;&nbsp;${major.name}</option>`,
+                        )
+                        .join("");
+                      optionsHtml += majorsHtml;
+                    }
+                    return optionsHtml;
+                  })
                   .join("")}
               </select>
             </div>
@@ -797,10 +803,21 @@ function Dashboard() {
         .map((s) => `<option value="${s.value}">${s.label}</option>`)
         .join("");
 
-      // Build course options
-      const courseOptions = filterOptions.courses
-        .filter((c) => c.value !== "")
-        .map((c) => `<option value="${c.value}">${c.label}</option>`)
+      // Build course options with majors
+      const courseOptions = filterOptions.coursesWithMajors
+        .map((course) => {
+          let optionsHtml = `<option value="${course.id}">${course.name}</option>`;
+          if (course.majors && course.majors.length > 0) {
+            const majorsHtml = course.majors
+              .map(
+                (major) =>
+                  `<option value="${course.id}" data-major="${major.name}">&nbsp;&nbsp;${major.name}</option>`,
+              )
+              .join("");
+            optionsHtml += majorsHtml;
+          }
+          return optionsHtml;
+        })
         .join("");
 
       // Build year level options
@@ -895,7 +912,11 @@ function Dashboard() {
               }
 
               if (latestEnrollment.course_id) {
-                courseSelect.value = latestEnrollment.course_id;
+                // Set course value after a slight delay to ensure DOM is ready
+                setTimeout(() => {
+                  courseSelect.value = latestEnrollment.course_id;
+                  courseSelect.dispatchEvent(new Event("change"));
+                }, 0);
 
                 // Fetch sections for this course
                 fetch(
@@ -919,7 +940,7 @@ function Dashboard() {
 
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
-              sectionInput.value = ""; // Clear section when course changes
+              sectionInput.value = "";
 
               if (selectedCourse) {
                 try {
@@ -928,7 +949,6 @@ function Dashboard() {
                   );
                   const data = await response.json();
                   availableSections = data.sections || [];
-
                   sectionInput.disabled = false;
                   sectionDatalist.innerHTML = availableSections
                     .map((s) => `<option value="${s}"></option>`)
@@ -945,10 +965,11 @@ function Dashboard() {
             });
           },
           preConfirm: () => {
+            const courseSelect = document.getElementById("enroll_course"); // ADD THIS
             const yearLevel =
               document.getElementById("enroll_year_level").value;
             const semester = document.getElementById("enroll_semester").value;
-            const courseId = document.getElementById("enroll_course").value;
+            const courseId = courseSelect.value;
             const section = document.getElementById("enroll_section").value;
 
             if (!yearLevel) {
@@ -968,12 +989,25 @@ function Dashboard() {
               return false;
             }
 
-            return { yearLevel, semester, courseId, section };
+            // Extract major from selected option
+            const selectedOption =
+              courseSelect.options[courseSelect.selectedIndex];
+            const selectedMajor =
+              selectedOption.getAttribute("data-major") || null;
+
+            return {
+              yearLevel,
+              semester,
+              courseId,
+              section,
+              major: selectedMajor,
+            };
           },
         })
         .then(async (result) => {
           if (result.isConfirmed) {
-            const { yearLevel, semester, courseId, section } = result.value;
+            const { yearLevel, semester, courseId, section, major } =
+              result.value;
 
             try {
               const enrollRes = await fetch(
@@ -986,6 +1020,7 @@ function Dashboard() {
                     semester,
                     course_id: parseInt(courseId),
                     section,
+                    major,
                   }),
                 },
               );
@@ -1283,6 +1318,7 @@ function Dashboard() {
                 </div>
 
                 {/* Course Filter */}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Course
@@ -1295,10 +1331,16 @@ function Dashboard() {
                       }
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
-                      {filterOptions.courses.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
+                      <option value="">Select Course</option>
+                      {filterOptions.coursesWithMajors.map((course) => (
+                        <React.Fragment key={course.id}>
+                          <option value={course.id}>{course.name}</option>
+                          {course.majors?.map((major) => (
+                            <option key={major.name} value={course.id}>
+                              &nbsp;&nbsp;{major.name}
+                            </option>
+                          ))}
+                        </React.Fragment>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">

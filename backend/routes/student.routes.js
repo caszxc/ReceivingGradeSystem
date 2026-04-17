@@ -10,6 +10,7 @@ const {
 } = require("../models/association");
 const { Op } = require("sequelize");
 const sequelize = require("../config/database");
+const majorsByCourseName = require("../config/majors");
 const multer = require("multer");
 const xlsx = require("xlsx");
 const csv = require("csv-parser");
@@ -335,10 +336,17 @@ router.get("/getFilterOptions", async (req, res) => {
       raw: true,
     });
 
+    const coursesWithMajors = courses.map((course) => ({
+      id: course.id,
+      name: course.name,
+      majors: majorsByCourseName[course.name] || [],
+    }));
+
     res.json({
       yearLevels: yearLevels,
       semesters: semesters,
       courses: courses,
+      coursesWithMajors: coursesWithMajors,
       sections: sections.map((item) => item.section).filter(Boolean),
       dateYears: dateYears.map((item) => item.date_year).filter(Boolean),
       academicYears: academicYears,
@@ -762,6 +770,7 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       course_id,
       section,
       year_level,
+      major,
     } = req.body;
 
     let student;
@@ -806,7 +815,7 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     if (year_level) {
       student.year_level = year_level;
     }
-
+    if (major) student.major = major;
     await student.save();
 
     // Get active academic year
@@ -834,6 +843,8 @@ router.patch("/enrollStudent/:id", async (req, res) => {
         semester: semester || student.semester || null,
         year_level: year_level || student.year_level || null,
         section: section || student.section || null,
+        course_id: course_id || student.course_id || null,
+        major: major || student.major || null,
         date_enrolled: new Date(),
         isEnrolled: true,
       },
@@ -845,6 +856,8 @@ router.patch("/enrollStudent/:id", async (req, res) => {
         semester: semester || enrollment.semester,
         year_level: year_level || enrollment.year_level,
         section: section || enrollment.section,
+        course_id: course_id || enrollment.course_id,
+        major: major || enrollment.major,
         date_enrolled: new Date(),
         isEnrolled: true,
       });
