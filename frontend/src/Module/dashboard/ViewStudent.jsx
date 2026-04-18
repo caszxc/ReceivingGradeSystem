@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -18,6 +18,7 @@ function ViewStudent() {
   // State for dropdown options
   const [options, setOptions] = useState({
     courses: [],
+    coursesWithMajors: [],
     yearLevels: [],
     sections: [],
     semesters: [],
@@ -56,6 +57,7 @@ function ViewStudent() {
         const data = response.data;
         setOptions({
           courses: data.courses || [],
+          coursesWithMajors: data.coursesWithMajors || [],
           yearLevels: data.yearLevels || [],
           sections: data.sections || [],
           semesters: data.semesters || [],
@@ -139,7 +141,14 @@ function ViewStudent() {
   };
 
   const handleChange = (field, value) => {
-    setEditData({ ...editData, [field]: value });
+    const newEditData = { ...editData, [field]: value };
+
+    // Clear section when course changes
+    if (field === "course_id") {
+      newEditData.section = "";
+    }
+
+    setEditData(newEditData);
 
     if (field === "course_id" && value) {
       fetchSectionsByCourse(value);
@@ -388,19 +397,39 @@ function ViewStudent() {
                     <select
                       value={editData.course_id || ""}
                       onChange={(e) => {
+                        const selectedOption =
+                          e.target.options[e.target.selectedIndex];
+                        const majorName =
+                          selectedOption.getAttribute("data-major");
+
                         handleChange(
                           "course_id",
                           e.target.value ? parseInt(e.target.value) : "",
                         );
+
+                        // Auto-fill major if a major option was selected
+                        if (majorName) {
+                          handleChange("major", majorName);
+                        }
+
                         fetchSectionsByCourse(e.target.value);
                       }}
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
                       <option value="">— Select course —</option>
-                      {options.courses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.name}
-                        </option>
+                      {options.coursesWithMajors.map((course) => (
+                        <React.Fragment key={course.id}>
+                          <option value={course.id}>{course.name}</option>
+                          {course.majors?.map((major) => (
+                            <option
+                              key={major.name}
+                              value={course.id}
+                              data-major={major.name}
+                            >
+                              &nbsp;&nbsp;{major.name}
+                            </option>
+                          ))}
+                        </React.Fragment>
                       ))}
                     </select>
                   ) : (

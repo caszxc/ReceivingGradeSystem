@@ -1087,7 +1087,7 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
 
     // Get both the student and latest enrollment
     const student = await Student.findByPk(studentId, {
-      attributes: ["id", "course_id"],
+      attributes: ["id", "course_id", "semester", "year_level", "section"],
     });
 
     const enrollment = await StudentEnrollment.findOne({
@@ -1106,9 +1106,21 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
     res.json({
       success: true,
       enrollment: {
-        semester: enrollment ? enrollment.semester : "",
-        year_level: enrollment ? enrollment.year_level : "",
-        section: enrollment ? enrollment.section : "",
+        semester: enrollment
+          ? enrollment.semester
+          : student
+            ? student.semester
+            : "",
+        year_level: enrollment
+          ? enrollment.year_level
+          : student
+            ? student.year_level
+            : "",
+        section: enrollment
+          ? enrollment.section
+          : student
+            ? student.section
+            : "",
         course_id: student ? student.course_id : null,
       },
     });
