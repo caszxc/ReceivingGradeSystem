@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { BASE_URL } from "../../Api/baseUrl";
 import swal from "sweetalert2";
+import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
 
 function ViewStudent() {
   const [isEditing, setIsEditing] = useState(false);
@@ -512,7 +513,9 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={student.year_level || "—"}
+                      value={
+                        convertYearLevelForDisplay(student.year_level) || "—"
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}

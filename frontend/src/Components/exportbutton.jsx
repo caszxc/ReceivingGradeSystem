@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExportPreview from "./exportpreview";
+import { convertYearLevelForDisplay } from "../utils/yearLevelConverter";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function getSemesterLabel(sem) {
@@ -13,7 +14,8 @@ function getSemesterLabel(sem) {
 
 function buildFilterSummary(filters, students = [], filterOptions = {}) {
   const parts = [];
-  if (filters?.yearLevel) parts.push(`Year Level: ${filters.yearLevel}`);
+  if (filters?.yearLevel)
+    parts.push(`Year Level: ${convertYearLevelForDisplay(filters.yearLevel)}`);
   if (filters?.semester) parts.push(getSemesterLabel(filters.semester));
   if (filters?.course) {
     const courseName =

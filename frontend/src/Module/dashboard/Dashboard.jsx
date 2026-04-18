@@ -8,6 +8,7 @@ import AddStudentButton from "../../Components/AddStudentButton";
 import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
@@ -123,7 +124,7 @@ function Dashboard() {
           { value: "", label: "" },
           ...data.yearLevels.map((year) => ({
             value: year.toString(),
-            label: `${getYearLabel(year)}`,
+            label: convertYearLevelForDisplay(year),
           })),
         ],
         semesters: [
@@ -505,7 +506,7 @@ function Dashboard() {
                   ${student_number ? `<div><span class="font-medium">Student Number:</span> ${student_number}</div>` : ""}
                   ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName.toUpperCase()}</div>` : ""}
                   ${course ? `<div><span class="font-medium">Course:</span> ${course}</div>` : ""}
-                  ${year_level ? `<div><span class="font-medium">Year Level:</span> ${year_level}</div>` : ""}
+                  ${year_level ? `<div><span class="font-medium">Year Level:</span> ${convertYearLevelForDisplay(year_level)}</div>` : ""}
                   ${section ? `<div><span class="font-medium">Section:</span> ${section}</div>` : ""}
                 </div>
               </div>
@@ -1599,7 +1600,8 @@ function Dashboard() {
                               className="border px-2 py-1 rounded w-full"
                             />
                           ) : (
-                            student.year_level || "—"
+                            convertYearLevelForDisplay(student.year_level) ||
+                            "—"
                           )}
                         </td>
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { convertYearLevelForDisplay } from "../utils/yearLevelConverter";
 
 // ── Format meta ───────────────────────────────────────────────────────────────
 const FORMAT_META = {
@@ -84,19 +85,23 @@ function getCellValue(col, student, index) {
     case "no":
       return index + 1;
     case "full_name":
-      return [student.last_name, student.first_name, student.middle_name]
-        .filter(Boolean)
-        .join(", ") || "—";
+      return (
+        [student.last_name, student.first_name, student.middle_name]
+          .filter(Boolean)
+          .join(", ") || "—"
+      );
     case "course":
       return student.courseData?.name || "—";
     case "year_level":
-      return student.year_level || "—";
+      return convertYearLevelForDisplay(student.year_level) || "—";
     case "section":
       return student.section || "—";
     case "date_enrolled":
       return student.date_enrolled
         ? new Date(student.date_enrolled).toLocaleDateString("en-PH", {
-            year: "numeric", month: "short", day: "numeric",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           })
         : "—";
     case "card_status": {
@@ -104,9 +109,7 @@ function getCellValue(col, student, index) {
       return (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-            val
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-500"
+            val ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
           }`}
         >
           {val ? "Enrolled" : "Not Enrolled"}
