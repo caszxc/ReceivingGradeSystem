@@ -27,7 +27,29 @@ function Settings() {
   };
 
   // Set active semester
+  // Set active semester
   const handleSetActiveSemester = async (semester) => {
+    setError("");
+    setSuccess("");
+
+    // Show confirmation modal
+    const result = await Swal.fire({
+      icon: "info",
+      title: "Set as Active Semester?",
+      html: `<div class="text-left">
+      <p class="text-sm text-gray-700">You are about to set this as the active semester:</p>
+      <p class="mt-3 text-lg font-bold text-blue-600">${semester}</p>
+      <p class="mt-3 text-xs text-gray-600">The current active semester will be set to inactive. All new enrollments will use this semester.</p>
+    </div>`,
+      showCancelButton: true,
+      confirmButtonColor: "#2563eb",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, set as active",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       setSemesterError("");
       setSemesterSuccess("");
@@ -50,8 +72,13 @@ function Settings() {
 
       const data = await response.json();
       setActiveSemester(data.activeSemester);
-      setSemesterSuccess(`Active semester set to ${semester}`);
-      setTimeout(() => setSemesterSuccess(""), 3000);
+
+      Swal.fire({
+        icon: "success",
+        title: "Active Semester Changed!",
+        text: `Active semester set to ${semester}`,
+        confirmButtonColor: "#2563eb",
+      });
     } catch (err) {
       setSemesterError("Error setting semester: " + err.message);
     } finally {
@@ -504,36 +531,55 @@ function Settings() {
         </div>
 
         {/* Active Semester Section */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Current Active Semester
-              </h2>
-              <p className="text-gray-600 mt-1">
-                {activeSemester}
-                <span className="inline-block ml-3 px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full font-medium">
-                  Active
-                </span>
-              </p>
+        <div className="mt-8">
+          {/* Current Active Semester */}
+          <div className="mb-6 bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-600">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Current Active Semester
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  {activeSemester}{" "}
+                  {activeSemester && (
+                    <span className="inline-block ml-3 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full font-medium">
+                      Active
+                    </span>
+                  )}
+                </p>
+              </div>
+              <svg
+                className="h-12 w-12 text-purple-500 opacity-20"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
             </div>
-            <svg
-              className="h-12 w-12 text-purple-500 opacity-20"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
           </div>
 
+          {/* Error/Success Messages */}
           {semesterError && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-red-700">
+              <svg
+                className="h-5 w-5 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
               <span>{semesterError}</span>
               <button
                 onClick={() => setSemesterError("")}
@@ -545,7 +591,7 @@ function Settings() {
           )}
 
           {semesterSuccess && (
-            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
               <svg
                 className="h-5 w-5 flex-shrink-0"
                 fill="currentColor"
@@ -567,21 +613,77 @@ function Settings() {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-3">
-            {["1ST SEMESTER", "2ND SEMESTER", "SUMMER"].map((semester) => (
-              <button
-                key={semester}
-                onClick={() => handleSetActiveSemester(semester)}
-                disabled={loading}
-                className={`px-6 py-2 rounded-lg font-medium transition-all text-sm ${
-                  activeSemester === semester
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {semester}
-              </button>
-            ))}
+          {/* Semesters Table */}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                All Semesters
+              </h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Semester
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {["1ST SEMESTER", "2ND SEMESTER", "SUMMER"].map(
+                    (semester) => (
+                      <tr key={semester} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm font-medium text-gray-900">
+                            {semester}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {activeSemester === semester ? (
+                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <span className="w-2 h-2 bg-gray-600 rounded-full"></span>
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {activeSemester !== semester ? (
+                            <button
+                              onClick={() => handleSetActiveSemester(semester)}
+                              disabled={loading}
+                              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Set as active semester"
+                            >
+                              Set Active
+                            </button>
+                          ) : (
+                            <button
+                              disabled
+                              className="text-gray-400 px-3 py-2 rounded-lg text-xs font-medium cursor-not-allowed"
+                              title="This is the active semester"
+                            >
+                              Set Active
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 

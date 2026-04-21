@@ -276,7 +276,7 @@ function Dashboard() {
     const cleared = {
       academicYear: filters.academicYear,
       yearLevel: "",
-      semester: "",
+      semester: filters.semester,
       course: "",
       section: "",
     };
