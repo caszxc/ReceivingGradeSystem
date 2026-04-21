@@ -206,7 +206,21 @@ router.get("/getStudent", async (req, res) => {
   };
 
   try {
-    const whereClause = buildWhereClause("", filters, !!filters.academicYear);
+    // When academic year is selected, don't filter Student table by semester/yearLevel/section/course
+    // Those filters should apply to StudentEnrollment instead
+    const filtersForStudent = { ...filters };
+    if (filters.academicYear) {
+      filtersForStudent.yearLevel = null;
+      filtersForStudent.semester = null;
+      filtersForStudent.course = null;
+      filtersForStudent.section = null;
+    }
+
+    const whereClause = buildWhereClause(
+      "",
+      filtersForStudent,
+      !!filters.academicYear,
+    );
 
     let findOptions = {
       where: whereClause,
@@ -220,6 +234,26 @@ router.get("/getStudent", async (req, res) => {
 
     // If academic year is selected, join with StudentEnrollment table
     if (filters.academicYear) {
+      // Build where clause for StudentEnrollment
+      const enrollmentWhere = {};
+      enrollmentWhere.academic_year_id = parseInt(filters.academicYear);
+
+      if (filters.yearLevel) {
+        enrollmentWhere.year_level = filters.yearLevel;
+      }
+      if (filters.semester) {
+        enrollmentWhere.semester = filters.semester;
+      }
+      if (filters.course) {
+        const courseId = parseInt(filters.course);
+        if (!isNaN(courseId)) {
+          enrollmentWhere.course_id = courseId;
+        }
+      }
+      if (filters.section) {
+        enrollmentWhere.section = filters.section;
+      }
+
       findOptions.include.push({
         model: StudentEnrollment,
         attributes: [
@@ -228,9 +262,17 @@ router.get("/getStudent", async (req, res) => {
           "year_level",
           "section",
           "date_enrolled",
+          "major",
+          "course_id",
         ],
-        where: { academic_year_id: parseInt(filters.academicYear) },
+        where: enrollmentWhere,
         required: true,
+        include: [
+          {
+            model: AcademicYear,
+            attributes: ["id", "academic_year"],
+          },
+        ],
       });
     }
 
@@ -272,9 +314,19 @@ router.get("/searchStudent", async (req, res) => {
   };
 
   try {
+    // When academic year is selected, don't filter Student table by semester/yearLevel/section/course
+    // Those filters should apply to StudentEnrollment instead
+    const filtersForStudent = { ...filters };
+    if (filters.academicYear) {
+      filtersForStudent.yearLevel = null;
+      filtersForStudent.semester = null;
+      filtersForStudent.course = null;
+      filtersForStudent.section = null;
+    }
+
     const whereClause = buildWhereClause(
       query,
-      filters,
+      filtersForStudent,
       !!filters.academicYear,
     );
 
@@ -290,6 +342,26 @@ router.get("/searchStudent", async (req, res) => {
 
     // If academic year is selected, join with StudentEnrollment table
     if (filters.academicYear) {
+      // Build where clause for StudentEnrollment
+      const enrollmentWhere = {};
+      enrollmentWhere.academic_year_id = parseInt(filters.academicYear);
+
+      if (filters.yearLevel) {
+        enrollmentWhere.year_level = filters.yearLevel;
+      }
+      if (filters.semester) {
+        enrollmentWhere.semester = filters.semester;
+      }
+      if (filters.course) {
+        const courseId = parseInt(filters.course);
+        if (!isNaN(courseId)) {
+          enrollmentWhere.course_id = courseId;
+        }
+      }
+      if (filters.section) {
+        enrollmentWhere.section = filters.section;
+      }
+
       findOptions.include.push({
         model: StudentEnrollment,
         attributes: [
@@ -298,9 +370,17 @@ router.get("/searchStudent", async (req, res) => {
           "year_level",
           "section",
           "date_enrolled",
+          "major",
+          "course_id",
         ],
-        where: { academic_year_id: parseInt(filters.academicYear) },
+        where: enrollmentWhere,
         required: true,
+        include: [
+          {
+            model: AcademicYear,
+            attributes: ["id", "academic_year"],
+          },
+        ],
       });
     }
 

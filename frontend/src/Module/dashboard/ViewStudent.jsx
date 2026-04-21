@@ -396,7 +396,7 @@ function ViewStudent() {
                           `Year ${idx + 1}`}
                       </p>
                       <p>{enrollment.semester}</p>
-                      <p>{convertYearLevelForDisplay(enrollment.year_level)}</p>
+                      <p>{`Year Level: ${convertYearLevelForDisplay(enrollment.year_level)}`}</p>
                     </div>
                   ))}
                 </div>
