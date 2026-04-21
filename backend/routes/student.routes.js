@@ -155,6 +155,38 @@ function buildWhereClause(query, filters, isFromEnrollment = false) {
   return whereClause;
 }
 
+// Helper function to merge StudentEnrollment data with Student data
+function mergeEnrollmentData(students, hasAcademicYear) {
+  if (!hasAcademicYear) return students;
+
+  const expandedStudents = [];
+
+  students.forEach((student) => {
+    const studentData = student.toJSON ? student.toJSON() : student;
+
+    // Create a row for EACH enrollment instead of just the first
+    if (
+      studentData.StudentEnrollments &&
+      studentData.StudentEnrollments.length > 0
+    ) {
+      studentData.StudentEnrollments.forEach((enrollment) => {
+        expandedStudents.push({
+          ...studentData,
+          semester: enrollment.semester,
+          year_level: enrollment.year_level,
+          section: enrollment.section,
+          date_enrolled: enrollment.date_enrolled,
+          StudentEnrollments: undefined,
+        });
+      });
+    } else {
+      expandedStudents.push(studentData);
+    }
+  });
+
+  return expandedStudents;
+}
+
 // Get paginated student list
 router.get("/getStudent", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -198,12 +230,19 @@ router.get("/getStudent", async (req, res) => {
           "date_enrolled",
         ],
         where: { academic_year_id: parseInt(filters.academicYear) },
-        required: true, // INNER JOIN to only get enrolled students
+        required: true,
       });
     }
 
     const result = await Student.findAndCountAll(findOptions);
-    res.json(result);
+
+    // Merge enrollment data with student data when academic year is selected
+    const transformedRows = mergeEnrollmentData(
+      result.rows,
+      !!filters.academicYear,
+    );
+
+    res.json({ ...result, rows: transformedRows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -261,12 +300,19 @@ router.get("/searchStudent", async (req, res) => {
           "date_enrolled",
         ],
         where: { academic_year_id: parseInt(filters.academicYear) },
-        required: true, // INNER JOIN to only get enrolled students
+        required: true,
       });
     }
 
     const result = await Student.findAndCountAll(findOptions);
-    res.json(result);
+
+    // Merge enrollment data with student data when academic year is selected
+    const transformedRows = mergeEnrollmentData(
+      result.rows,
+      !!filters.academicYear,
+    );
+
+    res.json({ ...result, rows: transformedRows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -760,6 +806,7 @@ function isValidDate(dateString) {
 }
 
 // Enroll student by ID or by student_number/card_serial_number
+// Enroll student by ID or by student_number/card_serial_number
 router.patch("/enrollStudent/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -798,26 +845,6 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       });
     }
 
-    // Update enrollment details on Student table
-    student.isEnrolled = true;
-    student.date_enrolled = new Date();
-
-    // Update optional enrollment fields if provided
-    if (semester) {
-      student.semester = semester;
-    }
-    if (course_id) {
-      student.course_id = course_id;
-    }
-    if (section) {
-      student.section = section;
-    }
-    if (year_level) {
-      student.year_level = year_level;
-    }
-    if (major) student.major = major;
-    await student.save();
-
     // Get active academic year
     const activeAcademicYear = await AcademicYear.findOne({
       where: { isActive: true },
@@ -832,28 +859,30 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     }
 
     // Create or update StudentEnrollment record
+    // Only updates if same student_id, academic_year_id, AND semester
+    // Otherwise creates a new enrollment record
     const [enrollment, created] = await StudentEnrollment.findOrCreate({
       where: {
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
+        semester: semester,
       },
       defaults: {
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
-        semester: semester || student.semester || null,
-        year_level: year_level || student.year_level || null,
-        section: section || student.section || null,
-        course_id: course_id || student.course_id || null,
-        major: major || student.major || null,
+        semester: semester,
+        year_level: year_level || null,
+        section: section || null,
+        course_id: course_id || null,
+        major: major || null,
         date_enrolled: new Date(),
         isEnrolled: true,
       },
     });
 
-    // If enrollment already exists, update it
+    // If enrollment already exists for this student+academic_year+semester, update it
     if (!created) {
       await enrollment.update({
-        semester: semester || enrollment.semester,
         year_level: year_level || enrollment.year_level,
         section: section || enrollment.section,
         course_id: course_id || enrollment.course_id,
@@ -866,7 +895,6 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     res.json({
       success: true,
       message: "Student enrolled successfully",
-      student,
       enrollment,
     });
   } catch (err) {
