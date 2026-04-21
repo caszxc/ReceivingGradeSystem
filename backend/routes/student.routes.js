@@ -954,6 +954,8 @@ router.post("/addStudent", async (req, res) => {
 
 router.get("/viewStudent/:id", async (req, res) => {
   try {
+    const { academicYearId } = req.query;
+
     const student = await Student.findByPk(req.params.id, {
       attributes: [
         "id",
@@ -962,21 +964,68 @@ router.get("/viewStudent/:id", async (req, res) => {
         "last_name",
         "student_number",
         "card_serial_number",
-        // "course",
+        "card_id_control_number",
+        "card_type",
+        "card_status",
+        "date_issued",
         "course_id",
         "section",
         "year_level",
         "semester",
+        "major",
         "isEnrolled",
+        "date_enrolled",
       ],
       include: [
         { model: Course, attributes: ["id", "name"], as: "courseData" },
+        {
+          model: StudentEnrollment,
+          attributes: [
+            "id",
+            "academic_year_id",
+            "semester",
+            "year_level",
+            "section",
+            "major",
+            "course_id",
+            "date_enrolled",
+            "isEnrolled",
+          ],
+          include: [
+            {
+              model: AcademicYear,
+              attributes: ["id", "academic_year"],
+            },
+          ],
+          separate: true,
+          order: [["academic_year_id", "DESC"]],
+        },
       ],
     });
+
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
-    res.json(student);
+
+    const studentData = student.toJSON();
+
+    // If a specific academicYearId is requested, set it as the active enrollment
+    if (academicYearId && studentData.StudentEnrollments) {
+      const selectedEnrollment = studentData.StudentEnrollments.find(
+        (e) => e.academic_year_id === parseInt(academicYearId),
+      );
+      if (selectedEnrollment) {
+        studentData.selectedEnrollment = selectedEnrollment;
+      }
+    } else if (
+      studentData.StudentEnrollments &&
+      studentData.StudentEnrollments.length > 0
+    ) {
+      // Default to the latest enrollment
+      studentData.selectedEnrollment = studentData.StudentEnrollments[0];
+    }
+
+    res.json(studentData);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

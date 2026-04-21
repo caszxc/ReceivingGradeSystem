@@ -15,6 +15,7 @@ function ViewStudent() {
   const [profileImage, setProfileImage] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState(null);
 
   // State for dropdown options
   const [options, setOptions] = useState({
@@ -32,6 +33,14 @@ function ViewStudent() {
           `${BASE_URL}/students/viewStudent/${id}`,
         );
         setStudent(response.data);
+
+        // Set default to first enrollment if exists
+        if (
+          response.data.StudentEnrollments &&
+          response.data.StudentEnrollments.length > 0
+        ) {
+          setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
+        }
       } catch (error) {
         console.error("Failed to fetch student:", error);
       } finally {
@@ -91,16 +100,22 @@ function ViewStudent() {
   };
 
   const handleEdit = () => {
+    // Use selected enrollment data if available
+    const currentEnrollment = selectedEnrollmentId
+      ? student.StudentEnrollments?.find((e) => e.id === selectedEnrollmentId)
+      : student.StudentEnrollments?.[0];
+
     setEditData({
       card_serial_number: student.card_serial_number || "",
       first_name: student.first_name || "",
       middle_name: student.middle_name || "",
       last_name: student.last_name || "",
       student_number: student.student_number || "",
-      course_id: student.course_id || "",
-      section: student.section || "",
-      year_level: student.year_level || "",
-      semester: student.semester || "",
+      course_id: currentEnrollment?.course_id || student.course_id || "",
+      section: currentEnrollment?.section || student.section || "",
+      year_level: currentEnrollment?.year_level || student.year_level || "",
+      semester: currentEnrollment?.semester || student.semester || "",
+      major: currentEnrollment?.major || student.major || "",
     });
     setIsEditing(true);
   };
@@ -130,7 +145,12 @@ function ViewStudent() {
         icon: "success",
         confirmButtonText: "OK",
       });
-      navigate("/dashboard");
+      // Refresh the student data
+      const response = await axios.get(
+        `${BASE_URL}/students/viewStudent/${id}`,
+      );
+      setStudent(response.data);
+      setIsEditing(false);
     } catch (error) {
       console.error("Failed to update student:", error);
       swal.fire({
@@ -243,9 +263,34 @@ function ViewStudent() {
     );
   }
 
+  // Get the currently selected enrollment data
+  const currentEnrollment = selectedEnrollmentId
+    ? student.StudentEnrollments?.find((e) => e.id === selectedEnrollmentId)
+    : student.StudentEnrollments?.[0];
+
+  // Display data - prefer enrollment data if available
+  const displayData = {
+    student_number: student.student_number,
+    first_name: student.first_name,
+    middle_name: student.middle_name,
+    last_name: student.last_name,
+    card_serial_number: student.card_serial_number,
+    card_id_control_number: student.card_id_control_number,
+    card_type: student.card_type,
+    card_status: student.card_status,
+    date_issued: student.date_issued,
+    year_level: currentEnrollment?.year_level || student.year_level,
+    section: currentEnrollment?.section || student.section,
+    semester: currentEnrollment?.semester || student.semester,
+    major: currentEnrollment?.major || student.major,
+    course_id: currentEnrollment?.course_id || student.course_id,
+    date_enrolled: currentEnrollment?.date_enrolled || student.date_enrolled,
+    isEnrolled: currentEnrollment?.isEnrolled ?? student.isEnrolled,
+  };
+
   return (
-    <div className="p-6 bg-blue-200 overflow-hidden h-screen">
-      <div className="flex items-center justify-between">
+    <div className="p-6 bg-blue-200 overflow-auto h-screen">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-[2rem]">View Student Profile</h1>
         <button
           onClick={() => navigate("/dashboard")}
@@ -254,9 +299,36 @@ function ViewStudent() {
           Back
         </button>
       </div>
+
+      {/* Enrollment Selection */}
+      {student.StudentEnrollments && student.StudentEnrollments.length > 1 && (
+        <div className="mb-4 p-4 bg-white border border-gray-300 rounded-lg shadow-md">
+          <label className="block text-sm font-semibold mb-2">
+            Select Enrollment Record:
+          </label>
+
+          <select
+            value={selectedEnrollmentId || ""}
+            onChange={(e) => setSelectedEnrollmentId(parseInt(e.target.value))}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {student.StudentEnrollments.map((enrollment, idx) => (
+              <option key={enrollment.id} value={enrollment.id}>
+                {enrollment.AcademicYear?.academic_year || `Year ${idx + 1}`} -{" "}
+                {""}
+                {enrollment.semester}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-600 mt-2">
+            Total Enrollments: {student.StudentEnrollments.length}
+          </p>
+        </div>
+      )}
+
       <div className="py-4 flex flex-row space-x-6">
         {/*profile Image*/}
-        <div className="h-[85vh] bg-white p-6 rounded-lg shadow-md  w-1/3 flex  gap-3 flex-col items-center">
+        <div className="h-[85vh] bg-white p-6 rounded-lg shadow-md  w-1/3 flex  gap-3 flex-col items-center overflow-y-auto">
           <div className="relative group">
             <img
               src={profileImage || ""}
@@ -270,7 +342,7 @@ function ViewStudent() {
                   ) +
                   "&size=160&background=e5e5e5&color=555";
               }}
-              className="bg-[#e5e5e5] rounded-full border-3 border-[#c4c4c4] h-40 w-40 shadow-lg object-cover"
+              className="bg-[#e5e5e5] rounded-full border-3 border-[#c4c4c4] h-30 w-30 shadow-lg object-cover"
               alt="Profile"
             />
             {/* Overlay */}
@@ -294,16 +366,46 @@ function ViewStudent() {
             {/*active or enrolled*/}
             <span
               className={`mt-4 px-5 py-2 rounded-md text-white text-sm font-semibold ${
-                student.isEnrolled ? "bg-green-500" : "bg-red-500"
+                displayData.isEnrolled ? "bg-green-500" : "bg-red-500"
               }`}
             >
-              {student.isEnrolled ? "Enrolled" : "Not Enrolled"}
+              {displayData.isEnrolled ? "Enrolled" : "Not Enrolled"}
             </span>
           </div>
+
+          {/* Enrollment History */}
+          {student.StudentEnrollments &&
+            student.StudentEnrollments.length > 0 && (
+              <div className="mt-6 w-full h-full">
+                <h3 className="text-sm font-semibold mb-2">
+                  Enrollment History
+                </h3>
+                <div className="space-y-2 max-h-100 overflow-y-auto">
+                  {student.StudentEnrollments.map((enrollment, idx) => (
+                    <div
+                      key={enrollment.id}
+                      onClick={() => setSelectedEnrollmentId(enrollment.id)}
+                      className={`p-2 rounded-lg cursor-pointer text-xs transition ${
+                        selectedEnrollmentId === enrollment.id
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 hover:bg-gray-200"
+                      }`}
+                    >
+                      <p className="font-semibold">
+                        {enrollment.AcademicYear?.academic_year ||
+                          `Year ${idx + 1}`}
+                      </p>
+                      <p>{enrollment.semester}</p>
+                      <p>{convertYearLevelForDisplay(enrollment.year_level)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
         </div>
 
         {/*profile Information*/}
-        <div className=" h-[85vh] bg-white px-10 py-5 rounded-lg shadow-md w-full">
+        <div className=" h-[85vh] bg-white px-10 py-5 rounded-lg shadow-md w-full overflow-y-auto">
           <div>
             <span className="text-[1.4rem]">Student Information</span>
           </div>
@@ -318,7 +420,7 @@ function ViewStudent() {
                 value={
                   isEditing
                     ? editData.card_serial_number
-                    : student.card_serial_number || ""
+                    : displayData.card_serial_number || ""
                 }
                 onChange={(e) =>
                   handleChange("card_serial_number", e.target.value)
@@ -335,7 +437,9 @@ function ViewStudent() {
                   type="text"
                   disabled={!isEditing}
                   value={
-                    isEditing ? editData.first_name : student.first_name || ""
+                    isEditing
+                      ? editData.first_name
+                      : displayData.first_name || ""
                   }
                   onChange={(e) => handleChange("first_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="First Name"
@@ -349,7 +453,9 @@ function ViewStudent() {
                   type="text"
                   disabled={!isEditing}
                   value={
-                    isEditing ? editData.middle_name : student.middle_name || ""
+                    isEditing
+                      ? editData.middle_name
+                      : displayData.middle_name || ""
                   }
                   onChange={(e) => handleChange("middle_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Middle Name"
@@ -363,7 +469,7 @@ function ViewStudent() {
                   type="text"
                   disabled={!isEditing}
                   value={
-                    isEditing ? editData.last_name : student.last_name || ""
+                    isEditing ? editData.last_name : displayData.last_name || ""
                   }
                   onChange={(e) => handleChange("last_name", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Surname"
@@ -381,7 +487,7 @@ function ViewStudent() {
                   value={
                     isEditing
                       ? editData.student_number
-                      : student.student_number || ""
+                      : displayData.student_number || ""
                   }
                   onChange={(e) =>
                     handleChange("student_number", e.target.value)
@@ -470,7 +576,7 @@ function ViewStudent() {
                       onChange={(e) => handleChange("section", e.target.value)}
                       placeholder="Select or type new section"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
-                      autocomplete="off"
+                      autoComplete="off"
                     />
                     <datalist id="viewstudent_section_list">
                       {options.sections.map((section) => (
@@ -482,7 +588,7 @@ function ViewStudent() {
                   <input
                     type="text"
                     disabled
-                    value={student.section || "—"}
+                    value={displayData.section || "—"}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                   />
                 )}
@@ -505,7 +611,7 @@ function ViewStudent() {
                       <option value="">— Select year —</option>
                       {options.yearLevels.map((yr) => (
                         <option key={yr} value={yr}>
-                          {yr}
+                          {convertYearLevelForDisplay(yr)}
                         </option>
                       ))}
                     </select>
@@ -514,7 +620,8 @@ function ViewStudent() {
                       type="text"
                       disabled
                       value={
-                        convertYearLevelForDisplay(student.year_level) || "—"
+                        convertYearLevelForDisplay(displayData.year_level) ||
+                        "—"
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
@@ -559,7 +666,7 @@ function ViewStudent() {
                     <input
                       type="text"
                       disabled
-                      value={student.semester || "—"}
+                      value={displayData.semester || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
