@@ -986,7 +986,7 @@ function Dashboard() {
             });
           },
           preConfirm: () => {
-            const courseSelect = document.getElementById("enroll_course"); // ADD THIS
+            const courseSelect = document.getElementById("enroll_course");
             const yearLevel =
               document.getElementById("enroll_year_level").value;
             const semester = document.getElementById("enroll_semester").value;
@@ -1048,7 +1048,85 @@ function Dashboard() {
 
               const enrollData = await enrollRes.json();
 
-              if (enrollRes.ok) {
+              // Handle 409 Conflict - Student already enrolled
+              if (
+                enrollRes.status === 409 &&
+                enrollData.code === "ALREADY_ENROLLED"
+              ) {
+                const existingEnrollment = enrollData.existingEnrollment;
+
+                const confirmResult = await swal.fire({
+                  title: "Student Already Enrolled",
+                  html: `
+        <div class="text-left space-y-3">
+          <p class="text-sm text-gray-700">${enrollData.message}</p>
+          <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+            <p class="text-xs font-medium text-gray-700 mb-2">Current Enrollment:</p>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><span class="font-medium">Semester:</span> ${existingEnrollment.semester}</p>
+              <p><span class="font-medium">Year Level:</span> ${convertYearLevelForDisplay(existingEnrollment.year_level)}</p>
+              <p><span class="font-medium">Section:</span> ${existingEnrollment.section || "N/A"}</p>
+              <p><span class="font-medium">Major:</span> ${existingEnrollment.major || "N/A"}</p>
+              <p><span class="font-medium">Date Enrolled:</span> ${new Date(existingEnrollment.date_enrolled).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <p class="text-sm text-gray-700 font-medium">Do you want to update the enrollment anyway?</p>
+        </div>
+      `,
+                  icon: "warning",
+                  showCancelButton: true,
+                  confirmButtonText: "Yes, Update",
+                  cancelButtonText: "No, Cancel",
+                  confirmButtonColor: "#f59e0b",
+                  cancelButtonColor: "#6b7280",
+                });
+
+                if (confirmResult.isConfirmed) {
+                  // Retry with forceUpdate flag
+                  try {
+                    const retryRes = await fetch(
+                      `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
+                      {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          year_level: yearLevel,
+                          semester,
+                          course_id: parseInt(courseId),
+                          section,
+                          major,
+                          forceUpdate: true, // ADD THIS FLAG
+                        }),
+                      },
+                    );
+
+                    const retryData = await retryRes.json();
+
+                    if (retryRes.ok) {
+                      swal.fire(
+                        "Success",
+                        `${selectedStudent.name}'s enrollment has been updated successfully`,
+                        "success",
+                      );
+                      fetchData(currentPage, searchQuery, itemsPerPage);
+                    } else {
+                      swal.fire(
+                        "Error",
+                        retryData.message || "Failed to update enrollment",
+                        "error",
+                      );
+                    }
+                  } catch (retryError) {
+                    console.error("Retry error:", retryError);
+                    swal.fire(
+                      "Error",
+                      retryError.message || "Failed to update enrollment",
+                      "error",
+                    );
+                  }
+                }
+              } else if (enrollRes.ok) {
+                // Success - enrollment created or updated
                 swal.fire(
                   "Success",
                   `${selectedStudent.name} has been enrolled successfully`,
@@ -1056,6 +1134,7 @@ function Dashboard() {
                 );
                 fetchData(currentPage, searchQuery, itemsPerPage);
               } else {
+                // Other errors
                 swal.fire(
                   "Error",
                   enrollData.message || "Failed to enroll student",
@@ -1063,6 +1142,7 @@ function Dashboard() {
                 );
               }
             } catch (error) {
+              console.error("Enrollment error:", error);
               swal.fire(
                 "Error",
                 error.message || "Failed to enroll student",

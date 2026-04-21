@@ -898,6 +898,7 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       section,
       year_level,
       major,
+      forceUpdate = false, // NEW parameter
     } = req.body;
 
     let student;
@@ -938,16 +939,50 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       });
     }
 
-    // Create or update StudentEnrollment record
-    // Only updates if same student_id, academic_year_id, AND semester
-    // Otherwise creates a new enrollment record
-    const [enrollment, created] = await StudentEnrollment.findOrCreate({
+    // Check if student is already enrolled in this academic year and semester
+    const existingEnrollment = await StudentEnrollment.findOne({
       where: {
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
         semester: semester,
       },
-      defaults: {
+    });
+
+    // If enrollment already exists and forceUpdate is not true, return conflict status
+    if (existingEnrollment && !forceUpdate) {
+      return res.status(409).json({
+        success: false,
+        code: "ALREADY_ENROLLED",
+        message: `Student is already enrolled in ${activeAcademicYear.academic_year} - ${semester}`,
+        existingEnrollment: {
+          id: existingEnrollment.id,
+          semester: existingEnrollment.semester,
+          year_level: existingEnrollment.year_level,
+          section: existingEnrollment.section,
+          course_id: existingEnrollment.course_id,
+          major: existingEnrollment.major,
+          date_enrolled: existingEnrollment.date_enrolled,
+          isEnrolled: existingEnrollment.isEnrolled,
+        },
+      });
+    }
+
+    // Create or update StudentEnrollment record
+    let enrollment;
+    if (existingEnrollment) {
+      // Force update existing enrollment
+      await existingEnrollment.update({
+        year_level: year_level || existingEnrollment.year_level,
+        section: section || existingEnrollment.section,
+        course_id: course_id || existingEnrollment.course_id,
+        major: major || existingEnrollment.major,
+        date_enrolled: new Date(),
+        isEnrolled: true,
+      });
+      enrollment = existingEnrollment;
+    } else {
+      // Create new enrollment
+      enrollment = await StudentEnrollment.create({
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
         semester: semester,
@@ -957,24 +992,14 @@ router.patch("/enrollStudent/:id", async (req, res) => {
         major: major || null,
         date_enrolled: new Date(),
         isEnrolled: true,
-      },
-    });
-
-    // If enrollment already exists for this student+academic_year+semester, update it
-    if (!created) {
-      await enrollment.update({
-        year_level: year_level || enrollment.year_level,
-        section: section || enrollment.section,
-        course_id: course_id || enrollment.course_id,
-        major: major || enrollment.major,
-        date_enrolled: new Date(),
-        isEnrolled: true,
       });
     }
 
     res.json({
       success: true,
-      message: "Student enrolled successfully",
+      message: forceUpdate
+        ? "Student enrollment updated successfully"
+        : "Student enrolled successfully",
       enrollment,
     });
   } catch (err) {
