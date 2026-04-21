@@ -9,6 +9,55 @@ function Settings() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deleting, setDeleting] = useState(null);
+  const [activeSemester, setActiveSemester] = useState("1ST SEMESTER");
+  const [semesterError, setSemesterError] = useState("");
+  const [semesterSuccess, setSemesterSuccess] = useState("");
+
+  // Fetch active semester
+  const fetchActiveSemester = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:3001/settings/getActiveSemester",
+      );
+      const data = await response.json();
+      setActiveSemester(data.activeSemester || "1ST SEMESTER");
+    } catch (err) {
+      console.error("Error fetching active semester:", err);
+    }
+  };
+
+  // Set active semester
+  const handleSetActiveSemester = async (semester) => {
+    try {
+      setSemesterError("");
+      setSemesterSuccess("");
+      setLoading(true);
+
+      const response = await fetch(
+        "http://localhost:3001/settings/setActiveSemester",
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ semester }),
+        },
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        setSemesterError(error.error || "Failed to set semester");
+        return;
+      }
+
+      const data = await response.json();
+      setActiveSemester(data.activeSemester);
+      setSemesterSuccess(`Active semester set to ${semester}`);
+      setTimeout(() => setSemesterSuccess(""), 3000);
+    } catch (err) {
+      setSemesterError("Error setting semester: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch all academic years
   const fetchAcademicYears = async () => {
@@ -194,6 +243,7 @@ function Settings() {
 
   useEffect(() => {
     fetchAcademicYears();
+    fetchActiveSemester();
   }, []);
 
   if (loading) {
@@ -450,6 +500,88 @@ function Settings() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Active Semester Section */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Current Active Semester
+              </h2>
+              <p className="text-gray-600 mt-1">
+                {activeSemester}
+                <span className="inline-block ml-3 px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded-full font-medium">
+                  Active
+                </span>
+              </p>
+            </div>
+            <svg
+              className="h-12 w-12 text-purple-500 opacity-20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+
+          {semesterError && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <span>{semesterError}</span>
+              <button
+                onClick={() => setSemesterError("")}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {semesterSuccess && (
+            <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+              <svg
+                className="h-5 w-5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{semesterSuccess}</span>
+              <button
+                onClick={() => setSemesterSuccess("")}
+                className="ml-auto text-green-600 hover:text-green-800"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            {["1ST SEMESTER", "2ND SEMESTER", "SUMMER"].map((semester) => (
+              <button
+                key={semester}
+                onClick={() => handleSetActiveSemester(semester)}
+                disabled={loading}
+                className={`px-6 py-2 rounded-lg font-medium transition-all text-sm ${
+                  activeSemester === semester
+                    ? "bg-purple-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {semester}
+              </button>
+            ))}
           </div>
         </div>
 

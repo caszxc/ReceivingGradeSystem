@@ -188,6 +188,26 @@ function Dashboard() {
       }
       setIsInitialized(true);
     });
+
+    // Fetch active semester and set as default
+    const fetchActiveSemester = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3001/settings/getActiveSemester",
+        );
+        const data = await response.json();
+        const activeSem = data.activeSemester || "1ST SEMESTER";
+
+        setFilters((prev) => ({
+          ...prev,
+          semester: activeSem,
+        }));
+      } catch (err) {
+        console.error("Error fetching active semester:", err);
+      }
+    };
+
+    fetchActiveSemester();
   }, []);
 
   // Display filtered data

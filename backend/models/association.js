@@ -5,6 +5,7 @@ const StudentImage = require("./studentProfile");
 const Course = require("./course");
 const AcademicYear = require("./academicYear");
 const StudentEnrollment = require("./studentEnrollment");
+const ActiveSemester = require("./activeSemester");
 
 // Import future models here when needed:
 // const Attendance = require("./attendance");
@@ -58,6 +59,7 @@ const db = {
   Course,
   AcademicYear,
   StudentEnrollment,
+  ActiveSemester,
 };
 
 module.exports = db;

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { AcademicYear } = require("../models/association");
+const { ActiveSemester } = require("../models/association");
 
 // Get all academic years
 router.get("/getAcademicYears", async (req, res) => {
@@ -106,6 +107,58 @@ router.delete("/deleteAcademicYear/:id", async (req, res) => {
     res.json({
       success: true,
       message: "Academic year deleted successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get active semester
+router.get("/getActiveSemester", async (req, res) => {
+  try {
+    let semester = await ActiveSemester.findOne();
+
+    // If no record exists, create default one
+    if (!semester) {
+      semester = await ActiveSemester.create({
+        semester: "1ST SEMESTER",
+      });
+    }
+
+    res.json({
+      activeSemester: semester.semester,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Set active semester
+router.patch("/setActiveSemester", async (req, res) => {
+  try {
+    const { semester } = req.body;
+
+    // Validate semester
+    const validSemesters = ["1ST SEMESTER", "2ND SEMESTER", "SUMMER"];
+    if (!validSemesters.includes(semester)) {
+      return res.status(400).json({
+        error:
+          "Invalid semester. Must be one of: 1ST SEMESTER, 2ND SEMESTER, SUMMER",
+      });
+    }
+
+    let record = await ActiveSemester.findOne();
+
+    if (record) {
+      await record.update({ semester });
+    } else {
+      record = await ActiveSemester.create({ semester });
+    }
+
+    res.json({
+      success: true,
+      message: `Active semester set to ${semester}`,
+      activeSemester: record.semester,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
