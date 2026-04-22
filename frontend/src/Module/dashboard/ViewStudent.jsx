@@ -5,6 +5,7 @@ import axios from "axios";
 import { BASE_URL } from "../../Api/baseUrl";
 import swal from "sweetalert2";
 import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
+import { collapseToShortCourse } from "../../utils/courseConverter";
 
 function ViewStudent() {
   const [isEditing, setIsEditing] = useState(false);
@@ -283,6 +284,7 @@ function ViewStudent() {
     section: currentEnrollment?.section || student.section,
     semester: currentEnrollment?.semester || student.semester,
     major: currentEnrollment?.major || student.major,
+    course: currentEnrollment?.Course?.name || student.courseData?.name,
     course_id: currentEnrollment?.course_id || student.course_id,
     date_enrolled: currentEnrollment?.date_enrolled || student.date_enrolled,
     isEnrolled: currentEnrollment?.isEnrolled ?? student.isEnrolled,
@@ -410,23 +412,43 @@ function ViewStudent() {
             <span className="text-[1.4rem]">Student Information</span>
           </div>
           <form className="space-y-6 py-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Serial Number
-              </label>
-              <input
-                type="text"
-                disabled={!isEditing}
-                value={
-                  isEditing
-                    ? editData.card_serial_number
-                    : displayData.card_serial_number || ""
-                }
-                onChange={(e) =>
-                  handleChange("card_serial_number", e.target.value)
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="Serial Number"
-              />
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Serial Number
+                </label>
+                <input
+                  type="text"
+                  disabled={!isEditing}
+                  value={
+                    isEditing
+                      ? editData.card_serial_number
+                      : displayData.card_serial_number || ""
+                  }
+                  onChange={(e) =>
+                    handleChange("card_serial_number", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //  placeholder="Serial Number"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Student Number
+                </label>
+                <input
+                  type="text"
+                  disabled={!isEditing}
+                  value={
+                    isEditing
+                      ? editData.student_number
+                      : displayData.student_number || ""
+                  }
+                  onChange={(e) =>
+                    handleChange("student_number", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Student Number"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -477,124 +499,7 @@ function ViewStudent() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Student Number
-                </label>
-                <input
-                  type="text"
-                  disabled={!isEditing}
-                  value={
-                    isEditing
-                      ? editData.student_number
-                      : displayData.student_number || ""
-                  }
-                  onChange={(e) =>
-                    handleChange("student_number", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-gray-100" //   placeholder="Student Number"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Course
-                </label>
-                <div className="relative">
-                  {isEditing ? (
-                    <select
-                      value={editData.course_id || ""}
-                      onChange={(e) => {
-                        const selectedOption =
-                          e.target.options[e.target.selectedIndex];
-                        const majorName =
-                          selectedOption.getAttribute("data-major");
-
-                        handleChange(
-                          "course_id",
-                          e.target.value ? parseInt(e.target.value) : "",
-                        );
-
-                        // Auto-fill major if a major option was selected
-                        if (majorName) {
-                          handleChange("major", majorName);
-                        }
-
-                        fetchSectionsByCourse(e.target.value);
-                      }}
-                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
-                    >
-                      <option value="">— Select course —</option>
-                      {options.coursesWithMajors.map((course) => (
-                        <React.Fragment key={course.id}>
-                          <option value={course.id}>{course.name}</option>
-                          {course.majors?.map((major) => (
-                            <option
-                              key={major.name}
-                              value={course.id}
-                              data-major={major.name}
-                            >
-                              &nbsp;&nbsp;{major.name}
-                            </option>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      disabled
-                      value={student.courseData?.name || student.course || "—"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                    />
-                  )}
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  Section
-                </label>
-                {isEditing ? (
-                  <div className="relative mt-1">
-                    <input
-                      list="viewstudent_section_list"
-                      value={editData.section || ""}
-                      onChange={(e) => handleChange("section", e.target.value)}
-                      placeholder="Select or type new section"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
-                      autoComplete="off"
-                    />
-                    <datalist id="viewstudent_section_list">
-                      {options.sections.map((section) => (
-                        <option key={section} value={section} />
-                      ))}
-                    </datalist>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    disabled
-                    value={displayData.section || "—"}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                  />
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Student Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Year Level
@@ -668,6 +573,104 @@ function ViewStudent() {
                       disabled
                       value={displayData.semester || "—"}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                    />
+                  )}
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <svg
+                      className="h-4 w-4 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-1">
+                  Section
+                </label>
+                {isEditing ? (
+                  <div className="relative mt-1">
+                    <input
+                      list="viewstudent_section_list"
+                      value={editData.section || ""}
+                      onChange={(e) => handleChange("section", e.target.value)}
+                      placeholder="Select or type new section"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
+                      autoComplete="off"
+                    />
+                    <datalist id="viewstudent_section_list">
+                      {options.sections.map((section) => (
+                        <option key={section} value={section} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={displayData.section || "—"}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Course
+                </label>
+                <div className="relative">
+                  {isEditing ? (
+                    <select
+                      value={String(editData.course_id) || ""}
+                      onChange={(e) => {
+                        const selectedOption =
+                          e.target.options[e.target.selectedIndex];
+                        const majorName =
+                          selectedOption.getAttribute("data-major");
+
+                        handleChange(
+                          "course_id",
+                          e.target.value ? parseInt(e.target.value) : "",
+                        );
+
+                        // Auto-fill major if a major option was selected
+                        if (majorName) {
+                          handleChange("major", majorName);
+                        }
+
+                        fetchSectionsByCourse(e.target.value);
+                      }}
+                      className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
+                    >
+                      <option value="">— Select course —</option>
+                      {options.coursesWithMajors.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      disabled
+                      value={
+                        collapseToShortCourse(
+                          displayData.course,
+                          displayData.major,
+                        ) ||
+                        displayData.course ||
+                        "—"
+                      }
+                      className="w-full h-auto px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                     />
                   )}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
