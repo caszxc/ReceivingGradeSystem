@@ -9,7 +9,6 @@ import swal from "sweetalert2";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
-import { collapseToShortCourse } from "../../utils/courseConverter";
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
@@ -247,7 +246,7 @@ function Dashboard() {
     }
 
     setFilters(newFilters);
-
+    saveFilters(newFilters);
     fetchData(1, searchQuery, itemsPerPage, newFilters);
     setSelectedIds(new Set());
   };
@@ -282,7 +281,7 @@ function Dashboard() {
       section: "",
     };
     setFilters(cleared);
-
+    saveFilters(cleared);
     fetchData(1, searchQuery, itemsPerPage, cleared);
     setSelectedIds(new Set());
   };
@@ -383,10 +382,19 @@ function Dashboard() {
               <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Course</option>
                 ${filterOptions.coursesWithMajors
-                  .map(
-                    (course) =>
-                      `<option value="${course.id}">${course.name}</option>`,
-                  )
+                  .map((course) => {
+                    let optionsHtml = `<option value="${course.id}">${course.name}</option>`;
+                    if (course.majors && course.majors.length > 0) {
+                      const majorsHtml = course.majors
+                        .map(
+                          (major) =>
+                            `<option value="${course.id}">&nbsp;&nbsp;${major.name}</option>`,
+                        )
+                        .join("");
+                      optionsHtml += majorsHtml;
+                    }
+                    return optionsHtml;
+                  })
                   .join("")}
               </select>
             </div>
@@ -818,7 +826,19 @@ function Dashboard() {
 
       // Build course options with majors
       const courseOptions = filterOptions.coursesWithMajors
-        .map((course) => `<option value="${course.id}">${course.name}</option>`)
+        .map((course) => {
+          let optionsHtml = `<option value="${course.id}">${course.name}</option>`;
+          if (course.majors && course.majors.length > 0) {
+            const majorsHtml = course.majors
+              .map(
+                (major) =>
+                  `<option value="${course.id}" data-major="${major.name}">&nbsp;&nbsp;${major.name}</option>`,
+              )
+              .join("");
+            optionsHtml += majorsHtml;
+          }
+          return optionsHtml;
+        })
         .join("");
 
       // Build year level options
@@ -1414,9 +1434,14 @@ function Dashboard() {
                     >
                       <option value="">Select Course</option>
                       {filterOptions.coursesWithMajors.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.name}
-                        </option>
+                        <React.Fragment key={course.id}>
+                          <option value={course.id}>{course.name}</option>
+                          {course.majors?.map((major) => (
+                            <option key={major.name} value={course.id}>
+                              &nbsp;&nbsp;{major.name}
+                            </option>
+                          ))}
+                        </React.Fragment>
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -1631,7 +1656,7 @@ function Dashboard() {
                               ))}
                             </select>
                           ) : (
-                            student.course || "—"
+                            student.courseData?.name || student.course || "—"
                           )}
                         </td>
 
