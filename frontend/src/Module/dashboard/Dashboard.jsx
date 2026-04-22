@@ -583,16 +583,8 @@ function Dashboard() {
   };
 
   const enrollStudent = () => {
-    // Helper function to extract major from course name
-    const extractMajorFromCourse = (courseName) => {
-      // Extract text after dash: "BSBA-FM" → "FM", "BSED-SCIENCE" → "SCIENCE"
-      const match = courseName.match(/-(.+)$/);
-      return match ? match[1].toUpperCase() : null;
-    };
-
     let selectedStudent = null;
     let selectedCourse = "";
-    let selectedMajor = "";
     let availableSections = [];
 
     const showSearchDialog = () => {
@@ -824,12 +816,9 @@ function Dashboard() {
         .map((s) => `<option value="${s.value}">${s.label}</option>`)
         .join("");
 
-      // Build course options with major extraction
+      // Build course options with majors
       const courseOptions = filterOptions.coursesWithMajors
-        .map((course) => {
-          const major = extractMajorFromCourse(course.name);
-          return `<option value="${course.id}" data-major="${major || ""}">${course.name}</option>`;
-        })
+        .map((course) => `<option value="${course.id}">${course.name}</option>`)
         .join("");
 
       // Build year level options
@@ -882,19 +871,6 @@ function Dashboard() {
 
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">
-            Major (Auto-populated)
-          </label>
-          <input 
-            id="enroll_major" 
-            type="text"
-            placeholder="Automatically filled based on course" 
-            class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-gray-100 text-xs"
-            readonly
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">
             Section
           </label>
           <div class="relative">
@@ -922,7 +898,6 @@ function Dashboard() {
               document.getElementById("enroll_year_level");
             const semesterSelect = document.getElementById("enroll_semester");
             const courseSelect = document.getElementById("enroll_course");
-            const majorInput = document.getElementById("enroll_major");
             const sectionInput = document.getElementById("enroll_section");
             const sectionDatalist = document.getElementById(
               "enroll_section_list",
@@ -941,14 +916,6 @@ function Dashboard() {
                 // Set course value after a slight delay to ensure DOM is ready
                 setTimeout(() => {
                   courseSelect.value = latestEnrollment.course_id;
-
-                  // Extract and populate major
-                  const selectedOption =
-                    courseSelect.options[courseSelect.selectedIndex];
-                  selectedMajor =
-                    selectedOption.getAttribute("data-major") || "";
-                  majorInput.value = selectedMajor;
-
                   courseSelect.dispatchEvent(new Event("change"));
                 }, 0);
 
@@ -972,20 +939,12 @@ function Dashboard() {
               }
             }
 
-            // Handle course change - extract and populate major
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
               sectionInput.value = "";
 
               if (selectedCourse) {
                 try {
-                  // Extract major from selected course
-                  const selectedOption =
-                    courseSelect.options[courseSelect.selectedIndex];
-                  selectedMajor =
-                    selectedOption.getAttribute("data-major") || "";
-                  majorInput.value = selectedMajor;
-
                   const response = await fetch(
                     `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
                   );
@@ -999,8 +958,6 @@ function Dashboard() {
                   console.error("Error fetching sections:", error);
                 }
               } else {
-                selectedMajor = "";
-                majorInput.value = "";
                 sectionInput.disabled = true;
                 sectionInput.value = "";
                 sectionDatalist.innerHTML = "";
@@ -1032,6 +989,12 @@ function Dashboard() {
               swal.showValidationMessage("Please enter a section");
               return false;
             }
+
+            // Extract major from selected option
+            const selectedOption =
+              courseSelect.options[courseSelect.selectedIndex];
+            const selectedMajor =
+              selectedOption.getAttribute("data-major") || null;
 
             return {
               yearLevel,
@@ -1112,7 +1075,7 @@ function Dashboard() {
                           course_id: parseInt(courseId),
                           section,
                           major,
-                          forceUpdate: true,
+                          forceUpdate: true, // ADD THIS FLAG
                         }),
                       },
                     );
