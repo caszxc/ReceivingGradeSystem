@@ -1370,18 +1370,30 @@ router.get("/getImage/:id", async (req, res) => {
   }
 });
 
-router.get("/getLatestEnrollment/:studentId", async (req, res) => {
+ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // Get both the student and latest enrollment
     const student = await Student.findByPk(studentId, {
       attributes: ["id", "course_id", "semester", "year_level", "section"],
+      include: [
+        {
+          model: Course,
+          attributes: ["id", "name"],
+          as: "courseData",
+        },
+      ],
     });
 
     const enrollment = await StudentEnrollment.findOne({
       where: { student_id: studentId },
       order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Course,
+          attributes: ["id", "name"],
+        },
+      ],
     });
 
     if (!enrollment && !student) {
@@ -1392,25 +1404,34 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
       });
     }
 
+    // Get the course from enrollment or student
+    let courseId = enrollment?.course_id || student?.course_id;
+    let courseName = enrollment?.Course?.name || student?.courseData?.name;
+
+    // Map old inactive courses to new active short-form courses
+    const courseMapping = {
+      "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION": "BSBA-FM",
+      "BACHELOR OF SECONDARY EDUCATION": "BSED-MATHEMATICS",
+    };
+
+    if (courseName && courseMapping[courseName]) {
+      const newCourseName = courseMapping[courseName];
+      const newCourse = await Course.findOne({
+        where: { name: newCourseName },
+      });
+      if (newCourse) {
+        courseId = newCourse.id;
+      }
+    }
+
     res.json({
       success: true,
       enrollment: {
-        semester: enrollment
-          ? enrollment.semester
-          : student
-            ? student.semester
-            : "",
-        year_level: enrollment
-          ? enrollment.year_level
-          : student
-            ? student.year_level
-            : "",
-        section: enrollment
-          ? enrollment.section
-          : student
-            ? student.section
-            : "",
-        course_id: student ? student.course_id : null,
+        semester: enrollment?.semester || student?.semester || "",
+        year_level: enrollment?.year_level || student?.year_level || "",
+        section: enrollment?.section || student?.section || "",
+        course_id: courseId || null,
+        major: enrollment?.major || null,
       },
     });
   } catch (err) {
