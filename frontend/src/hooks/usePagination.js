@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const usePagination = ({
   fetchFunction,
@@ -14,6 +14,8 @@ const usePagination = ({
   const [isSearching, setIsSearching] = useState(false);
   const [currentItemsPerPage, setCurrentItemsPerPage] = useState(itemsPerPage);
   const debounceRef = useRef();
+  const [filters, setFilters] = useState({});
+
   // Calculate total pages
   const totalPages = Math.ceil(totalItems / currentItemsPerPage);
 
@@ -22,10 +24,12 @@ const usePagination = ({
     page = currentPage,
     query = "",
     limit = currentItemsPerPage,
+    filtersOverride = filters,
   ) => {
     setLoading(true);
     try {
       let response;
+      const activeFilters = filtersOverride || filters;
 
       if (query && searchFunction) {
         setIsSearching(true);
@@ -33,12 +37,14 @@ const usePagination = ({
           query,
           page,
           limit,
+          filters: activeFilters,
         });
       } else {
         setIsSearching(false);
         response = await fetchFunction({
           page,
           limit,
+          filters: activeFilters,
         });
       }
 
@@ -62,7 +68,7 @@ const usePagination = ({
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      fetchData(page, searchQuery, currentItemsPerPage);
+      fetchData(page, searchQuery, currentItemsPerPage, filters);
     }
   };
 
@@ -102,7 +108,7 @@ const usePagination = ({
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(() => {
-      fetchData(1, query, currentItemsPerPage);
+      fetchData(1, query, currentItemsPerPage, filters);
     }, 400); // 400ms debounce
   };
 
@@ -110,8 +116,21 @@ const usePagination = ({
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setCurrentItemsPerPage(newItemsPerPage);
     setCurrentPage(1);
-    fetchData(1, searchQuery, newItemsPerPage);
+    fetchData(1, searchQuery, newItemsPerPage, filters);
   };
+
+  const updateFilters = (newFilters) => {
+    setFilters(newFilters); // ← Store new filters in state
+    setCurrentPage(1); // ← Reset to page 1 (important!)
+  };
+
+  useEffect(() => {
+    // Skip on initial mount
+    if (Object.keys(filters).length === 0) return;
+
+    // Fetch data whenever filters change
+    fetchData(1, searchQuery, currentItemsPerPage, filters);
+  }, [filters]);
 
   // Refresh current page
   const refresh = () => {
@@ -126,6 +145,7 @@ const usePagination = ({
     setTotalItems(0);
     setIsSearching(false);
     setCurrentItemsPerPage(itemsPerPage);
+    setFilters({});
   };
 
   // Get pagination info
@@ -179,6 +199,7 @@ const usePagination = ({
     // clearSearch,
     refresh,
     reset,
+    updateFilters,
     setSearchQuery,
     handleItemsPerPageChange,
 

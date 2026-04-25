@@ -179,36 +179,80 @@ function Dashboard() {
   };
 
   // Fetch filters
+  // useEffect(() => {
+  //   fetchFilterOptions().then((defaultAcademicYear) => {
+  //     if (defaultAcademicYear) {
+  //       setFilters((prev) => ({
+  //         ...prev,
+  //         academicYear: defaultAcademicYear,
+  //       }));
+  //     }
+  //     setIsInitialized(true);
+  //   });
+
+  //   // Fetch active semester and set as default
+  //   const fetchActiveSemester = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         "http://localhost:3001/settings/getActiveSemester",
+  //       );
+  //       const data = await response.json();
+  //       const activeSem = data.activeSemester || "1ST SEMESTER";
+
+  //       setFilters((prev) => ({
+  //         ...prev,
+  //         semester: activeSem,
+  //       }));
+  //     } catch (err) {
+  //       console.error("Error fetching active semester:", err);
+  //     }
+  //   };
+
+  //   fetchActiveSemester();
+  // }, []);
+
   useEffect(() => {
-    fetchFilterOptions().then((defaultAcademicYear) => {
-      if (defaultAcademicYear) {
-        setFilters((prev) => ({
-          ...prev,
-          academicYear: defaultAcademicYear,
-        }));
-      }
-      setIsInitialized(true);
-    });
-
-    // Fetch active semester and set as default
-    const fetchActiveSemester = async () => {
-      try {
-        const response = await fetch(
-          "http://localhost:3001/settings/getActiveSemester",
-        );
-        const data = await response.json();
-        const activeSem = data.activeSemester || "1ST SEMESTER";
-
-        setFilters((prev) => ({
-          ...prev,
-          semester: activeSem,
-        }));
-      } catch (err) {
-        console.error("Error fetching active semester:", err);
-      }
+    let initialFilters = {
+      academicYear: "",
+      yearLevel: "",
+      semester: "",
+      course: "",
+      section: "",
     };
 
-    fetchActiveSemester();
+    // Step 1: Fetch filter options
+    fetchFilterOptions().then((defaultAcademicYear) => {
+      if (defaultAcademicYear) {
+        initialFilters.academicYear = defaultAcademicYear;
+      }
+
+      // Step 2: Fetch active semester
+      const fetchActiveSemester = async () => {
+        try {
+          const response = await fetch(
+            "http://localhost:3001/settings/getActiveSemester",
+          );
+          const data = await response.json();
+          const activeSem = data.activeSemester || "1ST SEMESTER";
+          initialFilters.semester = activeSem;
+
+          // Step 3: Set BOTH local filters AND sync to hook
+          setFilters(initialFilters);
+          updateFilters(initialFilters); // ← SYNC to usePagination!
+
+          // Step 4: Only NOW mark as initialized
+          setIsInitialized(true);
+        } catch (err) {
+          console.error("Error fetching active semester:", err);
+          // Fallback: still initialize even if semester fetch fails
+          setFilters(initialFilters);
+          updateFilters(initialFilters);
+          setIsInitialized(true);
+        }
+      };
+
+      fetchActiveSemester();
+    });
   }, []);
 
   // Display filtered data
@@ -248,7 +292,7 @@ function Dashboard() {
 
     setFilters(newFilters);
 
-    fetchData(1, searchQuery, itemsPerPage, newFilters);
+    updateFilters(newFilters);
     setSelectedIds(new Set());
   };
 
@@ -273,17 +317,31 @@ function Dashboard() {
     }
   };
 
+  // const clearFilters = () => {
+  //   const cleared = {
+  //     academicYear: filters.academicYear,
+  //     yearLevel: "",
+  //     semester: filters.semester,
+  //     course: "",
+  //     section: "",
+  //   };
+  //   setFilters(cleared);
+
+  //   fetchData(1, searchQuery, itemsPerPage, cleared);
+  //   setSelectedIds(new Set());
+  // };
+
   const clearFilters = () => {
     const cleared = {
-      academicYear: filters.academicYear,
+      academicYear: filters.academicYear, // Keep academic year
       yearLevel: "",
-      semester: filters.semester,
+      semester: filters.semester, // Keep semester
       course: "",
       section: "",
     };
-    setFilters(cleared);
 
-    fetchData(1, searchQuery, itemsPerPage, cleared);
+    setFilters(cleared);
+    updateFilters(cleared); // ← Use updateFilters, not fetchData!
     setSelectedIds(new Set());
   };
 
@@ -309,6 +367,7 @@ function Dashboard() {
     setSearchQuery,
     getVisiblePages,
     handleItemsPerPageChange,
+    updateFilters,
   } = usePagination({
     fetchFunction: fetchStudents,
     searchFunction: searchStudents,
