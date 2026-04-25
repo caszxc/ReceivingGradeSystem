@@ -38,10 +38,10 @@ const Sidebar = () => {
           name: "Upload",
           path: "/upload",
         },
-        // {
-        //   name: "Settings",
-        //   path: "/settings",
-        // },
+        {
+          name: "Settings",
+          path: "/settings",
+        },
       ]
     : baseNavItems;
 

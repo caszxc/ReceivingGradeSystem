@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import Swal from "sweetalert2";
+import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
 
 const Upload = () => {
   const [file, setFile] = useState(null);
@@ -505,7 +506,8 @@ const Upload = () => {
                               {student.course || "-"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {student.year_level || "-"}
+                              {convertYearLevelForDisplay(student.year_level) ||
+                                "-"}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {student.card_type}

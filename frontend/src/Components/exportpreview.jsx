@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { convertYearLevelForDisplay } from "../utils/yearLevelConverter";
 
 // ── Format meta ───────────────────────────────────────────────────────────────
 const FORMAT_META = {
@@ -30,7 +31,12 @@ const FORMAT_META = {
     iconColor: "text-blue-500",
     btnClass: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
     icon: (
-      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
         <path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -50,10 +56,28 @@ const SCOPE_LABELS = {
 
 // ── table columns ─────────────────────────────────────────────────────────────
 const COLUMNS = [
-  { key: "no",             label: "No.",         width: "w-10",   align: "text-center" },
-  { key: "full_name",      label: "Name",        width: "w-72",   align: "text-left"   },
-  { key: "student_number", label: "Student No.", width: "w-36",   align: "text-left"   },
-  { key: "card_status",    label: "Enrolled",    width: "w-28",   align: "text-center" },
+  { key: "no", label: "No.", width: "w-8", align: "text-center" },
+  { key: "full_name", label: "Name", width: "w-56", align: "text-left" },
+  {
+    key: "student_number",
+    label: "Student No.",
+    width: "w-32",
+    align: "text-left",
+  },
+  { key: "course", label: "Course", width: "w-48", align: "text-left" },
+  {
+    key: "year_level",
+    label: "Year Level",
+    width: "w-24",
+    align: "text-center",
+  },
+  { key: "section", label: "Section", width: "w-20", align: "text-center" },
+  {
+    key: "card_status",
+    label: "Enrolled",
+    width: "w-24",
+    align: "text-center",
+  },
 ];
 
 function getCellValue(col, student, index) {
@@ -61,13 +85,23 @@ function getCellValue(col, student, index) {
     case "no":
       return index + 1;
     case "full_name":
-      return [student.last_name, student.first_name, student.middle_name]
-        .filter(Boolean)
-        .join(", ") || "—";
+      return (
+        [student.last_name, student.first_name, student.middle_name]
+          .filter(Boolean)
+          .join(", ") || "—"
+      );
+    case "course":
+      return student.courseData?.name || "—";
+    case "year_level":
+      return convertYearLevelForDisplay(student.year_level) || "—";
+    case "section":
+      return student.section || "—";
     case "date_enrolled":
       return student.date_enrolled
         ? new Date(student.date_enrolled).toLocaleDateString("en-PH", {
-            year: "numeric", month: "short", day: "numeric",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
           })
         : "—";
     case "card_status": {
@@ -75,9 +109,7 @@ function getCellValue(col, student, index) {
       return (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-            val
-              ? "bg-green-100 text-green-700"
-              : "bg-gray-100 text-gray-500"
+            val ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
           }`}
         >
           {val ? "Enrolled" : "Not Enrolled"}
@@ -88,20 +120,19 @@ function getCellValue(col, student, index) {
       return student[col.key] ?? "—";
   }
 }
-
 // ── ExportPreview component ───────────────────────────────────────────────────
 function ExportPreview({
   isOpen,
-  loading,          // boolean – fetching data
-  students,         // array of student objects
-  format,           // "pdf" | "xlsx" | "csv"
-  scope,            // "all" | "page" | "selected"
-  filterSummary,    // string
-  onConfirm,        // (withSignature: boolean) => void – trigger the actual download
-  onClose,          // () => void
+  loading, // boolean – fetching data
+  students, // array of student objects
+  format, // "pdf" | "xlsx" | "csv"
+  scope, // "all" | "page" | "selected"
+  filterSummary, // string
+  onConfirm, // (withSignature: boolean) => void – trigger the actual download
+  onClose, // () => void
 }) {
   const overlayRef = useRef(null);
-  const panelRef   = useRef(null);
+  const panelRef = useRef(null);
   const [withSignature, setWithSignature] = useState(false);
 
   // Reset checkbox whenever the modal opens
@@ -113,14 +144,23 @@ function ExportPreview({
   const displayColumns = [
     ...COLUMNS,
     ...(format === "pdf" && withSignature
-      ? [{ key: "signature", label: "Signature", width: "w-40", align: "text-center" }]
+      ? [
+          {
+            key: "signature",
+            label: "Signature",
+            width: "w-40",
+            align: "text-center",
+          },
+        ]
       : []),
   ];
 
   // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
-    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    const handler = (e) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [isOpen, onClose]);
@@ -132,7 +172,9 @@ function ExportPreview({
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -145,8 +187,13 @@ function ExportPreview({
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-      onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      style={{
+        backgroundColor: "rgba(0,0,0,0.55)",
+        backdropFilter: "blur(4px)",
+      }}
+      onMouseDown={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
     >
       {/* ── Panel ──────────────────────────────────────────────────────────── */}
       <div
@@ -180,8 +227,18 @@ function ExportPreview({
             onClick={onClose}
             className="ml-4 flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -189,15 +246,29 @@ function ExportPreview({
         {/* ── Sub-header: filter summary + record count ───────────────────── */}
         <div className="flex items-center justify-between px-6 py-3 bg-blue-50 border-b border-blue-100">
           <div className="flex items-center gap-2 text-sm text-blue-800 min-w-0">
-            <svg className="h-4 w-4 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+            <svg
+              className="h-4 w-4 flex-shrink-0 text-blue-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"
+              />
             </svg>
-            <span className="font-medium text-blue-600 flex-shrink-0">Filters:&nbsp;</span>
+            <span className="font-medium text-blue-600 flex-shrink-0">
+              Filters:&nbsp;
+            </span>
             <span className="truncate">{filterSummary || "All Records"}</span>
           </div>
 
           <span className="ml-4 flex-shrink-0 text-sm font-semibold text-blue-700">
-            {loading ? "Loading…" : `${totalRows.toLocaleString()} record${totalRows !== 1 ? "s" : ""}`}
+            {loading
+              ? "Loading…"
+              : `${totalRows.toLocaleString()} record${totalRows !== 1 ? "s" : ""}`}
           </span>
         </div>
 
@@ -206,20 +277,47 @@ function ExportPreview({
           {loading ? (
             // Loading skeleton
             <div className="p-8 flex flex-col items-center justify-center gap-4 h-64">
-              <svg className="animate-spin h-10 w-10 text-blue-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <svg
+                className="animate-spin h-10 w-10 text-blue-500"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               <p className="text-gray-500 text-sm">Fetching records…</p>
             </div>
           ) : totalRows === 0 ? (
             // Empty state
             <div className="p-12 flex flex-col items-center justify-center gap-3 text-gray-400">
-              <svg className="h-14 w-14 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v12a2 2 0 002 2h10a2 2 0 002-2V8" />
+              <svg
+                className="h-14 w-14 opacity-40"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.5"
+                  d="M9 12h6m-6 4h6M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v12a2 2 0 002 2h10a2 2 0 002-2V8"
+                />
               </svg>
               <p className="text-lg font-medium">No records to export</p>
-              <p className="text-sm">Try adjusting your filters or selection.</p>
+              <p className="text-sm">
+                Try adjusting your filters or selection.
+              </p>
             </div>
           ) : (
             <table className="w-full text-sm border-collapse">
@@ -240,23 +338,27 @@ function ExportPreview({
                   <tr
                     key={student.id ?? i}
                     className={`border-b border-gray-100 transition-colors ${
-                      i % 2 === 0 ? "bg-white hover:bg-blue-50" : "bg-blue-50/40 hover:bg-blue-100/50"
+                      i % 2 === 0
+                        ? "bg-white hover:bg-blue-50"
+                        : "bg-blue-50/40 hover:bg-blue-100/50"
                     }`}
                   >
-                     {displayColumns.map((col) => (
-                       <td
-                         key={col.key}
-                         className={`${col.align} px-3 py-2 text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0 ${
-                           col.key === "no" ? "text-gray-400 font-mono text-xs" : ""
-                         }`}
-                       >
-                         {col.key === "signature" ? (
-                           <span className="block w-32 border-b border-gray-400 mx-auto" />
-                         ) : (
-                           getCellValue(col, student, i)
-                         )}
-                       </td>
-                     ))}
+                    {displayColumns.map((col) => (
+                      <td
+                        key={col.key}
+                        className={`${col.align} px-3 py-2 text-gray-700 whitespace-nowrap border-r border-gray-100 last:border-r-0 ${
+                          col.key === "no"
+                            ? "text-gray-400 font-mono text-xs"
+                            : ""
+                        }`}
+                      >
+                        {col.key === "signature" ? (
+                          <span className="block w-32 border-b border-gray-400 mx-auto" />
+                        ) : (
+                          getCellValue(col, student, i)
+                        )}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -325,8 +427,18 @@ function ExportPreview({
               onClick={() => onConfirm(withSignature)}
               className={`inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed ${meta.btnClass}`}
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               Download {meta.label}
             </button>
