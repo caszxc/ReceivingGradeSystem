@@ -15,7 +15,10 @@ const multer = require("multer");
 const xlsx = require("xlsx");
 const csv = require("csv-parser");
 const fs = require("fs");
-const { convertStudentDataForDB, convertStudentDataForFrontend } = require("../utils/courseConverter");
+const {
+  convertStudentDataForDB,
+  convertStudentDataForFrontend,
+} = require("../utils/courseConverter");
 // Configure multer for file uploads
 const upload = multer({
   dest: "uploads/",
@@ -177,7 +180,7 @@ function mergeEnrollmentData(students, hasAcademicYear) {
           section: enrollment.section,
           date_enrolled: enrollment.date_enrolled,
           course_id: enrollment.course_id,
-          course: enrollment.Course?.name, 
+          course: enrollment.Course?.name,
           StudentEnrollments: undefined,
         });
       });
@@ -256,7 +259,7 @@ router.get("/getStudent", async (req, res) => {
         enrollmentWhere.section = filters.section;
       }
 
-        findOptions.include.push({
+      findOptions.include.push({
         model: StudentEnrollment,
         attributes: [
           "id",
@@ -277,7 +280,6 @@ router.get("/getStudent", async (req, res) => {
           {
             model: Course,
             attributes: ["id", "name"],
-             
           },
         ],
       });
@@ -291,7 +293,7 @@ router.get("/getStudent", async (req, res) => {
       !!filters.academicYear,
     );
 
-    const convertedRows = transformedRows.map(s => {
+    const convertedRows = transformedRows.map((s) => {
       const student = s.toJSON ? s.toJSON() : s;
       return convertStudentDataForFrontend(student);
     });
@@ -403,7 +405,7 @@ router.get("/searchStudent", async (req, res) => {
       !!filters.academicYear,
     );
 
-    const convertedRows = transformedRows.map(s => {
+    const convertedRows = transformedRows.map((s) => {
       const student = s.toJSON ? s.toJSON() : s;
       return convertStudentDataForFrontend(student);
     });
@@ -500,8 +502,18 @@ router.get("/getFilterOptions", async (req, res) => {
 
 const courseMapping = {
   // Old course name → New course names (short forms)
-  "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION": ["BSBA-FM", "BSBA-HRM", "BSBA-MM"],
-  "BACHELOR OF SECONDARY EDUCATION": ["BSED-MATHEMATICS", "BSED-ENGLISH", "BSED-SCIENCE", "BSED-FILIPINO", "BSED-SOCIAL STUDIES"],
+  "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION": [
+    "BSBA-FM",
+    "BSBA-HRM",
+    "BSBA-MM",
+  ],
+  "BACHELOR OF SECONDARY EDUCATION": [
+    "BSED-MATHEMATICS",
+    "BSED-ENGLISH",
+    "BSED-SCIENCE",
+    "BSED-FILIPINO",
+    "BSED-SOCIAL STUDIES",
+  ],
 };
 
 const sectionPrefixMapping = {
@@ -515,7 +527,7 @@ const sectionPrefixMapping = {
   "BSBA-HRM": "HRM",
 };
 
- // Get distinct sections for a specific course (including legacy courses and prefix filtering)
+// Get distinct sections for a specific course (including legacy courses and prefix filtering)
 router.get("/getSectionsByCourse", async (req, res) => {
   try {
     const { course } = req.query;
@@ -538,7 +550,9 @@ router.get("/getSectionsByCourse", async (req, res) => {
     for (const [oldCourseName, newCourses] of Object.entries(courseMapping)) {
       if (newCourses.includes(courseRecord.name)) {
         // Find the old course and add its ID
-        const oldCourse = await Course.findOne({ where: { name: oldCourseName } });
+        const oldCourse = await Course.findOne({
+          where: { name: oldCourseName },
+        });
         if (oldCourse) {
           courseIdArray.push(oldCourse.id);
         }
@@ -563,7 +577,7 @@ router.get("/getSectionsByCourse", async (req, res) => {
     const prefix = sectionPrefixMapping[courseRecord.name];
     if (prefix) {
       sections = sections.filter((s) =>
-        s.section.toUpperCase().startsWith(prefix.toUpperCase())
+        s.section.toUpperCase().startsWith(prefix.toUpperCase()),
       );
     }
 
@@ -948,7 +962,7 @@ function isValidDate(dateString) {
   return date instanceof Date && !isNaN(date);
 }
 
- // Enroll student by ID or by student_number/card_serial_number
+// Enroll student by ID or by student_number/card_serial_number
 router.patch("/enrollStudent/:id", async (req, res) => {
   try {
     const bodyData = convertStudentDataForDB(req.body);
@@ -1006,39 +1020,41 @@ router.patch("/enrollStudent/:id", async (req, res) => {
 
     // Resolve course_id: if we have a course name (from conversion), look it up
     let resolvedCourseId = course_id;
-    if (course && !resolvedCourseId) {
+
+    if (!resolvedCourseId && course) {
       const courseRecord = await Course.findOne({
         where: { name: course },
       });
+
       if (courseRecord) {
         resolvedCourseId = courseRecord.id;
       }
     }
 
     // Map short-form courses to their parent courses
-    if (resolvedCourseId) {
-      const courseRecord = await Course.findByPk(resolvedCourseId);
-      if (courseRecord) {
-        const courseName = courseRecord.name;
-        
-        // Define mapping from short-form to parent course ID
-        const shortFormToParentId = {
-          "BSBA-FM": 4,
-          "BSBA-HRM": 4,
-          "BSBA-MM": 4,
-          "BSED-MATHEMATICS": 11,
-          "BSED-ENGLISH": 11,
-          "BSED-SCIENCE": 11,
-          "BSED-FILIPINO": 11,
-          "BSED-SOCIAL STUDIES": 11,
-        };
-        
-        // If it's a short form, use parent course ID
-        if (shortFormToParentId[courseName]) {
-          resolvedCourseId = shortFormToParentId[courseName];
-        }
-      }
-    }
+    // if (resolvedCourseId) {
+    //   const courseRecord = await Course.findByPk(resolvedCourseId);
+    //   if (courseRecord) {
+    //     const courseName = courseRecord.name;
+
+    //     // Define mapping from short-form to parent course ID
+    //     // const shortFormToParentId = {
+    //     //   "BSBA-FM": 4,
+    //     //   "BSBA-HRM": 4,
+    //     //   "BSBA-MM": 4,
+    //     //   "BSED-MATHEMATICS": 11,
+    //     //   "BSED-ENGLISH": 11,
+    //     //   "BSED-SCIENCE": 11,
+    //     //   "BSED-FILIPINO": 11,
+    //     //   "BSED-SOCIAL STUDIES": 11,
+    //     // };
+
+    //     // If it's a short form, use parent course ID
+    //     if (shortFormToParentId[courseName]) {
+    //       resolvedCourseId = shortFormToParentId[courseName];
+    //     }
+    //   }
+    // }
 
     // Check if student is already enrolled in this academic year and semester
     const existingEnrollment = await StudentEnrollment.findOne({
@@ -1370,7 +1386,7 @@ router.get("/getImage/:id", async (req, res) => {
   }
 });
 
- router.get("/getLatestEnrollment/:studentId", async (req, res) => {
+router.get("/getLatestEnrollment/:studentId", async (req, res) => {
   try {
     const { studentId } = req.params;
 

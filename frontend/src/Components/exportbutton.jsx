@@ -14,30 +14,48 @@ function getSemesterLabel(sem) {
 
 function buildFilterSummary(filters, students = [], filterOptions = {}) {
   const parts = [];
-  if (filters?.yearLevel)
-    parts.push(`Year Level: ${convertYearLevelForDisplay(filters.yearLevel)}`);
-  if (filters?.semester) parts.push(getSemesterLabel(filters.semester));
-  if (filters?.course) {
-    const courseName =
-      students.length > 0 && students[0].courseData?.name
-        ? students[0].courseData.name
-        : filters.course;
-    parts.push(`Course: ${courseName}`);
-  }
-  if (filters?.section) parts.push(`Section: ${filters.section}`);
 
-  // Get academic year name from filterOptions
-  if (filters?.academicYear) {
+  const resolveCourseName = () => {
+    const selectedId = filters && filters.course ? String(filters.course) : "";
+    const fromOptions = (
+      filterOptions && filterOptions.coursesWithMajors
+        ? filterOptions.coursesWithMajors
+        : []
+    ).find((c) => String(c.id) === selectedId);
+
+    const fromStudent =
+      students.length > 0
+        ? students[0].courseData?.name || students[0].course || ""
+        : "";
+
+    return (fromOptions && fromOptions.name) || fromStudent || "";
+  };
+
+  if (filters && filters.yearLevel) {
+    parts.push("Year Level: " + convertYearLevelForDisplay(filters.yearLevel));
+  }
+  if (filters && filters.semester) {
+    parts.push(getSemesterLabel(filters.semester));
+  }
+  if (filters && filters.course) {
+    const courseName = resolveCourseName();
+    parts.push("Course: " + (courseName || "N/A"));
+  }
+  if (filters && filters.section) {
+    parts.push("Section: " + filters.section);
+  }
+
+  if (filters && filters.academicYear) {
     const academicYearObj = filterOptions.academicYears?.find(
       (ay) => ay.value == filters.academicYear,
     );
     const ayName = academicYearObj
       ? academicYearObj.label.replace(" (Active)", "")
       : filters.academicYear;
-    parts.push(`A.Y. ${ayName}`);
+    parts.push("A.Y. " + ayName);
   }
 
-  return parts.length ? parts.join("  |  ") : "All Records";
+  return parts.length ? parts.join(" | ") : "All Records";
 }
 
 // ── Fetch student data (shared by preview + PDF) ──────────────────────────────
@@ -165,11 +183,19 @@ async function renderPdf({
       ? `MASTERLIST ENROLLMENT ${semLabel.toUpperCase()} A.Y (${ayFrom}-${ayTo})`
       : "MASTERLIST ENROLLMENT";
 
+  const selectedCourseId =
+    filters && filters.course ? String(filters.course) : "";
+  const courseNameFromFilter = (
+    filterOptions && filterOptions.coursesWithMajors
+      ? filterOptions.coursesWithMajors
+      : []
+  ).find((c) => String(c.id) === selectedCourseId)?.name;
+
   const courseName =
-    students.length > 0 && students[0].courseData?.name
-      ? students[0].courseData.name
-      : "";
-  const sectionName = filters?.section || "";
+    courseNameFromFilter ||
+    (students.length > 0
+      ? students[0].courseData?.name || students[0].course || ""
+      : "");
 
   // ── Draw header (first page) ──────────────────────────────────────────────
   function drawHeader(doc) {

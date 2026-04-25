@@ -109,6 +109,12 @@ function Dashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const mapOrBlank = (arr, mapper) => {
+    return Array.isArray(arr) && arr.length > 0
+      ? arr.map(mapper)
+      : [{ value: "", label: "" }];
+  };
+
   // Fetch filter options for dropdowns
   const fetchFilterOptions = async () => {
     try {
@@ -121,57 +127,75 @@ function Dashboard() {
       const defaultAcademicYear = data.activeAcademicYear?.id;
 
       setFilterOptions({
-        yearLevels: [
-          { value: "", label: "" },
-          ...data.yearLevels.map((year) => ({
-            value: year.toString(),
-            label: convertYearLevelForDisplay(year),
-          })),
-        ],
-        semesters: [
-          { value: "", label: "" },
-          ...data.semesters.map((sem) => ({
-            value: sem.toString(),
-            label: `${getSemesterLabel(sem)}`,
-          })),
-        ],
-        courses: [
-          { value: "", label: "" },
-          ...data.courses.map((course) => ({
-            value: course.id,
-            label: course.name,
-          })),
-        ],
+        // yearLevels: [
+        //   { value: "", label: "" },
+        yearLevels: data.yearLevels.map((year) => ({
+          value: year.toString(),
+          label: convertYearLevelForDisplay(year),
+        })),
+
+        // semesters: [
+        //   { value: "", label: "" },
+        semesters: data.semesters.map((sem) => ({
+          value: sem.toString(),
+          label: `${getSemesterLabel(sem)}`,
+        })),
+
+        // courses: [
+        //   { value: "", label: "" },
+        course: data.courses.map((course) => ({
+          value: course.id,
+          label: course.name,
+        })),
+
         coursesWithMajors: data.coursesWithMajors || [], // NEW - store full data with majors
-        sections: [{ value: "", label: "" }],
-        dateYears: [
-          { value: "", label: "" },
-          ...data.dateYears.map((year) => ({
-            value: year.toString(),
-            label: year.toString(),
-          })),
-        ],
-        academicYears: [
-          { value: "", label: "" },
-          ...data.academicYears.map((year) => ({
-            value: year.id,
-            label: `${year.academic_year}${year.isActive ? " (Active)" : ""}`,
-            isActive: year.isActive,
-          })),
-        ],
+
+        // sections: [{ value: "", label: "" }],
+        sections:
+          data.sections && data.sections.length > 0
+            ? data.sections.map((section) => ({
+                value: section,
+                label: section,
+              }))
+            : [],
+
+        // dateYears: [
+        //   { value: "", label: "" },
+        dateYears: data.dateYears.map((year) => ({
+          value: year.toString(),
+          label: year.toString(),
+        })),
+
+        // academicYears: [
+        //   { value: "", label: "" },
+        academicYears: data.academicYears.map((year) => ({
+          value: year.id,
+          label: `${year.academic_year}${year.isActive ? " (Active)" : ""}`,
+          isActive: year.isActive,
+        })),
       });
 
       return defaultAcademicYear;
     } catch (error) {
       console.error("Error fetching filter options:", error);
+      // setFilterOptions({
+      //   yearLevels: [{ value: "", label: "All Year Levels" }],
+      //   semesters: [{ value: "", label: "All Semesters" }],
+      //   courses: [{ value: "", label: "All Courses" }],
+      //   coursesWithMajors: [],
+      //   sections: [{ value: "", label: "All Sections" }],
+      //   dateYears: [{ value: "", label: "All Years" }],
+      //   academicYears: [{ value: "", label: "No Academic Years" }],
+      // });
+
       setFilterOptions({
-        yearLevels: [{ value: "", label: "All Year Levels" }],
-        semesters: [{ value: "", label: "All Semesters" }],
-        courses: [{ value: "", label: "All Courses" }],
+        yearLevels: [{ value: "", label: "" }],
+        semesters: [{ value: "", label: "" }],
+        courses: [{ value: "", label: "" }],
         coursesWithMajors: [],
-        sections: [{ value: "", label: "All Sections" }],
-        dateYears: [{ value: "", label: "All Years" }],
-        academicYears: [{ value: "", label: "No Academic Years" }],
+        sections: [{ value: "", label: "" }],
+        dateYears: [{ value: "", label: "" }],
+        academicYears: [{ value: "", label: "" }],
       });
     } finally {
       setFilterOptionsLoading(false);
@@ -455,10 +479,9 @@ function Dashboard() {
               </label>
               <select id="year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Year Level</option>
-                ${filterOptions.yearLevels
-                  .slice(1)
-                  .map((y) => `<option value="${y.value}">${y.label}</option>`)
-                  .join("")}
+               ${filterOptions.yearLevels
+                 .map((y) => `<option value="${y.value}">${y.label}</option>`)
+                 .join("")}
               </select>
             </div>
             <div>
@@ -1433,6 +1456,7 @@ function Dashboard() {
                       }
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
+                      <option value=""></option>
                       {filterOptions.yearLevels.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -1508,7 +1532,7 @@ function Dashboard() {
                       }
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
-                      <option value="">Select Course</option>
+                      <option value=""></option>
                       {filterOptions.coursesWithMajors.map((course) => (
                         <option key={course.id} value={course.id}>
                           {course.name}
@@ -1548,7 +1572,7 @@ function Dashboard() {
                       className={`w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer ${!filters.course ? "opacity-50 cursor-not-allowed bg-gray-100" : ""}`}
                     >
                       {!filters.course ? (
-                        <option value="">Select a course first</option>
+                        <option value=""></option>
                       ) : (
                         filterOptions.sections.map((option) => (
                           <option key={option.value} value={option.value}>
