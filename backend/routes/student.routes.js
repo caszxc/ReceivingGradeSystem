@@ -1244,12 +1244,16 @@ router.get("/viewStudent/:id", async (req, res) => {
 
 router.put("/updateStudent/:id", async (req, res) => {
   try {
-    const student = await Student.findByPk(req.params.id);
+    const student = await Student.findByPk(req.params.id, {
+      include: [{ model: StudentEnrollment }],
+    });
+
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
     const bodyData = convertStudentDataForDB(req.body);
+
     const {
       card_serial_number,
       first_name,
@@ -1262,30 +1266,57 @@ router.put("/updateStudent/:id", async (req, res) => {
       semester,
     } = bodyData;
 
-    // Only semester should be parsed to integer (1 or 2)
-    // year_level and section are STRINGS - keep as is!
-    await student.update({
-      card_serial_number: card_serial_number ?? student.card_serial_number,
-      first_name: first_name ?? student.first_name,
-      middle_name: middle_name ?? student.middle_name,
-      last_name: last_name ?? student.last_name,
-      student_number: student_number ?? student.student_number,
-      // course: course ?? student.course,
-      course_id: course_id ?? student.course_id, // ← UPDATE COURSE ID, not name
-      section: section ?? student.section, // ← KEEP AS STRING (no parseInt)
-      year_level: year_level ?? student.year_level, // ← KEEP AS STRING
-      semester: semester || student.semester,
-    });
+    const hasEnrollment = student.StudentEnrollments && student.StudentEnrollments.length > 0;
 
-    console.log("Update successful");
-    res.json({
-      success: true,
-      message: "Student updated successfully",
-      student,
-    });
+    // Case 1: No Enrollment - update everything in student table
+    if (!hasEnrollment) {
+      await student.update({
+        card_serial_number: card_serial_number ?? student.card_serial_number,
+        first_name: first_name ?? student.first_name,
+        middle_name: middle_name ?? student.middle_name,
+        last_name: last_name ?? student.last_name,
+        student_number: student_number ?? student.student_number,
+        course_id: course_id ?? student.course_id,
+        section: section ?? student.section,
+        year_level: year_level ?? student.year_level,
+        semester: semester ?? student.semester,
+      });
+    }
+
+    // Case 2: Has Enrollment - split updates
+    else {
+      // Update student basic info (non-enrollment fields)
+      await student.update({
+        card_serial_number: card_serial_number ?? student.card_serial_number,
+        first_name: first_name ?? student.first_name,
+        middle_name: middle_name ?? student.middle_name,
+        last_name: last_name ?? student.last_name,
+        student_number: student_number ?? student.student_number,
+      });
+
+      // Choose which enrollment to update
+      const { enrollment_id } = req.body;
+
+      const enrollmentToUpdate = student.StudentEnrollments.find(
+        (e) => e.id === parseInt(enrollment_id),
+      );
+
+      if (enrollmentToUpdate) {
+        await enrollmentToUpdate.update({
+          course_id: course_id ?? enrollmentToUpdate.course_id,
+          section: section ?? enrollmentToUpdate.section,
+          year_level: year_level ?? enrollmentToUpdate.year_level,
+          semester: semester ?? enrollmentToUpdate.semester,
+        });
+      }
+    }
+
+    res.json({ success: true, message: "Student updated successfully" });
+
   } catch (err) {
     console.error("Update error:", err);
-    res.status(500).json({ error: err.message });
+    console.error("Update error FULL:", err);
+    console.error("Validation errors:", err.errors);
   }
 });
 
