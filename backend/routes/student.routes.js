@@ -596,6 +596,137 @@ router.get("/getSectionsByCourse", async (req, res) => {
 // "selected" – requires ids[] (array of student PKs)
 // "all"      – exports full DB (or filtered by query) with sort
 
+// router.get("/exportStudents", async (req, res) => {
+//   const {
+//     query,
+//     format = "xlsx",
+//     scope = "all",
+//     sortBy = "last_name",
+//     sortOrder = "asc",
+//   } = req.query;
+
+//   // ids may come as ids[]=1&ids[]=2 or ids=1,2
+//   let ids = req.query["ids[]"] || req.query.ids;
+//   if (ids && !Array.isArray(ids)) {
+//     ids = ids
+//       .split(",")
+//       .map((x) => parseInt(x.trim()))
+//       .filter(Boolean);
+//   } else if (Array.isArray(ids)) {
+//     // Already an array
+//   }
+
+//   // Extract filter parameters (same as getStudent / searchStudent)
+//   const filters = {
+//     academicYear: req.query.academicYear,
+//     yearLevel: req.query.yearLevel,
+//     semester: req.query.semester,
+//     course: req.query.course,
+//     section: req.query.section,
+//     dateYearFrom: req.query.dateYearFrom,
+//     dateYearTo: req.query.dateYearTo,
+//   };
+
+//   try {
+//     let whereClause = {};
+//     const orderClause = getSortOrder(sortBy, sortOrder);
+
+//     // Build where clause
+//     if (scope === "selected" && ids && ids.length > 0) {
+//       whereClause = { id: { [Op.in]: ids } };
+//     } else {
+//       whereClause = buildWhereClause(
+//         query || "",
+//         filters,
+//         !!filters.academicYear,
+//       );
+//     }
+
+//     let findOptions = {
+//       where: whereClause,
+//       order: orderClause,
+//       include: [
+//         { model: Course, attributes: ["id", "name"], as: "courseData" },
+//       ],
+//     };
+
+//     // If academic year is selected, join with StudentEnrollment table
+//     if (filters.academicYear && scope !== "selected") {
+//       findOptions.include.push({
+//         model: StudentEnrollment,
+//         attributes: [
+//           "id",
+//           "semester",
+//           "year_level",
+//           "section",
+//           "date_enrolled",
+//         ],
+//         where: { academic_year_id: parseInt(filters.academicYear) },
+//         required: true, // INNER JOIN to only get enrolled students
+//       });
+//     }
+
+//     // For "page" scope, apply pagination
+//     if (scope === "page") {
+//       const limit = parseInt(req.query.limit) || 50;
+//       const page = parseInt(req.query.page) || 1;
+//       const offset = (page - 1) * limit;
+//       findOptions.limit = limit;
+//       findOptions.offset = offset;
+//     }
+
+//     const students = await Student.findAll(findOptions);
+
+//     // Map to plain export-friendly objects
+//     const exportData = students.map((s, i) => ({
+//       "No.": i + 1,
+//       Name: [s.last_name, s.first_name, s.middle_name]
+//         .filter(Boolean)
+//         .join(", "),
+//       "Student No.": s.student_number || "",
+//       Course: s.courseData?.name || "",
+//       "Year Level": s.year_level || "",
+//       Section: s.section || "",
+//       Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
+//     }));
+
+//     const workbook = xlsx.utils.book_new();
+//     const worksheet = xlsx.utils.json_to_sheet(exportData);
+//     xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
+
+//     const timestamp = new Date()
+//       .toISOString()
+//       .replace(/[:.]/g, "-")
+//       .slice(0, 19);
+//     const scopeLabel =
+//       scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
+//     const filename = `students_export_${scopeLabel}_${timestamp}`;
+
+//     if (format === "csv") {
+//       const csv = xlsx.utils.sheet_to_csv(worksheet);
+//       res.setHeader("Content-Type", "text/csv");
+//       res.setHeader(
+//         "Content-Disposition",
+//         `attachment; filename="${filename}.csv"`,
+//       );
+//       res.send(csv);
+//     } else {
+//       res.setHeader(
+//         "Content-Type",
+//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+//       );
+//       res.setHeader(
+//         "Content-Disposition",
+//         `attachment; filename="${filename}.xlsx"`,
+//       );
+//       xlsx.write(workbook, { type: "stream", stream: res });
+//     }
+//   } catch (err) {
+//     console.error("Export error:", err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
 router.get("/exportStudents", async (req, res) => {
   const {
     query,
@@ -605,18 +736,14 @@ router.get("/exportStudents", async (req, res) => {
     sortOrder = "asc",
   } = req.query;
 
-  // ids may come as ids[]=1&ids[]=2 or ids=1,2
   let ids = req.query["ids[]"] || req.query.ids;
   if (ids && !Array.isArray(ids)) {
     ids = ids
       .split(",")
-      .map((x) => parseInt(x.trim()))
+      .map((x) => parseInt(x.trim(), 10))
       .filter(Boolean);
-  } else if (Array.isArray(ids)) {
-    // Already an array
   }
 
-  // Extract filter parameters (same as getStudent / searchStudent)
   const filters = {
     academicYear: req.query.academicYear,
     yearLevel: req.query.yearLevel,
@@ -628,21 +755,27 @@ router.get("/exportStudents", async (req, res) => {
   };
 
   try {
-    let whereClause = {};
     const orderClause = getSortOrder(sortBy, sortOrder);
 
-    // Build where clause
+    let whereClause = {};
     if (scope === "selected" && ids && ids.length > 0) {
       whereClause = { id: { [Op.in]: ids } };
     } else {
+      const filtersForStudent = { ...filters };
+      if (filters.academicYear) {
+        filtersForStudent.yearLevel = null;
+        filtersForStudent.semester = null;
+        filtersForStudent.course = null;
+        filtersForStudent.section = null;
+      }
       whereClause = buildWhereClause(
         query || "",
-        filters,
+        filtersForStudent,
         !!filters.academicYear,
       );
     }
 
-    let findOptions = {
+    const findOptions = {
       where: whereClause,
       order: orderClause,
       include: [
@@ -650,41 +783,49 @@ router.get("/exportStudents", async (req, res) => {
       ],
     };
 
-    // If academic year is selected, join with StudentEnrollment table
     if (filters.academicYear && scope !== "selected") {
+      const enrollmentWhere = {
+        academic_year_id: parseInt(filters.academicYear, 10),
+      };
+
+      if (filters.yearLevel) enrollmentWhere.year_level = filters.yearLevel;
+      if (filters.semester) enrollmentWhere.semester = filters.semester;
+      if (filters.section) enrollmentWhere.section = filters.section;
+      if (filters.course)
+        enrollmentWhere.course_id = parseInt(filters.course, 10);
+
       findOptions.include.push({
         model: StudentEnrollment,
         attributes: [
-          "id",
           "semester",
           "year_level",
           "section",
           "date_enrolled",
+          "course_id",
         ],
-        where: { academic_year_id: parseInt(filters.academicYear) },
-        required: true, // INNER JOIN to only get enrolled students
+        where: enrollmentWhere,
+        required: true,
+        include: [{ model: Course, attributes: ["id", "name"] }],
       });
     }
 
-    // For "page" scope, apply pagination
     if (scope === "page") {
-      const limit = parseInt(req.query.limit) || 50;
-      const page = parseInt(req.query.page) || 1;
-      const offset = (page - 1) * limit;
+      const limit = parseInt(req.query.limit, 10) || 50;
+      const page = parseInt(req.query.page, 10) || 1;
       findOptions.limit = limit;
-      findOptions.offset = offset;
+      findOptions.offset = (page - 1) * limit;
     }
 
     const students = await Student.findAll(findOptions);
+    const normalized = mergeEnrollmentData(students, !!filters.academicYear);
 
-    // Map to plain export-friendly objects
-    const exportData = students.map((s, i) => ({
+    const exportData = normalized.map((s, i) => ({
       "No.": i + 1,
       Name: [s.last_name, s.first_name, s.middle_name]
         .filter(Boolean)
         .join(", "),
       "Student No.": s.student_number || "",
-      Course: s.courseData?.name || "",
+      Course: s.course || s.courseData?.name || "",
       "Year Level": s.year_level || "",
       Section: s.section || "",
       Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
@@ -700,27 +841,28 @@ router.get("/exportStudents", async (req, res) => {
       .slice(0, 19);
     const scopeLabel =
       scope === "page" ? "page" : scope === "selected" ? "selected" : "all";
-    const filename = `students_export_${scopeLabel}_${timestamp}`;
+    const filename = "students_export_" + scopeLabel + "_" + timestamp;
 
     if (format === "csv") {
-      const csv = xlsx.utils.sheet_to_csv(worksheet);
-      res.setHeader("Content-Type", "text/csv");
+      const csvData = xlsx.utils.sheet_to_csv(worksheet);
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${filename}.csv"`,
+        'attachment; filename="' + filename + '.csv"',
       );
-      res.send(csv);
-    } else {
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      );
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${filename}.xlsx"`,
-      );
-      xlsx.write(workbook, { type: "stream", stream: res });
+      return res.send(csvData);
     }
+
+    const buffer = xlsx.write(workbook, { bookType: "xlsx", type: "buffer" });
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="' + filename + '.xlsx"',
+    );
+    return res.send(buffer);
   } catch (err) {
     console.error("Export error:", err);
     res.status(500).json({ error: err.message });
@@ -1282,7 +1424,8 @@ router.put("/updateStudent/:id", async (req, res) => {
       semester,
     } = bodyData;
 
-    const hasEnrollment = student.StudentEnrollments && student.StudentEnrollments.length > 0;
+    const hasEnrollment =
+      student.StudentEnrollments && student.StudentEnrollments.length > 0;
 
     // Case 1: No Enrollment - update everything in student table
     if (!hasEnrollment) {
@@ -1328,7 +1471,6 @@ router.put("/updateStudent/:id", async (req, res) => {
     }
 
     res.json({ success: true, message: "Student updated successfully" });
-
   } catch (err) {
     console.error("Update error:", err);
     console.error("Update error FULL:", err);

@@ -5,6 +5,8 @@ import Logo from "/assets/PLVLogo.png";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import ClipLoader from "react-spinners/ClipLoader";
 import { useAuth } from "../../context/authContext";
+import { BASE_URL } from "../../Api/baseUrl";
+import axios from "axios";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -16,31 +18,49 @@ function Login() {
 
   const navigate = useNavigate();
 
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   setLoading(true);
+  //   try {
+  //     const res = await fetch("http://localhost:3001/auth/login", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ username, password }),
+  //     });
+
+  //     const data = await res.json();
+  //     setLoading(false);
+
+  //     if (res.ok) {
+  //       login(data.user); // Store user data including role
+  //       navigate("/dashboard");
+  //     } else {
+  //       setShowModal(true);
+  //     }
+  //   } catch {
+  //     setLoading(false);
+  //     setShowModal(true);
+  //   }
+  // };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const res = await fetch("http://localhost:3001/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const response = await axios.post(`${BASE_URL}/auth/login`, {
+        username,
+        password,
       });
 
-      const data = await res.json();
-      setLoading(false);
-
-      if (res.ok) {
-        login(data.user); // Store user data including role
-        navigate("/dashboard");
-      } else {
-        setShowModal(true);
-      }
-    } catch {
-      setLoading(false);
+      login(response.data.user);
+      navigate("/dashboard");
+    } catch (error) {
       setShowModal(true);
+    } finally {
+      setLoading(false);
     }
   };
-
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-[#0153FF] to-[#001C56] overflow-hidden">
       <div className="w-150 h-150 rounded-full border border-[4pc] border-[#508DFB]/[0.06] absolute -bottom-50 -right-30" />
