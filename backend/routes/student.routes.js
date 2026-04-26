@@ -1521,4 +1521,132 @@ router.post("/createSection", async (req, res) => {
   }
 });
 
+// Get Sections by Course and Year Level
+router.get("/getSectionsByCourseAndYear", async (req, res) => {
+  try {
+    const { course_id, year_level } = req.query;
+    if (!course_id || !year_level) {
+      return res.status(400).json({ error: "course_id and year_level are required" });
+    }
+
+    const courseId = parseInt(course_id);
+
+    const courseRecord = await Course.findByPk(courseId);
+    if (!courseRecord) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const courseIdArray = [courseId];
+
+    const newCourseNames = Object.keys(courseMapping);
+    for (const [oldCourseName, newCourses] of Object.entries(courseMapping)) {
+      if (newCourses.includes(courseRecord.name)) {
+        const oldCourse = await Course.findOne({
+          where: { name: oldCourseName },
+        });
+        if (oldCourse) {
+          courseIdArray.push(oldCourse.id);
+        }
+      }
+    }
+
+    // Get Sections from Student Table
+    const studentSections = await Student.findAll({
+      where: {
+        course_id: { [Op.in]: courseIdArray },
+        year_level: year_level,
+      },
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      raw: true,
+    });
+
+    // Get Sections from Student Enrollment Table
+    const enrollmentSections = await StudentEnrollment.findAll({
+      where: {
+        course_id: { [Op.in]: courseIdArray },
+        year_level: year_level,
+      },
+      attributes: [
+        [sequelize.fn("DISTINCT", sequelize.col("section")), "section"],
+      ],
+      raw: true,
+    });
+
+    // Combine All Sections + Remove Duplicates
+    const sections = [
+      ...studentSections.map(s => s.section),
+      ...enrollmentSections.map(s => s.section),
+    ];
+
+    const uniqueSections = [...new Set(sections)].filter(Boolean).sort();
+
+    const prefix = sectionPrefixMapping[courseRecord.name];
+
+    let finalSections = uniqueSections;
+    if (prefix) {
+        finalSections = uniqueSections.filter((s) =>
+          s.toUpperCase().startsWith(prefix.toUpperCase())
+      );
+    }
+
+    res.json({
+      success: true,
+      sections: finalSections,
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const courseYearLevelMapping = {
+  DEFAULT: ["I", "II", "III", "IV", "V", "ALUMNI"],
+
+  // Education Courses
+  BSED: ["I", "II", "III", "IV", "V", "ALUMNI", "MAED"],
+  BCED: ["I", "II", "III", "IV", "V", "ALUMNI", "MAED"],
+
+  // Public Admin
+  BSPA: ["I", "II", "III", "IV", "V", "ALUMNI", "MPA"],
+}
+
+// Get Year Levels by Course
+router.get("/getYearLevelsByCourse", async (req, res) => {
+  try {
+    const { course_id } = req.query;
+
+    if (!course_id) {
+      return res.status(400).json({ error: "course_id is required" })
+    }
+
+    const course = await Course.findByPk(course_id);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const courseName = course.name.toUpperCase();
+
+    let yearLevels = courseYearLevelMapping["DEFAULT"];
+
+    if (courseName.includes("BSED")) {
+      yearLevels = courseYearLevelMapping["BSED"];
+    } else if (courseName.includes("BACHELOR OF EARLY CHILDHOOD EDUCATION")) {
+      yearLevels = courseYearLevelMapping["BCED"]
+    } else if (courseName.includes("BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION")) {
+      yearLevels = courseYearLevelMapping["BSPA"]
+    }
+
+    res.json({
+      success: true,
+      yearLevels,
+    })
+
+  } catch (err) {
+    console.error("Year level filter error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -425,6 +425,11 @@ function Dashboard() {
     let selectedCourse = ""; // Track selected course for section fetching
     let availableSections = []; // Track available sections
 
+      // Build course options with majors for display
+      const courseOptions = filterOptions.coursesWithMajors
+        .map((course) => `<option value="${course.id}">${course.name}</option>`)
+        .join("");
+
     swal
       .fire({
         title: "Add New Student",
@@ -465,12 +470,7 @@ function Dashboard() {
               </label>
               <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Course</option>
-                ${filterOptions.coursesWithMajors
-                  .map(
-                    (course) =>
-                      `<option value="${course.id}">${course.name}</option>`,
-                  )
-                  .join("")}
+                ${courseOptions}
               </select>
             </div>
             <div>
@@ -479,9 +479,6 @@ function Dashboard() {
               </label>
               <select id="year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Year Level</option>
-               ${filterOptions.yearLevels
-                 .map((y) => `<option value="${y.value}">${y.label}</option>`)
-                 .join("")}
               </select>
             </div>
             <div>
@@ -509,35 +506,79 @@ function Dashboard() {
           const courseSelect = document.getElementById("course_id");
           const sectionInput = document.getElementById("add_section");
           const sectionDatalist = document.getElementById("add_section_list");
+          const yearLevelSelect = document.getElementById("year_level");
+
+          // Initial state
+          yearLevelSelect.disabled = true;
+          sectionInput.disabled = true;
 
           courseSelect.addEventListener("change", async (e) => {
             selectedCourse = e.target.value;
 
+            // Reset Dependent fields
+            yearLevelSelect.value = "";
+            yearLevelSelect.innerHTML = `<option value="">Select Year Level</option>`;
+            yearLevelSelect.disabled = true;
+
+            sectionInput.value = "";
+            sectionDatalist.innerHTML = "";
+            sectionInput.disabled = true;
+
             if (selectedCourse) {
               try {
-                // Fetch sections for selected course
-                const response = await fetch(
-                  `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
+                //Fetch year levels for selected course
+                const res = await fetch(
+                  `http://localhost:3001/students/getYearLevelsByCourse?course_id=${selectedCourse}`
                 );
-                const data = await response.json();
-                availableSections = data.sections || [];
+                const data = await res.json();
+                const yearLevels = data.yearLevels || [];
 
-                // Update section datalist
-                sectionInput.disabled = false;
-                sectionDatalist.innerHTML = availableSections
-                  .map((s) => `<option value="${s}"></option>`)
-                  .join("");
+                yearLevelSelect.disabled = false;
+
+                yearLevelSelect.innerHTML =
+                  `<option value="">Select Year Level</option>` +
+                  yearLevels.map(y => `<option value="${y}">${y}</option>`).join("");
+
               } catch (error) {
-                console.error("Error fetching sections:", error);
-                sectionInput.disabled = true;
+                console.error("Error fetching year levels:", error);
               }
             } else {
-              // Reset section input
+              yearLevelSelect.disabled = true;
               sectionInput.disabled = true;
-              sectionInput.value = "";
+              yearLevelSelect.innerHTML = `<option value="">Select Year Level</option>`;
               sectionDatalist.innerHTML = "";
-              availableSections = [];
+              sectionInput.value = "";
+              sectionInput.disabled = true;
             }
+          });
+
+          // Handle year level change - fetch sections if course is selected
+          yearLevelSelect.addEventListener("change", async (e) => {
+            const yearLevel = e.target.value;
+
+            sectionInput.value = "";
+            sectionInput.disabled = true;
+            sectionDatalist.innerHTML = "";
+
+            if (yearLevel) {
+              try {
+                const res = await fetch(
+                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${selectedCourse}&year_level=${yearLevel}`
+                );
+                const data = await res.json();
+                const sections = data.sections || [];
+
+                sectionInput.disabled = false;
+                sectionDatalist.innerHTML = sections.map(s => `<option value="${s}">${s}</option>`).join("");
+              } catch (error) {
+                console.error("Error fetching sections:", error);
+              }
+            } else {
+              sectionInput.disabled = true;
+              sectionDatalist.innerHTML = "";
+              sectionInput.value = "";
+            }
+
           });
         },
         preConfirm: () => {
@@ -573,11 +614,6 @@ function Dashboard() {
             section,
           } = result.value;
 
-          // Get course name from filterOptions
-          const courseObj = filterOptions.courses.find(
-            (c) => c.value == course_id,
-          );
-          const course = courseObj ? courseObj.label : "";
 
           // Create full name for display
           const fullNameParts = [first_name, middle_name, last_name].filter(
@@ -587,6 +623,11 @@ function Dashboard() {
             fullNameParts.length > 0
               ? fullNameParts.join(" ")
               : "No name provided";
+            
+
+          const selectedCourse = filterOptions.coursesWithMajors.find(
+            (course) => course.id.toString() === course_id,
+          );
 
           // Show confirmation dialog with student details
           swal
@@ -599,7 +640,7 @@ function Dashboard() {
                 <div class="grid grid-cols-1 gap-2 text-sm">
                   ${student_number ? `<div><span class="font-medium">Student Number:</span> ${student_number}</div>` : ""}
                   ${fullNameParts.length > 0 ? `<div><span class="font-medium">Full Name:</span> ${displayFullName.toUpperCase()}</div>` : ""}
-                  ${course ? `<div><span class="font-medium">Course:</span> ${course}</div>` : ""}
+                  ${course_id ? `<div><span class="font-medium">Course:</span> ${selectedCourse ? selectedCourse.name : "N/A"}</div>` : ""}
                   ${year_level ? `<div><span class="font-medium">Year Level:</span> ${convertYearLevelForDisplay(year_level)}</div>` : ""}
                   ${section ? `<div><span class="font-medium">Section:</span> ${section}</div>` : ""}
                 </div>
@@ -914,12 +955,6 @@ function Dashboard() {
         })
         .join("");
 
-      // Build year level options
-      const yearLevelOptions = filterOptions.yearLevels
-        .filter((y) => y.value !== "")
-        .map((y) => `<option value="${y.value}">${y.label}</option>`)
-        .join("");
-
       swal
         .fire({
           title: "Enroll Student - Details",
@@ -932,47 +967,23 @@ function Dashboard() {
       </div>
 
       <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-700 mb-1">
+              Course
+            </label>
+            <select id="enroll_course" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+              <option value="">Select Course</option>
+              ${courseOptions}
+            </select>
+          </div>
+
         <div>
           <label class="block text-xs font-medium text-gray-700 mb-1">
             Year Level
           </label>
           <select id="enroll_year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
             <option value="">Select Year Level</option>
-            ${yearLevelOptions}
           </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">
-            Semester
-          </label>
-          <select id="enroll_semester" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
-            <option value="">Select Semester</option>
-            ${semesterOptions}
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">
-            Course
-          </label>
-          <select id="enroll_course" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
-            <option value="">Select Course</option>
-            ${courseOptions}
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">
-            Major (Auto-populated)
-          </label>
-          <input 
-            id="enroll_major" 
-            type="text"
-            placeholder="Automatically filled based on course" 
-            class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-gray-100 text-xs"
-            readonly
-          />
         </div>
 
         <div>
@@ -989,6 +1000,29 @@ function Dashboard() {
             />
             <datalist id="enroll_section_list"></datalist>
           </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Semester
+          </label>
+          <select id="enroll_semester" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+            <option value="">Select Semester</option>
+            ${semesterOptions}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Major (Auto-populated)
+          </label>
+          <input 
+            id="enroll_major" 
+            type="text"
+            placeholder="Automatically filled based on course" 
+            class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-gray-100 text-xs"
+            readonly
+          />
         </div>
       </div>
     </div>
@@ -1036,7 +1070,7 @@ function Dashboard() {
 
                 // Fetch sections for this course
                 fetch(
-                  `http://localhost:3001/students/getSectionsByCourse?course=${latestEnrollment.course_id}`,
+                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${latestEnrollment.course_id}&year_level=${latestEnrollment.year_level}`,
                 )
                   .then((res) => res.json())
                   .then((data) => {
@@ -1057,7 +1091,13 @@ function Dashboard() {
             // Handle course change - extract and populate major
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
+
+              // Reset Dependent Fields
+              yearLevelSelect.value = "";
               sectionInput.value = "";
+              sectionInput.disabled = true;
+              sectionDatalist.innerHTML = "";
+              availableSections = [];
 
               if (selectedCourse) {
                 try {
@@ -1068,9 +1108,50 @@ function Dashboard() {
                     selectedOption.getAttribute("data-major") || "";
                   majorInput.value = selectedMajor;
 
-                  const response = await fetch(
-                    `http://localhost:3001/students/getSectionsByCourse?course=${selectedCourse}`,
+                   // Fetch year levels based on course
+                  const res = await fetch(
+                    `http://localhost:3001/students/getYearLevelsByCourse?course_id=${selectedCourse}`
                   );
+                  const data = await res.json();
+
+                  const yearLevels = data.yearLevels || [];
+
+                  yearLevelSelect.disabled = false
+
+                  // Populate year level dropdown
+                  yearLevelSelect.innerHTML = 
+                    `<option value="">Select Year Level</option>` +
+                    yearLevels
+                      .map((y) => `<option value="${y}">${y}</option>`)
+                      .join("");
+
+                  /* setTimeout(() => {
+                    if (yearLevels.includes(latestEnrollment.year_level)) {
+                      yearLevelSelect.value = latestEnrollment.year_level;
+                    }
+                  }, 0); */
+                      
+                } catch (error) {
+                  console.error("Error fetching year levels:", error);
+                }
+              } else {
+                 // Reset everything if no course
+                selectedMajor = "";
+                majorInput.value = "";
+                yearLevelSelect.disabled = true
+              }
+            });
+
+            // Handle year level change - refetch sections if course is selected
+            yearLevelSelect.addEventListener("change", async () => {
+              const yearLevel = yearLevelSelect.value;
+              const courseId = courseSelect.value;
+              sectionInput.value = "";
+
+              if (courseId && yearLevel) {
+                try {
+                  const response = await fetch
+                    (`http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`);
                   const data = await response.json();
                   availableSections = data.sections || [];
                   sectionInput.disabled = false;
@@ -1081,12 +1162,8 @@ function Dashboard() {
                   console.error("Error fetching sections:", error);
                 }
               } else {
-                selectedMajor = "";
-                majorInput.value = "";
                 sectionInput.disabled = true;
                 sectionInput.value = "";
-                sectionDatalist.innerHTML = "";
-                availableSections = [];
               }
             });
           },
