@@ -963,8 +963,9 @@ function Dashboard() {
         </div>
 
         <div>
+      
           <label class="block text-xs font-medium text-gray-700 mb-1">
-            Major (Auto-populated)
+            Major 
           </label>
           <input 
             id="enroll_major" 
