@@ -139,7 +139,10 @@ function ViewStudent() {
     if (!result.isConfirmed) return;
 
     try {
-      await axios.put(`${BASE_URL}/students/updateStudent/${id}`, editData);
+      await axios.put(`${BASE_URL}/students/updateStudent/${id}`, {
+        ...editData,
+        enrollment_id: selectedEnrollmentId, // Pass the selected enrollment ID to update the correct record
+      });
       await swal.fire({
         title: "Updated!",
         text: "Student information has been updated successfully.",
