@@ -18,7 +18,11 @@ app.use("/accounts", require("./routes/accountManagement.route"));
 app.use("/settings", require("./routes/settings.route"));
 
 // Sync DB and seed on startup
-db.sequelize.sync({ alter: true }).then(async () => {
+// db.sequelize.sync({ alter: true }).then(async () => {
+//   console.log("Database synced");
+//   await seedCourses();
+// });
+db.sequelize.sync().then(async () => {
   console.log("Database synced");
   await seedCourses();
 });
