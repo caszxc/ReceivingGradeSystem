@@ -81,7 +81,7 @@ function ViewStudent() {
     fetchOptions();
   }, []);
 
-  const fetchSectionsByCourse = async (courseId) => {
+  /* const fetchSectionsByCourse = async (courseId) => {
     if (!courseId) {
       setOptions((prev) => ({ ...prev, sections: [] }));
       return;
@@ -98,6 +98,42 @@ function ViewStudent() {
       console.error("Failed to fetch sections:", error);
       setOptions((prev) => ({ ...prev, sections: [] }));
     }
+  }; */
+
+  const fetchSectionsByCourseAndYear = async (courseId, yearLevel) => {
+    if (!courseId || !yearLevel) {
+      setOptions((prev) => ({ ...prev, sections: [] }));
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`
+      )
+      
+      setOptions((prev) => ({
+        ...prev,
+        sections: response.data.sections || [],
+      }));
+    } catch (err) {
+      console.error("Failed to fetch sections:", error);
+      setOptions((prev) => ({ ...prev, sections: [] }));
+    }
+  };
+
+  const fetchYearLevelsByCourse = async (courseId) => {
+    try {
+      const res = await axios.get(
+        `${BASE_URL}/students/getYearLevelsByCourse?course_id=${courseId}`
+      );
+
+      setOptions((prev) => ({
+        ...prev,
+        yearLevels: res.data.yearLevels || [],
+      }));
+    } catch (err) {
+      console.error("Failed to fetch year levels:", err);
+    }
   };
 
   const handleEdit = () => {
@@ -106,19 +142,34 @@ function ViewStudent() {
       ? student.StudentEnrollments?.find((e) => e.id === selectedEnrollmentId)
       : student.StudentEnrollments?.[0];
 
-    setEditData({
+    const courseId = currentEnrollment?.course_id || student.course_id || "";
+    const yearLevel = currentEnrollment?.year_level || student.year_level || "";
+
+    const newEditData = {
       card_serial_number: student.card_serial_number || "",
+      student_number: student.student_number || "",
       first_name: student.first_name || "",
       middle_name: student.middle_name || "",
       last_name: student.last_name || "",
-      student_number: student.student_number || "",
-      course_id: currentEnrollment?.course_id || student.course_id || "",
+      course_id: courseId,
       section: currentEnrollment?.section || student.section || "",
-      year_level: currentEnrollment?.year_level || student.year_level || "",
+      year_level: yearLevel,
       semester: currentEnrollment?.semester || student.semester || "",
       major: currentEnrollment?.major || student.major || "",
-    });
+    };
+
+    setEditData(newEditData);
     setIsEditing(true);
+
+    // Fetch dependent dropdown options if course or year level is already set
+    if (courseId) {
+      fetchYearLevelsByCourse(courseId);
+    }
+
+    if (courseId && yearLevel) {
+      fetchSectionsByCourseAndYear(courseId, yearLevel);
+    }
+
   };
 
   const handleCancel = () => {
@@ -168,15 +219,25 @@ function ViewStudent() {
   const handleChange = (field, value) => {
     const newEditData = { ...editData, [field]: value };
 
-    // Clear section when course changes
+    // Reset dependencies
     if (field === "course_id") {
+      newEditData.year_level = "";
+      newEditData.section = "";
+      setOptions((prev) => ({ ...prev, sections: [] }));
+    }
+    
+    if (field === "year_level") {
       newEditData.section = "";
     }
 
     setEditData(newEditData);
 
     if (field === "course_id" && value) {
-      fetchSectionsByCourse(value);
+      fetchYearLevelsByCourse(value);
+    }
+
+    if ((field === "course_id" ||  field === "year_level") && newEditData.course_id && newEditData.year_level) {
+      fetchSectionsByCourseAndYear(newEditData.course_id, newEditData.year_level);
     }
   };
 
@@ -511,6 +572,7 @@ function ViewStudent() {
                   {isEditing ? (
                     <select
                       value={editData.year_level || ""}
+                      disabled={!editData.course_id}
                       onChange={(e) =>
                         handleChange("year_level", e.target.value)
                       }
@@ -606,6 +668,7 @@ function ViewStudent() {
                       value={editData.section || ""}
                       onChange={(e) => handleChange("section", e.target.value)}
                       placeholder="Select or type new section"
+                      disabled={!editData.course_id || !editData.year_level}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
                       autoComplete="off"
                     />
@@ -649,8 +712,6 @@ function ViewStudent() {
                         if (majorName) {
                           handleChange("major", majorName);
                         }
-
-                        fetchSectionsByCourse(e.target.value);
                       }}
                       className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white appearance-none cursor-pointer"
                     >
