@@ -1,6 +1,8 @@
 import React, { useState, useRef } from "react";
 import Swal from "sweetalert2";
 import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
+import { BASE_URL } from "../../Api/baseUrl";
+import axios from "axios";
 
 const Upload = () => {
   const [file, setFile] = useState(null);
@@ -37,17 +39,25 @@ const Upload = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/students/uploadStudents",
-        {
-          method: "POST",
-          body: formData,
-        },
+      const response = await axios.post(
+        `${BASE_URL}/students/uploadStudents`,
+        formData,
       );
 
-      const result = await response.json();
+      const result = response.data;
       setUploadResult(result);
       setShowPreview(true);
+      // const response = await fetch(
+      //   "http://localhost:3001/students/uploadStudents",
+      //   {
+      //     method: "POST",
+      //     body: formData,
+      //   },
+      // );
+
+      // const result = await response.json();
+      // setUploadResult(result);
+      // setShowPreview(true);
 
       // Show appropriate alert based on validation results
       if (result.success) {
@@ -109,18 +119,29 @@ const Upload = () => {
     setUploading(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/students/confirmUpload",
+      // const response = await fetch(
+      //   "http://localhost:3001/students/confirmUpload",
+      //   {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({ validatedData: uploadResult.validData }),
+      //   },
+      // );
+
+      // const result = await response.json();
+      const response = await axios.post(
+        `${BASE_URL}/students/confirmUpload`,
+        { validatedData: uploadResult.validData },
         {
-          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ validatedData: uploadResult.validData }),
         },
       );
 
-      const result = await response.json();
+      const result = response.data;
 
       if (result.success) {
         await Swal.fire({

@@ -10,6 +10,8 @@ import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { convertYearLevelForDisplay } from "../../utils/yearLevelConverter";
 import { collapseToShortCourse } from "../../utils/courseConverter";
+import { BASE_URL } from "../../Api/baseUrl";
+import axios from "axios";
 
 function Dashboard() {
   const [sortOrder, setSortOrder] = useState("Ascending");
@@ -65,10 +67,25 @@ function Dashboard() {
     if (activeFilters.section)
       filterParams.append("section", activeFilters.section);
 
-    const response = await fetch(
-      `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
+    // const response = await fetch(
+    //   `http://localhost:3001/students/getStudent?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
+    // );
+    // return await response.json();
+    const response = await axios.get(
+      BASE_URL +
+        "/students/getStudent?page=" +
+        page +
+        "&limit=" +
+        limit +
+        "&sortBy=" +
+        sortBy +
+        "&sortOrder=" +
+        sortOrder +
+        "&" +
+        filterParams.toString(),
     );
-    return await response.json();
+
+    return response.data;
   };
 
   const searchStudents = async ({
@@ -90,10 +107,27 @@ function Dashboard() {
     if (activeFilters.section)
       filterParams.append("section", activeFilters.section);
 
-    const response = await fetch(
-      `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
+    // const response = await fetch(
+    //   `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(query)}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&${filterParams.toString()}`,
+    // );
+    // return await response.json();
+
+    const response = await axios.get(
+      BASE_URL +
+        "/students/searchStudent?query=" +
+        encodeURIComponent(query) +
+        "&page=" +
+        page +
+        "&limit=" +
+        limit +
+        "&sortBy=" +
+        sortBy +
+        "&sortOrder=" +
+        sortOrder +
+        "&" +
+        filterParams.toString(),
     );
-    return await response.json();
+    return response.data;
   };
 
   useEffect(() => {
@@ -119,10 +153,12 @@ function Dashboard() {
   const fetchFilterOptions = async () => {
     try {
       setFilterOptionsLoading(true);
-      const response = await fetch(
-        "http://localhost:3001/students/getFilterOptions",
-      );
-      const data = await response.json();
+      // const response = await fetch(
+      //   "http://localhost:3001/students/getFilterOptions",
+      // );
+      // const data = await response.json();
+      const response = await axios.get(BASE_URL + "/students/getFilterOptions");
+      const data = response.data;
 
       const defaultAcademicYear = data.activeAcademicYear?.id;
 
@@ -143,7 +179,9 @@ function Dashboard() {
 
         // courses: [
         //   { value: "", label: "" },
-        course: data.courses.map((course) => ({
+        courses: data.courses.map((course) => ({
+          id: course.id,
+          name: course.name,
           value: course.id,
           label: course.name,
         })),
@@ -253,10 +291,14 @@ function Dashboard() {
       // Step 2: Fetch active semester
       const fetchActiveSemester = async () => {
         try {
-          const response = await fetch(
-            "http://localhost:3001/settings/getActiveSemester",
+          // const response = await fetch(
+          //   "http://localhost:3001/settings/getActiveSemester",
+          // );
+          // const data = await response.json();
+          const response = await axios.get(
+            BASE_URL + "/settings/getActiveSemester",
           );
-          const data = await response.json();
+          const data = response.data;
           const activeSem = data.activeSemester || "1ST SEMESTER";
           initialFilters.semester = activeSem;
 
@@ -322,10 +364,14 @@ function Dashboard() {
 
   const fetchSectionsByCourse = async (course) => {
     try {
-      const response = await fetch(
-        `http://localhost:3001/students/getSectionsByCourse?course=${encodeURIComponent(course)}`,
+      // const response = await fetch(
+      //   `http://localhost:3001/students/getSectionsByCourse?course=${encodeURIComponent(course)}`,
+      // );
+      // const data = await response.json();
+      const response = await axios.get(
+        `${BASE_URL}/students/getSectionsByCourse?course=${encodeURIComponent(course)}`,
       );
-      const data = await response.json();
+      const data = response.data;
       setFilterOptions((prev) => ({
         ...prev,
         sections: [
@@ -425,10 +471,10 @@ function Dashboard() {
     let selectedCourse = ""; // Track selected course for section fetching
     let availableSections = []; // Track available sections
 
-      // Build course options with majors for display
-      const courseOptions = filterOptions.coursesWithMajors
-        .map((course) => `<option value="${course.id}">${course.name}</option>`)
-        .join("");
+    // Build course options with majors for display
+    const courseOptions = filterOptions.coursesWithMajors
+      .map((course) => `<option value="${course.id}">${course.name}</option>`)
+      .join("");
 
     swal
       .fire({
@@ -528,7 +574,7 @@ function Dashboard() {
               try {
                 //Fetch year levels for selected course
                 const res = await fetch(
-                  `http://localhost:3001/students/getYearLevelsByCourse?course_id=${selectedCourse}`
+                  `${BASE_URL}/students/getYearLevelsByCourse?course_id=${selectedCourse}`,
                 );
                 const data = await res.json();
                 const yearLevels = data.yearLevels || [];
@@ -537,8 +583,9 @@ function Dashboard() {
 
                 yearLevelSelect.innerHTML =
                   `<option value="">Select Year Level</option>` +
-                  yearLevels.map(y => `<option value="${y}">${y}</option>`).join("");
-
+                  yearLevels
+                    .map((y) => `<option value="${y}">${y}</option>`)
+                    .join("");
               } catch (error) {
                 console.error("Error fetching year levels:", error);
               }
@@ -563,13 +610,15 @@ function Dashboard() {
             if (yearLevel) {
               try {
                 const res = await fetch(
-                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${selectedCourse}&year_level=${yearLevel}`
+                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${selectedCourse}&year_level=${yearLevel}`,
                 );
                 const data = await res.json();
                 const sections = data.sections || [];
 
                 sectionInput.disabled = false;
-                sectionDatalist.innerHTML = sections.map(s => `<option value="${s}">${s}</option>`).join("");
+                sectionDatalist.innerHTML = sections
+                  .map((s) => `<option value="${s}">${s}</option>`)
+                  .join("");
               } catch (error) {
                 console.error("Error fetching sections:", error);
               }
@@ -578,7 +627,6 @@ function Dashboard() {
               sectionDatalist.innerHTML = "";
               sectionInput.value = "";
             }
-
           });
         },
         preConfirm: () => {
@@ -614,6 +662,15 @@ function Dashboard() {
             section,
           } = result.value;
 
+          // Get course name from filterOptions
+          // const courseObj = filterOptions.courses.find(
+          //   (c) => c.value == course_id,
+          // );
+          // const course = courseObj ? courseObj.label : "";
+          // const courseObj = (filterOptions.courses || []).find(
+          //   (c) => String(c.value) === String(course_id),
+          // );
+          // const course = courseObj ? courseObj.label : "";
 
           // Create full name for display
           const fullNameParts = [first_name, middle_name, last_name].filter(
@@ -623,7 +680,6 @@ function Dashboard() {
             fullNameParts.length > 0
               ? fullNameParts.join(" ")
               : "No name provided";
-            
 
           const selectedCourse = filterOptions.coursesWithMajors.find(
             (course) => course.id.toString() === course_id,
@@ -657,12 +713,8 @@ function Dashboard() {
             .then((confirmResult) => {
               if (confirmResult.isConfirmed) {
                 // Proceed with API call
-                fetch("http://localhost:3001/students/addStudent", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
+                axios
+                  .post(BASE_URL + "/students/addStudent", {
                     student_number,
                     first_name,
                     middle_name,
@@ -670,10 +722,9 @@ function Dashboard() {
                     course_id: parseInt(course_id) || null,
                     year_level,
                     section,
-                  }),
-                })
-                  .then((response) => response.json())
-                  .then((data) => {
+                  })
+                  .then((response) => {
+                    const data = response.data;
                     if (data.success) {
                       swal.fire({
                         title: "Success!",
@@ -692,9 +743,13 @@ function Dashboard() {
                     }
                   })
                   .catch((error) => {
+                    const apiMessage =
+                      error?.response?.data?.error ||
+                      error?.response?.data?.message;
                     swal.fire({
                       title: "Error!",
-                      text: error.message || "Failed to add student",
+                      text:
+                        apiMessage || error.message || "Failed to add student",
                       icon: "error",
                       confirmButtonColor: "#ef4444",
                     });
@@ -792,10 +847,21 @@ function Dashboard() {
                 searchResultsContainer.classList.remove("hidden");
 
                 const searchQuery = serial || studentNumber || name;
-                const response = await fetch(
-                  `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
+                // const response = await fetch(
+                //   `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
+                // );
+                // const data = await response.json();
+                const response = await axios.get(
+                  `${BASE_URL}/students/searchStudent`,
+                  {
+                    params: {
+                      query: searchQuery,
+                      limit: 10,
+                    },
+                  },
                 );
-                const data = await response.json();
+
+                const data = response.data;
 
                 if (data.rows && data.rows.length > 0) {
                   // Auto-select if searching by serial or student number and only 1 result
@@ -930,10 +996,15 @@ function Dashboard() {
       // Fetch latest enrollment for this student
       let latestEnrollment = null;
       try {
-        const enrollResponse = await fetch(
-          `http://localhost:3001/students/getLatestEnrollment/${selectedStudent.id}`,
+        // const enrollResponse = await fetch(
+        //   `http://localhost:3001/students/getLatestEnrollment/${selectedStudent.id}`,
+        // );
+        // const enrollData = await enrollResponse.json();
+        const enrollResponse = await axios.get(
+          `${BASE_URL}/students/getLatestEnrollment/${selectedStudent.id}`,
         );
-        const enrollData = await enrollResponse.json();
+
+        const enrollData = enrollResponse.data;
         if (enrollData.success && enrollData.enrollment) {
           latestEnrollment = enrollData.enrollment;
         }
@@ -1070,14 +1141,16 @@ function Dashboard() {
 
                 // Fetch sections for this course
                 fetch(
-                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${latestEnrollment.course_id}&year_level=${latestEnrollment.year_level}`,
+                  `${BASE_URL}/students/getSectionsByCourseAndYear?course_id=${latestEnrollment.course_id}&year_level=${latestEnrollment.year_level}`,
                 )
                   .then((res) => res.json())
                   .then((data) => {
                     availableSections = data.sections || [];
+
                     sectionDatalist.innerHTML = availableSections
                       .map((s) => `<option value="${s}"></option>`)
                       .join("");
+
                     if (latestEnrollment.section) {
                       sectionInput.value = latestEnrollment.section;
                     }
@@ -1108,18 +1181,18 @@ function Dashboard() {
                     selectedOption.getAttribute("data-major") || "";
                   majorInput.value = selectedMajor;
 
-                   // Fetch year levels based on course
+                  // Fetch year levels based on course
                   const res = await fetch(
-                    `http://localhost:3001/students/getYearLevelsByCourse?course_id=${selectedCourse}`
+                    `${BASE_URL}/students/getYearLevelsByCourse?course_id=${selectedCourse}`,
                   );
                   const data = await res.json();
 
                   const yearLevels = data.yearLevels || [];
 
-                  yearLevelSelect.disabled = false
+                  yearLevelSelect.disabled = false;
 
                   // Populate year level dropdown
-                  yearLevelSelect.innerHTML = 
+                  yearLevelSelect.innerHTML =
                     `<option value="">Select Year Level</option>` +
                     yearLevels
                       .map((y) => `<option value="${y}">${y}</option>`)
@@ -1130,15 +1203,14 @@ function Dashboard() {
                       yearLevelSelect.value = latestEnrollment.year_level;
                     }
                   }, 0); */
-                      
                 } catch (error) {
                   console.error("Error fetching year levels:", error);
                 }
               } else {
-                 // Reset everything if no course
+                // Reset everything if no course
                 selectedMajor = "";
                 majorInput.value = "";
-                yearLevelSelect.disabled = true
+                yearLevelSelect.disabled = true;
               }
             });
 
@@ -1150,8 +1222,9 @@ function Dashboard() {
 
               if (courseId && yearLevel) {
                 try {
-                  const response = await fetch
-                    (`http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`);
+                  const response = await fetch(
+                    `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`,
+                  );
                   const data = await response.json();
                   availableSections = data.sections || [];
                   sectionInput.disabled = false;
@@ -1202,131 +1275,162 @@ function Dashboard() {
           },
         })
         .then(async (result) => {
-          if (result.isConfirmed) {
-            const { yearLevel, semester, courseId, section, major } =
-              result.value;
+          if (!result.isConfirmed) {
+            if (result.isDismissed && result.dismiss === "cancel") {
+              showSearchDialog();
+            }
+            return;
+          }
 
-            try {
-              const enrollRes = await fetch(
-                `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
-                {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    year_level: yearLevel,
-                    semester,
-                    course_id: parseInt(courseId),
-                    section,
-                    major,
-                  }),
-                },
+          const { yearLevel, semester, courseId, section, major } =
+            result.value;
+
+          try {
+            //  const enrollRes = await fetch(
+            //     `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
+            //     {
+            //       method: "PATCH",
+            //       headers: { "Content-Type": "application/json" },
+            //       body: JSON.stringify({
+            //         year_level: yearLevel,
+            //         semester,
+            //         course_id: parseInt(courseId),
+            //         section,
+            //         major,
+            //       }),
+            //     },
+            //   );
+
+            //   const enrollData = await enrollRes.json();
+            const enrollRes = await axios.patch(
+              `${BASE_URL}/students/enrollStudent/${selectedStudent.id}`,
+              {
+                year_level: yearLevel,
+                semester,
+                course_id: parseInt(courseId, 10),
+                section,
+                major,
+              },
+            );
+
+            const enrollData = enrollRes.data;
+
+            if (enrollData.success) {
+              swal.fire(
+                "Success",
+                `${selectedStudent.name} has been enrolled successfully`,
+                "success",
               );
-
-              const enrollData = await enrollRes.json();
-
-              // Handle 409 Conflict - Student already enrolled
-              if (
-                enrollRes.status === 409 &&
-                enrollData.code === "ALREADY_ENROLLED"
-              ) {
-                const existingEnrollment = enrollData.existingEnrollment;
-
-                const confirmResult = await swal.fire({
-                  title: "Student Already Enrolled",
-                  html: `
-        <div class="text-left space-y-3">
-          <p class="text-sm text-gray-700">${enrollData.message}</p>
-          <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-            <p class="text-xs font-medium text-gray-700 mb-2">Current Enrollment:</p>
-            <div class="text-xs text-gray-600 space-y-1">
-              <p><span class="font-medium">Semester:</span> ${existingEnrollment.semester}</p>
-              <p><span class="font-medium">Year Level:</span> ${convertYearLevelForDisplay(existingEnrollment.year_level)}</p>
-              <p><span class="font-medium">Section:</span> ${existingEnrollment.section || "N/A"}</p>
-              <p><span class="font-medium">Major:</span> ${existingEnrollment.major || "N/A"}</p>
-              <p><span class="font-medium">Date Enrolled:</span> ${new Date(existingEnrollment.date_enrolled).toLocaleDateString()}</p>
-            </div>
-          </div>
-          <p class="text-sm text-gray-700 font-medium">Do you want to update the enrollment anyway?</p>
-        </div>
-      `,
-                  icon: "warning",
-                  showCancelButton: true,
-                  confirmButtonText: "Yes, Update",
-                  cancelButtonText: "No, Cancel",
-                  confirmButtonColor: "#f59e0b",
-                  cancelButtonColor: "#6b7280",
-                });
-
-                if (confirmResult.isConfirmed) {
-                  // Retry with forceUpdate flag
-                  try {
-                    const retryRes = await fetch(
-                      `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
-                      {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          year_level: yearLevel,
-                          semester,
-                          course_id: parseInt(courseId),
-                          section,
-                          major,
-                          forceUpdate: true,
-                        }),
-                      },
-                    );
-
-                    const retryData = await retryRes.json();
-
-                    if (retryRes.ok) {
-                      swal.fire(
-                        "Success",
-                        `${selectedStudent.name}'s enrollment has been updated successfully`,
-                        "success",
-                      );
-                      fetchData(currentPage, searchQuery, itemsPerPage);
-                    } else {
-                      swal.fire(
-                        "Error",
-                        retryData.message || "Failed to update enrollment",
-                        "error",
-                      );
-                    }
-                  } catch (retryError) {
-                    console.error("Retry error:", retryError);
-                    swal.fire(
-                      "Error",
-                      retryError.message || "Failed to update enrollment",
-                      "error",
-                    );
-                  }
-                }
-              } else if (enrollRes.ok) {
-                // Success - enrollment created or updated
-                swal.fire(
-                  "Success",
-                  `${selectedStudent.name} has been enrolled successfully`,
-                  "success",
-                );
-                fetchData(currentPage, searchQuery, itemsPerPage);
-              } else {
-                // Other errors
-                swal.fire(
-                  "Error",
-                  enrollData.message || "Failed to enroll student",
-                  "error",
-                );
-              }
-            } catch (error) {
-              console.error("Enrollment error:", error);
+              fetchData(currentPage, searchQuery, itemsPerPage);
+            } else {
               swal.fire(
                 "Error",
-                error.message || "Failed to enroll student",
+                enrollData.message || "Failed to enroll student",
                 "error",
               );
             }
-          } else if (result.isDismissed && result.dismiss === "cancel") {
-            showSearchDialog();
+          } catch (error) {
+            const enrollData = error.response?.data;
+            const status = error.response?.status;
+
+            if (status === 409 && enrollData?.code === "ALREADY_ENROLLED") {
+              const existingEnrollment = enrollData.existingEnrollment;
+
+              const confirmResult = await swal.fire({
+                title: "Student Already Enrolled",
+                html: `
+          <div class="text-left space-y-3">
+            <p class="text-sm text-gray-700">${enrollData.message}</p>
+            <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+              <p class="text-xs font-medium text-gray-700 mb-2">Current Enrollment:</p>
+              <div class="text-xs text-gray-600 space-y-1">
+                <p><span class="font-medium">Semester:</span> ${existingEnrollment.semester}</p>
+                <p><span class="font-medium">Year Level:</span> ${convertYearLevelForDisplay(existingEnrollment.year_level)}</p>
+                <p><span class="font-medium">Section:</span> ${existingEnrollment.section || "N/A"}</p>
+                <p><span class="font-medium">Major:</span> ${existingEnrollment.major || "N/A"}</p>
+                <p><span class="font-medium">Date Enrolled:</span> ${new Date(existingEnrollment.date_enrolled).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-700 font-medium">Do you want to update the enrollment anyway?</p>
+          </div>
+        `,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Yes, Update",
+                cancelButtonText: "No, Cancel",
+                confirmButtonColor: "#f59e0b",
+                cancelButtonColor: "#6b7280",
+              });
+
+              if (confirmResult.isConfirmed) {
+                try {
+                  //  const retryRes = await fetch(
+                  //     `http://localhost:3001/students/enrollStudent/${selectedStudent.id}`,
+                  //     {
+                  //       method: "PATCH",
+                  //       headers: { "Content-Type": "application/json" },
+                  //       body: JSON.stringify({
+                  //         year_level: yearLevel,
+                  //         semester,
+                  //         course_id: parseInt(courseId),
+                  //         section,
+                  //         major,
+                  //         forceUpdate: true,
+                  //       }),
+                  //     },
+                  //   );
+
+                  //   const retryData = await retryRes.json();
+
+                  const retryRes = await axios.patch(
+                    `${BASE_URL}/students/enrollStudent/${selectedStudent.id}`,
+                    {
+                      year_level: yearLevel,
+                      semester,
+                      course_id: parseInt(courseId, 10),
+                      section,
+                      major,
+                      forceUpdate: true,
+                    },
+                  );
+
+                  const retryData = retryRes.data;
+
+                  if (retryData.success) {
+                    swal.fire(
+                      "Success",
+                      `${selectedStudent.name}'s enrollment has been updated successfully`,
+                      "success",
+                    );
+                    fetchData(currentPage, searchQuery, itemsPerPage);
+                  } else {
+                    swal.fire(
+                      "Error",
+                      retryData.message || "Failed to update enrollment",
+                      "error",
+                    );
+                  }
+                } catch (retryError) {
+                  console.error("Retry error:", retryError);
+                  swal.fire(
+                    "Error",
+                    retryError.response?.data?.message ||
+                      retryError.message ||
+                      "Failed to update enrollment",
+                    "error",
+                  );
+                }
+              }
+            } else {
+              console.error("Enrollment error:", error);
+              swal.fire(
+                "Error",
+                enrollData?.message ||
+                  error.message ||
+                  "Failed to enroll student",
+                "error",
+              );
+            }
           }
         });
     };

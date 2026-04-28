@@ -3,6 +3,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ExportPreview from "./exportpreview";
 import { convertYearLevelForDisplay } from "../utils/yearLevelConverter";
+import { BASE_URL } from "../Api/baseUrl";
+import axios from "axios";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function getSemesterLabel(sem) {
@@ -83,12 +85,20 @@ async function fetchStudentData({
     if (filters?.course) p.set("course", filters.course);
     if (filters?.section) p.set("section", filters.section);
 
-    const res = await fetch(
-      `http://localhost:3001/students/getStudent?${p.toString()}`,
+    // const res = await fetch(
+    //   `http://localhost:3001/students/getStudent?${p.toString()}`,
+    // );
+    // const data = await res.json();
+    // const all = data.rows ?? data;
+    const res = await axios.get(
+      `${BASE_URL}/students/getStudent?${p.toString()}`,
     );
-    const data = await res.json();
+
+    const data = res.data;
     const all = data.rows ?? data;
-    return all.filter((s) => selectedIds.has(s.id));
+
+    const selectedIdSet = new Set(Array.from(selectedIds, (id) => String(id)));
+    return all.filter((s) => selectedIdSet.has(String(s.id)));
   }
 
   const p = new URLSearchParams({ sortBy, sortOrder, limit: 99999, page: 1 });
@@ -107,10 +117,15 @@ async function fetchStudentData({
 
   const endpoint =
     searchQuery && searchQuery.trim() !== "" ? "searchStudent" : "getStudent";
-  const res = await fetch(
-    `http://localhost:3001/students/${endpoint}?${p.toString()}`,
+  // const res = await fetch(
+  //   `http://localhost:3001/students/${endpoint}?${p.toString()}`,
+  // );
+  // const data = await res.json();
+  const res = await axios.get(
+    `${BASE_URL}/students/${endpoint}?${p.toString()}`,
   );
-  const data = await res.json();
+
+  const data = res.data;
   return data.rows ?? data;
 }
 
@@ -196,6 +211,9 @@ async function renderPdf({
     (students.length > 0
       ? students[0].courseData?.name || students[0].course || ""
       : "");
+
+  const sectionName =
+    filters?.section || (students.length > 0 ? students[0].section || "" : "");
 
   // ── Draw header (first page) ──────────────────────────────────────────────
   function drawHeader(doc) {
@@ -368,17 +386,21 @@ async function downloadFile({
   if (filters?.course) params.set("course", filters.course);
   if (filters?.section) params.set("section", filters.section);
 
-  const response = await fetch(
-    `http://localhost:3001/students/exportStudents?${params.toString()}`,
-  );
-  if (!response.ok) {
-    throw new Error("Export failed");
-  }
+  // const response = await fetch(
+  //   `http://localhost:3001/students/exportStudents?${params.toString()}`,
+  // );
+  // if (!response.ok) {
+  //   throw new Error("Export failed");
+  // }
+  const response = await axios.get(`${BASE_URL}/students/exportStudents`, {
+    params,
+    responseType: "blob",
+  });
 
-  const blob = await response.blob();
+  const blob = response.data;
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const disposition = response.headers.get("Content-Disposition") || "";
+  const disposition = response.headers["content-disposition"] || "";
   const match = disposition.match(/filename="?([^"]+)"?/);
   link.href = objectUrl;
   link.download = match ? match[1] : `students_export.${format}`;

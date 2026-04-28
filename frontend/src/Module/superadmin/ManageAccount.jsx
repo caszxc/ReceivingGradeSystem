@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/authContext";
-import { FaEye, FaEyeSlash, FaPlus, FaEdit, FaTrash, FaKey } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaKey,
+} from "react-icons/fa";
 import swal from "sweetalert2";
+import { BASE_URL } from "../../Api/baseUrl";
+import axios from "axios";
 
 function ManageAccount() {
   const [accounts, setAccounts] = useState([]);
@@ -42,26 +51,44 @@ function ManageAccount() {
   };
 
   // Fetch accounts
+  // const fetchAccounts = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const response = await fetch(
+  //       "http://localhost:3001/accounts/getAccounts",
+  //     );
+  //     const data = await response.json();
+  //     if (response.ok) {
+  //       setAccounts(data.accounts);
+  //     } else {
+  //       throw new Error(data.message || "Failed to fetch accounts");
+  //     }
+  //   } catch (err) {
+  //     console.error("Error fetching accounts:", err);
+  //     swal.fire("Error", "Failed to fetch accounts", "error");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:3001/accounts/getAccounts",
-      );
-      const data = await response.json();
-      if (response.ok) {
-        setAccounts(data.accounts);
-      } else {
-        throw new Error(data.message || "Failed to fetch accounts");
-      }
+
+      const response = await axios.get(`${BASE_URL}/accounts/getAccounts`);
+
+      setAccounts(response.data.accounts);
     } catch (err) {
       console.error("Error fetching accounts:", err);
-      swal.fire("Error", "Failed to fetch accounts", "error");
+      swal.fire(
+        "Error",
+        err.response?.data?.message || "Failed to fetch accounts",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
   };
-
   // Create account
   const handleCreateAccount = async (e) => {
     e.preventDefault();
@@ -148,72 +175,144 @@ function ManageAccount() {
       return;
     }
 
+    //old
+
+    //   // Proceed with account creation
+    //   try {
+    //     // const response = await fetch("http://localhost:3001/accounts/create", {
+    //     //   method: "POST",
+    //     //   headers: {
+    //     //     "Content-Type": "application/json",
+    //     //   },
+    //     //   body: JSON.stringify({
+    //     //     username: formData.username,
+    //     //     password: formData.password,
+    //     //     role: formData.role,
+    //     //   }),
+    //     // });
+
+    //     // const data = await response.json();
+    //     setLoading(true);
+
+    //     const response = await axios.post(`${BASE_URL}/accounts/create`, {
+    //       username: formData.username,
+    //       password: formData.password,
+    //       role: formData.role,
+    //     });
+
+    //     const data = response.data;
+
+    //     if (response.status === 200) {
+    //       // Show success message with SweetAlert
+    //       await swal.fire({
+    //         title: "Account Created Successfully!",
+    //         html: `
+    //         <div class="text-center py-4">
+    //           <div class="mb-4">
+    //             <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    //               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    //             </svg>
+    //           </div>
+    //           <p class="text-gray-700">
+    //             The account <strong>${formData.username}</strong> has been created successfully with <strong>${formData.role}</strong> role.
+    //           </p>
+    //           <p class="text-sm text-gray-500 mt-2">
+    //             The user can now log in using these credentials.
+    //           </p>
+    //         </div>
+    //       `,
+    //         icon: "success",
+    //         confirmButtonColor: "#10b981",
+    //         confirmButtonText: "Great!",
+    //       });
+
+    //       setShowCreateForm(false);
+    //       setFormData({
+    //         username: "",
+    //         password: "",
+    //         confirmPassword: "",
+    //         role: "",
+    //       });
+    //       fetchAccounts(); // Refresh the list
+    //     } else {
+    //       // Show error with SweetAlert
+    //       await swal.fire({
+    //         title: "Account Creation Failed",
+    //         text: data.message || "Failed to create account",
+    //         icon: "error",
+    //         confirmButtonColor: "#ef4444",
+    //         confirmButtonText: "Try Again",
+    //       });
+    //       throw new Error(data.message || "Failed to create account");
+    //     }
+    //   } catch (err) {
+    //     console.error("Error creating account:", err);
+    //     // Show error with SweetAlert
+    //     await swal.fire({
+    //       title: "Connection Error",
+    //       text: "Unable to connect to the server. Please check your connection and try again.",
+    //       icon: "error",
+    //       confirmButtonColor: "#ef4444",
+    //       confirmButtonText: "Okay",
+    //     });
+    //   } finally {
+    //     setLoading(false);
+    //   }
+
+    //new
+
     // Proceed with account creation
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:3001/accounts/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-          role: formData.role,
-        }),
+
+      await axios.post(`${BASE_URL}/accounts/create`, {
+        username: formData.username,
+        password: formData.password,
+        role: formData.role,
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Show success message with SweetAlert
-        await swal.fire({
-          title: "Account Created Successfully!",
-          html: `
-          <div class="text-center py-4">
-            <div class="mb-4">
-              <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </div>
-            <p class="text-gray-700">
-              The account <strong>${formData.username}</strong> has been created successfully with <strong>${formData.role}</strong> role.
-            </p>
-            <p class="text-sm text-gray-500 mt-2">
-              The user can now log in using these credentials.
-            </p>
+      await swal.fire({
+        title: "Account Created Successfully!",
+        html: `
+        <div class="text-center py-4">
+          <div class="mb-4">
+            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
           </div>
-        `,
-          icon: "success",
-          confirmButtonColor: "#10b981",
-          confirmButtonText: "Great!",
-        });
+          <p class="text-gray-700">
+            The account <strong>${formData.username}</strong> has been created successfully with <strong>${formData.role}</strong> role.
+          </p>
+          <p class="text-sm text-gray-500 mt-2">
+            The user can now log in using these credentials.
+          </p>
+        </div>
+      `,
+        icon: "success",
+        confirmButtonColor: "#10b981",
+        confirmButtonText: "Great!",
+      });
 
-        setShowCreateForm(false);
-        setFormData({
-          username: "",
-          password: "",
-          confirmPassword: "",
-          role: "",
-        });
-        fetchAccounts(); // Refresh the list
-      } else {
-        // Show error with SweetAlert
-        await swal.fire({
-          title: "Account Creation Failed",
-          text: data.message || "Failed to create account",
-          icon: "error",
-          confirmButtonColor: "#ef4444",
-          confirmButtonText: "Try Again",
-        });
-        throw new Error(data.message || "Failed to create account");
-      }
+      setShowCreateForm(false);
+      setFormData({
+        username: "",
+        password: "",
+        confirmPassword: "",
+        role: "",
+      });
+      fetchAccounts();
     } catch (err) {
       console.error("Error creating account:", err);
-      // Show error with SweetAlert
+
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to create account";
+
       await swal.fire({
-        title: "Connection Error",
-        text: "Unable to connect to the server. Please check your connection and try again.",
+        title: "Account Creation Failed",
+        text: errorMessage,
         icon: "error",
         confirmButtonColor: "#ef4444",
         confirmButtonText: "Okay",
@@ -313,8 +412,12 @@ function ManageAccount() {
         toggleNewPw.addEventListener("click", () => {
           const isPassword = newPwInput.type === "password";
           newPwInput.type = isPassword ? "text" : "password";
-          document.getElementById("icon-new-eye").style.display = isPassword ? "none" : "block";
-          document.getElementById("icon-new-eye-off").style.display = isPassword ? "block" : "none";
+          document.getElementById("icon-new-eye").style.display = isPassword
+            ? "none"
+            : "block";
+          document.getElementById("icon-new-eye-off").style.display = isPassword
+            ? "block"
+            : "none";
         });
 
         // Toggle visibility for Confirm Password
@@ -322,8 +425,11 @@ function ManageAccount() {
         toggleConfirmPw.addEventListener("click", () => {
           const isPassword = confirmPwInput.type === "password";
           confirmPwInput.type = isPassword ? "text" : "password";
-          document.getElementById("icon-confirm-eye").style.display = isPassword ? "none" : "block";
-          document.getElementById("icon-confirm-eye-off").style.display = isPassword ? "block" : "none";
+          document.getElementById("icon-confirm-eye").style.display = isPassword
+            ? "none"
+            : "block";
+          document.getElementById("icon-confirm-eye-off").style.display =
+            isPassword ? "block" : "none";
         });
 
         const updateIndicators = () => {
@@ -332,7 +438,8 @@ function ManageAccount() {
 
           const setReq = (id, met) => {
             const el = document.getElementById(id);
-            if (el) el.className = `flex items-center text-xs ${met ? "text-green-600" : "text-gray-400"}`;
+            if (el)
+              el.className = `flex items-center text-xs ${met ? "text-green-600" : "text-gray-400"}`;
           };
 
           setReq("req-uppercase", /[A-Z]/.test(pw));
@@ -346,7 +453,9 @@ function ManageAccount() {
       },
       preConfirm: () => {
         const newPassword = document.getElementById("swal-new-password").value;
-        const confirmPassword = document.getElementById("swal-confirm-password").value;
+        const confirmPassword = document.getElementById(
+          "swal-confirm-password",
+        ).value;
 
         if (!newPassword || !confirmPassword) {
           swal.showValidationMessage("Please fill in both password fields");
@@ -356,7 +465,7 @@ function ManageAccount() {
         const validation = validatePassword(newPassword);
         if (!validation.isValid) {
           swal.showValidationMessage(
-            "Password must contain at least 1 capital letter, 1 number, and 1 special character"
+            "Password must contain at least 1 capital letter, 1 number, and 1 special character",
           );
           return false;
         }
@@ -372,20 +481,29 @@ function ManageAccount() {
 
     if (formValues) {
       try {
-        const response = await fetch(
-          `http://localhost:3001/accounts/changePassword/${accountId}`,
+        // const response = await fetch(
+        //   `http://localhost:3001/accounts/changePassword/${accountId}`,
+        //   {
+        //     method: "PUT",
+        //     headers: {
+        //       "Content-Type": "application/json",
+        //     },
+        //     body: JSON.stringify({ newPassword: formValues.newPassword }),
+        //   },
+        // );
+
+        // const data = await response.json();
+
+        const response = await axios.put(
+          `${BASE_URL}/accounts/changePassword/${accountId}`,
           {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ newPassword: formValues.newPassword }),
+            newPassword: formValues.newPassword,
           },
         );
 
-        const data = await response.json();
+        const data = response.data;
 
-        if (response.ok) {
+        if (response.status === 200) {
           await swal.fire({
             title: "Password Changed!",
             html: `<p class="text-gray-700">The password for <strong>${username}</strong> has been updated successfully.</p>`,
@@ -424,14 +542,11 @@ function ManageAccount() {
 
     if (result.isConfirmed) {
       try {
-        const response = await fetch(
-          `http://localhost:3001/accounts/deleteAccount/${accountId}`,
-          {
-            method: "DELETE",
-          },
+        const response = await axios.delete(
+          `${BASE_URL}/accounts/deleteAccount/${accountId}`,
         );
 
-        if (response.ok) {
+        if (response.status === 200) {
           swal.fire("Deleted!", "Account has been deleted.", "success");
           fetchAccounts(); // Refresh the list
         } else {
@@ -439,7 +554,11 @@ function ManageAccount() {
         }
       } catch (err) {
         console.error("Error deleting account:", err);
-        swal.fire("Error", "Failed to delete account", "error");
+        swal.fire(
+          "Error",
+          err.response?.data?.message || "Failed to delete account",
+          "error",
+        );
       }
     }
   };

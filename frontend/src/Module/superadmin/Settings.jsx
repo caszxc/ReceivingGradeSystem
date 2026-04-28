@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { BASE_URL } from "../../Api/baseUrl";
+import axios from "axios";
 
 function Settings() {
   const [academicYears, setAcademicYears] = useState([]);
@@ -16,10 +18,14 @@ function Settings() {
   // Fetch active semester
   const fetchActiveSemester = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:3001/settings/getActiveSemester",
+      // const response = await fetch(
+      //   "http://localhost:3001/settings/getActiveSemester",
+      // );
+      // const data = await response.json();
+      const response = await axios.get(
+        `${BASE_URL}/settings/getActiveSemester`,
       );
-      const data = await response.json();
+      const data = response.data;
       setActiveSemester(data.activeSemester || "1ST SEMESTER");
     } catch (err) {
       console.error("Error fetching active semester:", err);
@@ -55,32 +61,40 @@ function Settings() {
       setSemesterSuccess("");
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:3001/settings/setActiveSemester",
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ semester }),
-        },
+      // const response = await fetch(
+      //   "http://localhost:3001/settings/setActiveSemester",
+      //   {
+      //     method: "PATCH",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({ semester }),
+      //   },
+      // );
+
+      // if (!response.ok) {
+      //   const error = await response.json();
+      //   setSemesterError(error.error || "Failed to set semester");
+      //   return;
+      // }
+      const response = await axios.patch(
+        `${BASE_URL}/settings/setActiveSemester`,
+        { semester },
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        setSemesterError(error.error || "Failed to set semester");
-        return;
-      }
-
-      const data = await response.json();
+      const data = response.data;
       setActiveSemester(data.activeSemester);
 
-      Swal.fire({
+      //i added await here
+      await Swal.fire({
         icon: "success",
         title: "Active Semester Changed!",
         text: `Active semester set to ${semester}`,
         confirmButtonColor: "#2563eb",
       });
     } catch (err) {
-      setSemesterError("Error setting semester: " + err.message);
+      // setSemesterError("Error setting semester: " + err.message);
+      const message =
+        err.response?.data?.error || err.message || "Failed to set semester";
+      setSemesterError(`Error setting semester: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -90,10 +104,12 @@ function Settings() {
   const fetchAcademicYears = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        "http://localhost:3001/settings/getAcademicYears",
-      );
-      const data = await response.json();
+      // const response = await fetch(
+      //   "http://localhost:3001/settings/getAcademicYears",
+      // );
+      // const data = await response.json();
+      const response = await axios.get(`${BASE_URL}/settings/getAcademicYears`);
+      const data = response.data;
       setAcademicYears(data);
       const active = data.find((y) => y.isActive);
       setActiveYearId(active?.id);
@@ -140,22 +156,30 @@ function Settings() {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/settings/createAcademicYear",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ academic_year: newYearInput }),
-        },
+      // const response = await fetch(
+      //   "http://localhost:3001/settings/createAcademicYear",
+      //   {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({ academic_year: newYearInput }),
+      //   },
+      // );
+
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   setError(data.error || "Failed to create academic year");
+      //   return;
+      // }
+
+      const response = await axios.post(
+        `${BASE_URL}/settings/createAcademicYear`,
+        { academic_year: newYearInput },
       );
 
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Failed to create academic year");
-        return;
-      }
+      const data = response.data;
 
-      Swal.fire({
+      //I added Await here
+      await Swal.fire({
         icon: "success",
         title: "Success!",
         text: `Academic year ${newYearInput} created successfully`,
@@ -164,7 +188,12 @@ function Settings() {
       setNewYearInput("");
       fetchAcademicYears();
     } catch (err) {
-      setError(err.message);
+      // setError(err.message);
+      const message =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to create academic year";
+      setError(message);
     }
   };
 
@@ -195,18 +224,24 @@ function Settings() {
     if (!result.isConfirmed) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:3001/settings/setActiveAcademicYear/${id}`,
-        { method: "PATCH" },
+      // const response = await fetch(
+      //   `http://localhost:3001/settings/setActiveAcademicYear/${id}`,
+      //   { method: "PATCH" },
+      // );
+
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   setError(data.error || "Failed to set active year");
+      //   return;
+      // }
+
+      const response = await axios.patch(
+        `${BASE_URL}/settings/setActiveAcademicYear/${id}`,
       );
+      const data = response.data;
 
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Failed to set active year");
-        return;
-      }
-
-      Swal.fire({
+      //I added await here
+      await Swal.fire({
         icon: "success",
         title: "Active Year Changed!",
         text: data.message,
@@ -214,7 +249,10 @@ function Settings() {
       });
       fetchAcademicYears();
     } catch (err) {
-      setError(err.message);
+      // setError(err.message);
+      const message =
+        err.response?.data?.error || err.message || "Failed to set active year";
+      setError(message);
     }
   };
 
@@ -242,19 +280,23 @@ function Settings() {
     setSuccess("");
 
     try {
-      const response = await fetch(
-        `http://localhost:3001/settings/deleteAcademicYear/${id}`,
-        { method: "DELETE" },
+      // const response = await fetch(
+      //   `http://localhost:3001/settings/deleteAcademicYear/${id}`,
+      //   { method: "DELETE" },
+      // );
+
+      // const data = await response.json();
+      // if (!response.ok) {
+      //   setError(data.error || "Failed to delete academic year");
+      //   setDeleting(null);
+      //   return;
+      // }
+      const response = await axios.delete(
+        `${BASE_URL}/settings/deleteAcademicYear/${id}`,
       );
+      const data = response.data;
 
-      const data = await response.json();
-      if (!response.ok) {
-        setError(data.error || "Failed to delete academic year");
-        setDeleting(null);
-        return;
-      }
-
-      Swal.fire({
+      await Swal.fire({
         icon: "success",
         title: "Deleted!",
         text: "Academic year deleted successfully",
@@ -263,7 +305,12 @@ function Settings() {
       setDeleting(null);
       fetchAcademicYears();
     } catch (err) {
-      setError(err.message);
+      // setError(err.message);
+      const message =
+        err.response?.data?.error ||
+        err.message ||
+        "Failed to delete academic year";
+      setError(message);
       setDeleting(null);
     }
   };
