@@ -480,7 +480,7 @@ function Dashboard() {
         <div class="space-y-4 text-left">
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-1">
-              Student Number
+              Student Number <span class="ml-1 text-red-500" aria-hidden="true">*</span>
             </label>
             <input id="student_number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
           </div>
@@ -488,7 +488,7 @@ function Dashboard() {
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                First Name
+                First Name <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <input id="first_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
             </div>
@@ -500,7 +500,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Last Name
+                Last Name <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <input id="last_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
             </div>
@@ -509,7 +509,7 @@ function Dashboard() {
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Course
+                Course <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Course</option>
@@ -518,7 +518,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Year Level
+                Year Level <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <select id="year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Year Level</option>
@@ -526,7 +526,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Section
+                Section <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <div class="relative">
                 <input 
