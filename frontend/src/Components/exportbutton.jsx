@@ -215,137 +215,192 @@ async function renderPdf({
   const sectionName =
     filters?.section || (students.length > 0 ? students[0].section || "" : "");
 
-  // ── Draw header (first page) ──────────────────────────────────────────────
+  // ── Draw premium header ──────────────────────────────────────────────
   function drawHeader(doc) {
     const centerX = pageWidth / 2;
-    let y = 10;
+    let y = 16;
 
     // Logo
-    const logoSize = 16;
-    const logoX = centerX - 70;
+    const logoSize = 22;
+    const logoX = centerX - 85;
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, "PNG", logoX, y - 3, logoSize, logoSize);
+      doc.addImage(logoDataUrl, "PNG", logoX, y - 6, logoSize, logoSize);
     }
 
     // University name
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX + 2, y + 1, {
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.setFont("times", "bold");
+    doc.setFontSize(16);
+    doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX, y, {
       align: "center",
     });
 
     // STUDENT MASTERLIST
-    y += 6;
-    doc.setFontSize(10);
+    y += 7;
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("STUDENT MASTERLIST", centerX + 2, y + 1, { align: "center" });
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("STUDENT MASTERLIST", centerX, y, { align: "center" });
 
     // Semester / School Year line
     if (semesterLine) {
       y += 5;
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(semesterLine, centerX + 2, y + 1, { align: "center" });
+      doc.setTextColor(71, 85, 105); // slate-500
+      doc.text(semesterLine, centerX, y, { align: "center" });
     }
 
     // Divider line
-    y += 6;
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.3);
+    y += 8;
+    doc.setDrawColor(203, 213, 225); // slate-300
+    doc.setLineWidth(0.5);
     doc.line(marginLeft, y, pageWidth - marginRight, y);
 
     // Enrollment line
-    y += 5;
-    doc.setFontSize(8);
+    y += 7;
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
     doc.text(enrollmentLine, marginLeft, y);
 
     // Course and Section row
     y += 5;
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(51, 65, 85);
     if (courseName) {
-      doc.text(`Course : ${courseName}`, marginLeft, y);
+      doc.text(`Course: ${courseName}`, marginLeft, y);
     }
     if (sectionName) {
       doc.setFont("helvetica", "bold");
-      doc.text(`Section :  ${sectionName}`, pageWidth - marginRight, y, {
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Section: ${sectionName}`, pageWidth - marginRight, y, {
         align: "right",
       });
     }
 
-    y += 3;
+    y += 4;
     return y; // next content Y
   }
 
   const tableStartY = drawHeader(doc);
 
-  // ── Table ──────────────────────────────────────────────────────────────────
-  const baseRow = (s, i) => [
-    i + 1,
-    [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
-    s.student_number ?? "—",
-    s.isEnrolled ? "Enrolled" : "Not Enrolled",
-  ];
-  const rows = students.map((s, i) =>
-    withSignature ? [...baseRow(s, i), ""] : baseRow(s, i),
-  );
+  // ── Table Data Mapping ─────────────────────────────────────────────────────
+  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Sec", "Status"];
+  if (withSignature) baseHeaders.push("Signature");
 
-  // Column widths adjust when signature column is present
-  const nameWidth = withSignature ? 65 : 90;
-  const sigColStyle = withSignature ? { 4: { cellWidth: 42 } } : {};
+  const rows = students.map((s, i) => {
+    const fullName = [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", ");
+    const course = s.courseData?.name || s.course || "—";
+    const yearLevel = convertYearLevelForDisplay(s.year_level) || "—";
+    const section = s.section || "—";
+    const enrolledStatus = s.isEnrolled ? "Enrolled" : "Not Enrolled";
+
+    const rowData = [
+      i + 1,
+      fullName,
+      s.student_number ?? "—",
+      course,
+      yearLevel,
+      section,
+      enrolledStatus
+    ];
+    if (withSignature) rowData.push("");
+    return rowData;
+  });
+
+  // Calculate dynamic column widths
+  const getColStyles = () => {
+    if (withSignature) {
+      return {
+        0: { halign: "center", cellWidth: 10 },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 35 },
+        4: { halign: "center", cellWidth: 12 },
+        5: { halign: "center", cellWidth: 10 },
+        6: { halign: "center", cellWidth: 18 },
+        7: { cellWidth: 27 }, // Signature
+      };
+    }
+    return {
+      0: { halign: "center", cellWidth: 12 },
+      1: { cellWidth: 55 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 40 },
+      4: { halign: "center", cellWidth: 15 },
+      5: { halign: "center", cellWidth: 12 },
+      6: { halign: "center", cellWidth: 18 },
+    };
+  };
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [
-      withSignature
-        ? ["#", "Name", "Student No.", "Enrolled", "Signature"]
-        : ["#", "Name", "Student No.", "Enrolled"],
-    ],
+    head: [baseHeaders],
     body: rows,
     theme: "grid",
     headStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [0, 0, 0],
+      fillColor: [248, 250, 252], // slate-50
+      textColor: [15, 23, 42], // slate-900
       fontStyle: "bold",
-      fontSize: 7,
+      fontSize: 8,
       halign: "center",
-      lineColor: [0, 0, 0],
-      lineWidth: 0.3,
-    },
-    bodyStyles: {
-      fontSize: 7,
-      textColor: [0, 0, 0],
-      lineColor: [0, 0, 0],
+      valign: "middle",
+      lineColor: [203, 213, 225], // slate-300
       lineWidth: 0.2,
     },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    columnStyles: {
-      0: { halign: "center", cellWidth: 10 },
-      1: { cellWidth: nameWidth },
-      2: { cellWidth: 40 },
-      3: { halign: "center", cellWidth: 32 },
-      ...sigColStyle,
+    bodyStyles: {
+      fontSize: 8,
+      textColor: [51, 65, 85], // slate-700
+      lineColor: [226, 232, 240], // slate-200
+      lineWidth: 0.1,
+      valign: "middle",
     },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250]
+    },
+    columnStyles: getColStyles(),
     margin: { left: marginLeft, right: marginRight },
+    didDrawCell: (data) => {
+      // Draw a line for the signature cell to make it look ready to sign
+      if (withSignature && data.section === 'body' && data.column.index === 7) {
+        const { x, y, width, height } = data.cell;
+        doc.setDrawColor(148, 163, 184); // slate-400
+        doc.setLineWidth(0.2);
+        // Draw horizontal line in the middle-bottom of the cell
+        doc.line(x + 2, y + height - 2, x + width - 2, y + height - 2);
+      }
+    },
     didDrawPage: (data) => {
       // Footer
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFontSize(7);
-      doc.setTextColor(120);
+      doc.setTextColor(148, 163, 184); // slate-400
+
+      // Left side - Timestamp
+      const printDate = new Date().toLocaleString('en-PH', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      doc.text(`Printed: ${printDate}`, marginLeft, pageHeight - 6);
+
+      // Right side - Page Number
       doc.text(
         `Page ${data.pageNumber} of ${pageCount}`,
-        pageWidth / 2,
-        pageHeight - 5,
-        { align: "center" },
+        pageWidth - marginRight,
+        pageHeight - 6,
+        { align: "right" }
       );
-      doc.setDrawColor(180);
+
+      // Footer Top Border
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setLineWidth(0.3);
       doc.line(
         marginLeft,
-        pageHeight - 8,
+        pageHeight - 9,
         pageWidth - marginRight,
-        pageHeight - 8,
+        pageHeight - 9
       );
     },
   });
@@ -428,13 +483,12 @@ function FormatSubMenu({
         onClick={() =>
           !disabled && onSetScope(activeScope === scope ? null : scope)
         }
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
-          disabled
-            ? "text-gray-300 cursor-not-allowed"
-            : activeScope === scope
-              ? "bg-blue-600 text-white cursor-pointer"
-              : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
-        }`}
+        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${disabled
+          ? "text-gray-300 cursor-not-allowed"
+          : activeScope === scope
+            ? "bg-blue-600 text-white cursor-pointer"
+            : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
+          }`}
       >
         <span className="flex items-center gap-2">
           {label}
