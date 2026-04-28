@@ -72,12 +72,6 @@ const COLUMNS = [
     align: "text-center",
   },
   { key: "section", label: "Section", width: "w-20", align: "text-center" },
-  {
-    key: "card_status",
-    label: "Enrolled",
-    width: "w-24",
-    align: "text-center",
-  },
 ];
 
 function getRawCellValue(col, student, index) {
@@ -104,8 +98,6 @@ function getRawCellValue(col, student, index) {
             day: "numeric",
           })
         : "—";
-    case "card_status":
-      return student.isEnrolled ? "Enrolled" : "Not Enrolled";
     case "signature":
       return "";
     default:
@@ -113,20 +105,8 @@ function getRawCellValue(col, student, index) {
   }
 }
 
-function getCellValue(col, student, index, format) {
+function getCellValue(col, student, index, _format) {
   const raw = getRawCellValue(col, student, index);
-  if (format !== "pdf" && format !== "xlsx" && col.key === "card_status") {
-    const isEnrolled = student.isEnrolled;
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-          isEnrolled ? "bg-green-100 text-green-700 border border-green-200" : "bg-gray-100 text-gray-600 border border-gray-200"
-        }`}
-      >
-        {isEnrolled ? "Enrolled" : "Not Enrolled"}
-      </span>
-    );
-  }
   return raw;
 }
 
@@ -138,16 +118,15 @@ function ExportPreview({
   format,
   scope,
   filterSummary,
+  withSignature,
+  onWithSignatureChange,
+  pdfUrl,
+  pdfLoading,
   onConfirm,
   onClose,
 }) {
   const overlayRef = useRef(null);
   const panelRef = useRef(null);
-  const [withSignature, setWithSignature] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) setWithSignature(false);
-  }, [isOpen]);
 
   const displayColumns = [
     ...COLUMNS,
@@ -221,47 +200,36 @@ function ExportPreview({
 
     if (format === "pdf") {
       return (
-        <div className="flex-1 overflow-auto bg-[#e5e7eb] p-8 flex justify-center relative inner-shadow-container">
-          <div className="bg-white shadow-[0_20px_50px_rgba(0,0,0,0.15)] w-[850px] min-h-[1123px] flex flex-col p-[40px] transform origin-top transition-transform duration-300">
-            {/* Header */}
-            <div className="text-center w-full mb-8 relative">
-              <div className="absolute left-4 top-0 w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center opacity-80 border border-gray-200">
-                <span className="text-[10px] font-bold text-gray-400">LOGO</span>
+        <div className="flex-1 bg-[#e5e7eb] relative inner-shadow-container overflow-hidden">
+          <div className="bg-white h-full w-full overflow-hidden">
+            {(loading || pdfLoading) && (
+              <div className="h-full w-full flex flex-col items-center justify-center gap-4 bg-white">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full blur-md bg-red-400/30 animate-pulse"></div>
+                  <svg className="animate-spin relative z-10 h-12 w-12 text-red-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 font-medium animate-pulse">Rendering PDF preview…</p>
               </div>
-              <h2 className="text-[16px] font-bold tracking-wide text-gray-900 font-serif">PAMANTASAN NG LUNGSOD NG VALENZUELA</h2>
-              <h3 className="text-[14px] font-bold mt-1 text-gray-800">STUDENT MASTERLIST</h3>
-              <div className="text-[11px] text-gray-600 mt-2 font-medium max-w-2xl mx-auto">{filterSummary}</div>
-              <div className="mt-4 border-b-2 border-black w-full"></div>
-            </div>
-            
-            {/* Document Table */}
-            <table className="w-full text-[11px] border-collapse border border-black font-sans">
-              <thead>
-                <tr className="bg-gray-100">
-                  {displayColumns.map((col) => (
-                    <th key={col.key} className="border border-black px-2 py-2 font-bold text-black text-center uppercase tracking-wider">
-                      {col.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student, i) => (
-                  <tr key={student.id ?? i} className="even:bg-gray-50/50">
-                    {displayColumns.map((col) => (
-                      <td key={col.key} className={`border border-black px-2 py-1.5 text-black ${col.key === 'no' ? 'text-center font-medium' : col.align}`}>
-                        {getRawCellValue(col, student, i)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {/* Footer */}
-            <div className="mt-auto pt-10 pb-2 w-full text-center text-[10px] text-gray-500 border-t border-gray-300">
-              Page 1 of {Math.ceil(totalRows / 40)}
-            </div>
+            )}
+
+            {!loading && !pdfLoading && pdfUrl && (
+              <iframe
+                title="PDF Preview"
+                src={pdfUrl}
+                className="w-full h-full"
+                style={{ border: "none" }}
+              />
+            )}
+
+            {!loading && !pdfLoading && !pdfUrl && (
+              <div className="h-full w-full flex flex-col items-center justify-center gap-2 bg-white">
+                <p className="text-gray-600 font-semibold">PDF preview unavailable</p>
+                <p className="text-sm text-gray-500">Try again or proceed to export.</p>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -279,7 +247,7 @@ function ExportPreview({
 
       return (
         <div className="flex-1 overflow-auto bg-[#1e1e1e] p-6 relative group">
-          <div className="absolute top-0 left-0 w-full h-10 bg-[#2d2d2d] border-b border-[#404040] flex items-center px-4 sticky z-10">
+          <div className="sticky top-0 left-0 w-full h-10 bg-[#2d2d2d] border-b border-[#404040] flex items-center px-4 z-10">
             <div className="flex gap-2 mr-4">
               <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
               <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
@@ -305,7 +273,7 @@ function ExportPreview({
                 <tr>
                   <th className="bg-[#f3f2f1] border border-[#c8c6c4] w-12 h-6 sticky left-0 z-30"></th>
                   {displayColumns.map((_, i) => (
-                    <th key={`h-${i}`} className="bg-[#f3f2f1] border border-[#c8c6c4] px-3 py-1 text-center font-normal text-[#605e5c] min-w-[100px] hover:bg-[#e1dfdd] transition-colors cursor-pointer">
+                    <th key={`h-${i}`} className="bg-[#f3f2f1] border border-[#c8c6c4] px-3 py-1 text-center font-normal text-[#605e5c] min-w-25 hover:bg-[#e1dfdd] transition-colors cursor-pointer">
                       {letters[i]}
                     </th>
                   ))}
@@ -313,7 +281,7 @@ function ExportPreview({
                 <tr>
                   <th className="bg-[#f3f2f1] border border-[#c8c6c4] text-center text-[#605e5c] font-normal sticky left-0 z-30 h-8">1</th>
                   {displayColumns.map((col) => (
-                    <th key={`col-${col.key}`} className="border border-[#c8c6c4] px-3 py-1 font-bold text-left bg-white text-gray-800 outline outline-1 outline-transparent hover:outline-blue-400">
+                    <th key={`col-${col.key}`} className="border border-[#c8c6c4] px-3 py-1 font-bold text-left bg-white text-gray-800 outline-1 outline-transparent hover:outline-blue-400">
                       {col.label}
                     </th>
                   ))}
@@ -326,7 +294,7 @@ function ExportPreview({
                       {i + 2}
                     </td>
                     {displayColumns.map((col) => (
-                      <td key={col.key} className={`border border-[#c8c6c4] px-3 py-1.5 text-gray-700 whitespace-nowrap outline outline-1 outline-transparent hover:outline-blue-400 ${col.key === 'no' ? 'text-right pr-4' : 'text-left'}`}>
+                      <td key={col.key} className={`border border-[#c8c6c4] px-3 py-1.5 text-gray-700 whitespace-nowrap outline-1 outline-transparent hover:outline-blue-400 ${col.key === 'no' ? 'text-right pr-4' : 'text-left'}`}>
                         {getRawCellValue(col, student, i)}
                       </td>
                     ))}
@@ -343,7 +311,7 @@ function ExportPreview({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4 sm:p-6"
       style={{
         backgroundColor: "rgba(15, 23, 42, 0.75)",
         backdropFilter: "blur(8px)",
@@ -414,7 +382,7 @@ function ExportPreview({
                   <input
                     type="checkbox"
                     checked={withSignature}
-                    onChange={(e) => setWithSignature(e.target.checked)}
+                    onChange={(e) => onWithSignatureChange?.(e.target.checked)}
                     className="peer sr-only"
                   />
                   <div className="w-5 h-5 border-2 border-gray-300 rounded peer-checked:bg-red-600 peer-checked:border-red-600 transition-all"></div>
@@ -443,7 +411,7 @@ function ExportPreview({
             </button>
             <button
               disabled={loading || totalRows === 0}
-              onClick={() => onConfirm(withSignature)}
+              onClick={() => onConfirm()}
               className={`group inline-flex items-center gap-2.5 px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none ${meta.btnClass}`}
             >
               <svg

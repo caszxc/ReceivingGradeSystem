@@ -52,7 +52,9 @@ function buildFilterSummary(filters, students = [], filterOptions = {}) {
       (ay) => ay.value == filters.academicYear,
     );
     const ayName = academicYearObj
-      ? academicYearObj.label.replace(" (Active)", "")
+      ? String(academicYearObj.label || "")
+          .replace(/\s*\((?:active)\)\s*$/i, "")
+          .trim()
       : filters.academicYear;
     parts.push("A.Y. " + ayName);
   }
@@ -79,7 +81,6 @@ async function fetchStudentData({
       page: 1,
     });
 
-    if (filters?.academicYear) p.set("academicYear", filters.academicYear);
     if (filters?.yearLevel) p.set("yearLevel", filters.yearLevel);
     if (filters?.semester) p.set("semester", filters.semester);
     if (filters?.course) p.set("course", filters.course);
@@ -151,9 +152,9 @@ async function renderPdf({
   students,
   filters,
   filterOptions,
-  scope,
   now,
   withSignature,
+  output = "save",
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -180,10 +181,13 @@ async function renderPdf({
       (ay) => ay.id == filters.academicYear || ay.value == filters.academicYear,
     );
     if (academicYearObj) {
-      const ayName = academicYearObj.academic_year || academicYearObj.label;
-      const parts = ayName.split("-");
-      ayFrom = parts[0];
-      ayTo = parts[1];
+      const ayRaw = academicYearObj.academic_year || academicYearObj.label || "";
+      const ayName = String(ayRaw)
+        .replace(/\s*\((?:active)\)\s*$/i, "")
+        .trim();
+      const parts = ayName.split("-").map((p) => p.trim());
+      ayFrom = parts[0] || "";
+      ayTo = parts[1] || "";
     }
   }
 
@@ -192,11 +196,6 @@ async function renderPdf({
     semLabel && schoolYear
       ? `${semLabel} ${schoolYear}`
       : semLabel || schoolYear || "";
-
-  const enrollmentLine =
-    semLabel && ayFrom && ayTo
-      ? `MASTERLIST ENROLLMENT ${semLabel.toUpperCase()} A.Y (${ayFrom}-${ayTo})`
-      : "MASTERLIST ENROLLMENT";
 
   const selectedCourseId =
     filters && filters.course ? String(filters.course) : "";
@@ -217,30 +216,38 @@ async function renderPdf({
 
   // ── Draw premium header ──────────────────────────────────────────────
   function drawHeader(doc) {
-    const centerX = pageWidth / 2;
-    let y = 16;
+    const top = 12;
 
-    // Logo
-    const logoSize = 22;
-    const logoX = centerX - 85;
-    if (logoDataUrl) {
-      doc.addImage(logoDataUrl, "PNG", logoX, y - 6, logoSize, logoSize);
-    }
+    // Header block (logo + text) should feel unified
+    const logoSize = 18;
+    const logoX = marginLeft;
+    const logoY = top;
+    const gap = 4;
+    const textX = logoDataUrl ? logoX + logoSize + gap : marginLeft;
+    const maxTextWidth = pageWidth - marginRight - textX;
+    if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
 
     // University name
     doc.setTextColor(15, 23, 42); // slate-900
     doc.setFont("times", "bold");
     doc.setFontSize(16);
-    doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX, y, {
-      align: "center",
-    });
+    const title = "PAMANTASAN NG LUNGSOD NG VALENZUELA";
+    const titleLines = doc.splitTextToSize(title, maxTextWidth);
+
+    // Vertically align title with logo
+    const titleLineHeight = 6;
+    const titleBlockHeight = titleLines.length * titleLineHeight;
+    const logoBlockHeight = logoDataUrl ? logoSize : 0;
+    const headerBlockHeight = Math.max(logoBlockHeight, titleBlockHeight);
+    const titleY = top + Math.max(0, (headerBlockHeight - titleBlockHeight) / 2) + 5;
+    doc.text(titleLines, textX, titleY);
 
     // STUDENT MASTERLIST
-    y += 7;
+    let y = top + headerBlockHeight + 4;
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(30, 41, 59); // slate-800
-    doc.text("STUDENT MASTERLIST", centerX, y, { align: "center" });
+    doc.text("STUDENT MASTERLIST", textX, y);
 
     // Semester / School Year line
     if (semesterLine) {
@@ -248,7 +255,7 @@ async function renderPdf({
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(71, 85, 105); // slate-500
-      doc.text(semesterLine, centerX, y, { align: "center" });
+      doc.text(semesterLine, textX, y);
     }
 
     // Divider line
@@ -257,15 +264,8 @@ async function renderPdf({
     doc.setLineWidth(0.5);
     doc.line(marginLeft, y, pageWidth - marginRight, y);
 
-    // Enrollment line
-    y += 7;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(15, 23, 42);
-    doc.text(enrollmentLine, marginLeft, y);
-
     // Course and Section row
-    y += 5;
+    y += 6;
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(51, 65, 85);
@@ -287,7 +287,7 @@ async function renderPdf({
   const tableStartY = drawHeader(doc);
 
   // ── Table Data Mapping ─────────────────────────────────────────────────────
-  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Sec", "Status"];
+  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Sec"];
   if (withSignature) baseHeaders.push("Signature");
 
   const rows = students.map((s, i) => {
@@ -295,7 +295,6 @@ async function renderPdf({
     const course = s.courseData?.name || s.course || "—";
     const yearLevel = convertYearLevelForDisplay(s.year_level) || "—";
     const section = s.section || "—";
-    const enrolledStatus = s.isEnrolled ? "Enrolled" : "Not Enrolled";
 
     const rowData = [
       i + 1,
@@ -304,7 +303,6 @@ async function renderPdf({
       course,
       yearLevel,
       section,
-      enrolledStatus
     ];
     if (withSignature) rowData.push("");
     return rowData;
@@ -314,24 +312,22 @@ async function renderPdf({
   const getColStyles = () => {
     if (withSignature) {
       return {
-        0: { halign: "center", cellWidth: 10 },
-        1: { cellWidth: 45 },
-        2: { cellWidth: 25 },
-        3: { cellWidth: 35 },
-        4: { halign: "center", cellWidth: 12 },
+        0: { halign: "center", cellWidth: 8 },
+        1: { cellWidth: 55 },
+        2: { halign: "center", cellWidth: 20 },
+        3: { cellWidth: 55 },
+        4: { halign: "center", cellWidth: 10 },
         5: { halign: "center", cellWidth: 10 },
-        6: { halign: "center", cellWidth: 18 },
-        7: { cellWidth: 27 }, // Signature
+        6: { cellWidth: 24 }, // Signature
       };
     }
     return {
-      0: { halign: "center", cellWidth: 12 },
-      1: { cellWidth: 55 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 40 },
-      4: { halign: "center", cellWidth: 15 },
-      5: { halign: "center", cellWidth: 12 },
-      6: { halign: "center", cellWidth: 18 },
+      0: { halign: "center", cellWidth: 10 },
+      1: { cellWidth: 60 },
+      2: { halign: "center", cellWidth: 22 },
+      3: { cellWidth: 65 },
+      4: { halign: "center", cellWidth: 10 },
+      5: { halign: "center", cellWidth: 15 },
     };
   };
 
@@ -340,31 +336,36 @@ async function renderPdf({
     head: [baseHeaders],
     body: rows,
     theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: 3,
+      overflow: "linebreak",
+      lineColor: [226, 232, 240], // slate-200
+      lineWidth: 0.15,
+      valign: "middle",
+    },
     headStyles: {
-      fillColor: [248, 250, 252], // slate-50
+      fillColor: [241, 245, 249], // slate-100-ish
       textColor: [15, 23, 42], // slate-900
       fontStyle: "bold",
-      fontSize: 8,
+      fontSize: 9,
       halign: "center",
       valign: "middle",
       lineColor: [203, 213, 225], // slate-300
       lineWidth: 0.2,
     },
     bodyStyles: {
-      fontSize: 8,
       textColor: [51, 65, 85], // slate-700
-      lineColor: [226, 232, 240], // slate-200
-      lineWidth: 0.1,
-      valign: "middle",
     },
     alternateRowStyles: {
-      fillColor: [250, 250, 250]
+      fillColor: [250, 250, 250],
     },
     columnStyles: getColStyles(),
     margin: { left: marginLeft, right: marginRight },
     didDrawCell: (data) => {
       // Draw a line for the signature cell to make it look ready to sign
-      if (withSignature && data.section === 'body' && data.column.index === 7) {
+      if (withSignature && data.section === 'body' && data.column.index === 6) {
         const { x, y, width, height } = data.cell;
         doc.setDrawColor(148, 163, 184); // slate-400
         doc.setLineWidth(0.2);
@@ -407,7 +408,15 @@ async function renderPdf({
 
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const ayLabel = ayFrom && ayTo ? `AY_${ayFrom}-${ayTo}` : "ALL";
-  doc.save(`student_masterlist_${ayLabel}_${timestamp}.pdf`);
+  const fileName = `student_masterlist_${ayLabel}_${timestamp}.pdf`;
+
+  if (output === "blob") {
+    const blob = doc.output("blob");
+    return { blob, fileName };
+  }
+
+  doc.save(fileName);
+  return { fileName };
 }
 
 // ── xlsx / csv downloader (backend) ──────────────────────────────────────────
@@ -594,7 +603,55 @@ function ExportButton({
     students: [],
     format: "xlsx",
     scope: "all",
+    now: null,
+    withSignature: false,
+    pdfLoading: false,
+    pdfUrl: null,
+    pdfBlob: null,
+    pdfFileName: null,
   });
+
+  // Cleanup any object URLs we create
+  useEffect(() => {
+    return () => {
+      if (preview.pdfUrl) URL.revokeObjectURL(preview.pdfUrl);
+    };
+    // Intentionally run only on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const generatePdfPreview = useCallback(
+    async ({ students, withSignature, now }) => {
+      // Revoke old URL first to avoid leaks
+      setPreview((p) => {
+        if (p.pdfUrl) URL.revokeObjectURL(p.pdfUrl);
+        return { ...p, pdfLoading: true, pdfUrl: null, pdfBlob: null, pdfFileName: null };
+      });
+
+      try {
+        const { blob, fileName } = await renderPdf({
+          students,
+          filters,
+          filterOptions,
+          now,
+          withSignature,
+          output: "blob",
+        });
+        const url = URL.createObjectURL(blob);
+        setPreview((p) => ({
+          ...p,
+          pdfLoading: false,
+          pdfUrl: url,
+          pdfBlob: blob,
+          pdfFileName: fileName,
+        }));
+      } catch (e) {
+        console.error("PDF preview generation failed:", e);
+        setPreview((p) => ({ ...p, pdfLoading: false }));
+      }
+    },
+    [filters, filterOptions],
+  );
 
   // Snapshot of params at the moment user clicked — used on confirm
   const pendingRef = useRef(null);
@@ -636,7 +693,20 @@ function ExportButton({
       };
 
       // Open preview in loading state
-      setPreview({ isOpen: true, loading: true, students: [], format, scope });
+      const now = new Date();
+      setPreview({
+        isOpen: true,
+        loading: true,
+        students: [],
+        format,
+        scope,
+        now,
+        withSignature: false,
+        pdfLoading: false,
+        pdfUrl: null,
+        pdfBlob: null,
+        pdfFileName: null,
+      });
 
       try {
         const students = await fetchStudentData({
@@ -650,6 +720,10 @@ function ExportButton({
           filters,
         });
         setPreview((p) => ({ ...p, loading: false, students }));
+
+        if (format === "pdf") {
+          await generatePdfPreview({ students, withSignature: false, now });
+        }
       } catch (err) {
         console.error("Preview fetch error:", err);
         setPreview((p) => ({ ...p, loading: false }));
@@ -664,13 +738,14 @@ function ExportButton({
       itemsPerPage,
       selectedIds,
       filters,
+      generatePdfPreview,
     ],
   );
 
   // ── Confirm: do the actual export ────────────────────────────────────────
   const handleConfirm = useCallback(
-    async (withSignature = false) => {
-      const { scope, format, students } = preview;
+    async () => {
+      const { format, students, pdfBlob, pdfFileName, now, withSignature } = preview;
       const params = pendingRef.current;
       if (!params) return;
 
@@ -678,14 +753,27 @@ function ExportButton({
 
       try {
         if (format === "pdf") {
-          await renderPdf({
-            students,
-            filters: params.filters,
-            filterOptions, // Add this line
-            scope,
-            now: new Date(),
-            withSignature,
-          });
+          // Download the exact PDF that was previewed (WYSIWYG)
+          if (pdfBlob && pdfFileName) {
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = pdfFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } else {
+            // Fallback: generate and save
+            await renderPdf({
+              students,
+              filters: params.filters,
+              filterOptions,
+              now: now || new Date(),
+              withSignature,
+              output: "save",
+            });
+          }
         } else {
           await downloadFile(params);
         }
@@ -694,7 +782,7 @@ function ExportButton({
         alert("Export failed. Please try again.");
       }
     },
-    [preview, filterOptions], // Add filterOptions to dependencies
+    [preview, filterOptions],
   );
 
   const filterSummary = buildFilterSummary(
@@ -809,8 +897,26 @@ function ExportButton({
         format={preview.format}
         scope={preview.scope}
         filterSummary={filterSummary}
+        withSignature={preview.withSignature}
+        onWithSignatureChange={async (next) => {
+          setPreview((p) => ({ ...p, withSignature: next }));
+          if (preview.format === "pdf" && preview.students?.length) {
+            await generatePdfPreview({
+              students: preview.students,
+              withSignature: next,
+              now: preview.now || new Date(),
+            });
+          }
+        }}
+        pdfUrl={preview.pdfUrl}
+        pdfLoading={preview.pdfLoading}
         onConfirm={handleConfirm}
-        onClose={() => setPreview((p) => ({ ...p, isOpen: false }))}
+        onClose={() =>
+          setPreview((p) => {
+            if (p.pdfUrl) URL.revokeObjectURL(p.pdfUrl);
+            return { ...p, isOpen: false, pdfUrl: null, pdfBlob: null, pdfFileName: null };
+          })
+        }
       />
     </>
   );

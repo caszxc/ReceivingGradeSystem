@@ -132,9 +132,6 @@ function Dashboard() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
       if (dateYearRef.current && !dateYearRef.current.contains(event.target)) {
         setDateYearDropdownOpen(false);
       }
@@ -547,6 +544,8 @@ function Dashboard() {
     `,
         focusConfirm: false,
         showCancelButton: true,
+      showLoaderOnConfirm: true,
+      allowOutsideClick: () => !swal.isLoading(),
         didOpen: () => {
           // Add event listener to course dropdown
           const courseSelect = document.getElementById("course_id");
@@ -629,15 +628,91 @@ function Dashboard() {
             }
           });
         },
-        preConfirm: () => {
-          const student_number =
+        preConfirm: async () => {
+          const normalizeText = (v) =>
+            (v ?? "").toString().trim().replace(/\s+/g, " ");
+          const normalizeStudentNumber = (v) =>
+            normalizeText(v).toUpperCase().replace(/\s+/g, "");
+
+          const rawStudentNumber =
             document.getElementById("student_number").value;
-          const first_name = document.getElementById("first_name").value;
-          const middle_name = document.getElementById("middle_name").value;
-          const last_name = document.getElementById("last_name").value;
+          const rawFirstName = document.getElementById("first_name").value;
+          const rawMiddleName = document.getElementById("middle_name").value;
+          const rawLastName = document.getElementById("last_name").value;
           const course_id = document.getElementById("course_id").value;
           const year_level = document.getElementById("year_level").value;
-          const section = document.getElementById("add_section").value;
+          const rawSection = document.getElementById("add_section").value;
+
+          const student_number = normalizeStudentNumber(rawStudentNumber);
+          const first_name = normalizeText(rawFirstName);
+          const middle_name = normalizeText(rawMiddleName);
+          const last_name = normalizeText(rawLastName);
+          const section = normalizeText(rawSection);
+
+          if (!student_number) {
+            swal.showValidationMessage("Student Number is required");
+            return false;
+          }
+
+          // Basic safety: keep student numbers simple to avoid accidental duplicates
+          if (!/^[A-Z0-9-]+$/.test(student_number)) {
+            swal.showValidationMessage(
+              "Student Number must contain only letters, numbers, and dashes",
+            );
+            return false;
+          }
+
+          if (!first_name) {
+            swal.showValidationMessage("First Name is required");
+            return false;
+          }
+          if (!last_name) {
+            swal.showValidationMessage("Last Name is required");
+            return false;
+          }
+          if (!course_id) {
+            swal.showValidationMessage("Course is required");
+            return false;
+          }
+          if (!year_level) {
+            swal.showValidationMessage("Year Level is required");
+            return false;
+          }
+          if (!section) {
+            swal.showValidationMessage("Section is required");
+            return false;
+          }
+
+          // Duplicate check BEFORE confirming, to avoid adding duplicates.
+          try {
+            const dup = await axios.get(`${BASE_URL}/students/searchStudent`, {
+              params: {
+                query: student_number,
+                searchBy: "studentNumber",
+                limit: 1,
+                page: 1,
+              },
+            });
+
+            const count = Number(dup?.data?.count ?? 0);
+            if (count > 0) {
+              swal.showValidationMessage(
+                `Student Number already exists: ${student_number}`,
+              );
+              return false;
+            }
+          } catch (e) {
+            const apiMessage =
+              e?.response?.data?.error ||
+              e?.response?.data?.message ||
+              e?.message;
+            swal.showValidationMessage(
+              apiMessage
+                ? `Could not validate Student Number: ${apiMessage}`
+                : "Could not validate Student Number. Please try again.",
+            );
+            return false;
+          }
 
           return {
             student_number,

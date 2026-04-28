@@ -861,7 +861,6 @@ router.get("/exportStudents", async (req, res) => {
       Course: s.course || s.courseData?.name || "",
       "Year Level": s.year_level || "",
       Section: s.section || "",
-      Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();
@@ -1318,9 +1317,50 @@ router.post("/addStudent", async (req, res) => {
       section,
     } = bodyData;
 
-    // Check if serial number already exists
+    const normalizeText = (v) =>
+      (v ?? "").toString().trim().replace(/\s+/g, " ");
+    const normalizeStudentNumber = (v) =>
+      normalizeText(v).toUpperCase().replace(/\s+/g, "");
+
+    const normalizedStudentNumber = normalizeStudentNumber(student_number);
+    const normalizedFirstName = normalizeText(first_name);
+    const normalizedMiddleName = normalizeText(middle_name);
+    const normalizedLastName = normalizeText(last_name);
+    const normalizedSection = normalizeText(section);
+    const normalizedYearLevel = normalizeText(year_level);
+    const parsedCourseId =
+      course_id === null || course_id === undefined || course_id === ""
+        ? null
+        : parseInt(course_id);
+
+    // Required fields (matches the Add New Student form expectations)
+    if (!normalizedStudentNumber) {
+      return res.status(400).json({ error: "Student number is required" });
+    }
+    if (!/^[A-Z0-9-]+$/.test(normalizedStudentNumber)) {
+      return res.status(400).json({
+        error: "Student number must contain only letters, numbers, and dashes",
+      });
+    }
+    if (!normalizedFirstName) {
+      return res.status(400).json({ error: "First name is required" });
+    }
+    if (!normalizedLastName) {
+      return res.status(400).json({ error: "Last name is required" });
+    }
+    if (!parsedCourseId || Number.isNaN(parsedCourseId)) {
+      return res.status(400).json({ error: "Course is required" });
+    }
+    if (!normalizedYearLevel) {
+      return res.status(400).json({ error: "Year level is required" });
+    }
+    if (!normalizedSection) {
+      return res.status(400).json({ error: "Section is required" });
+    }
+
+    // Check if student number already exists
     const existingStudent = await Student.findOne({
-      where: { student_number: student_number.toUpperCase() },
+      where: { student_number: normalizedStudentNumber },
     });
 
     if (existingStudent) {
@@ -1330,13 +1370,13 @@ router.post("/addStudent", async (req, res) => {
     // Create new student with separate name fields
     const newStudent = await Student.create({
       card_serial_number: card_serial_number || null,
-      student_number: student_number.toUpperCase(),
-      first_name: first_name || null,
-      middle_name: middle_name || null,
-      last_name: last_name || null,
-      course_id: course_id ? parseInt(course_id) : null, //  Parse only course_id
-      year_level: year_level || null, // Keep as STRING
-      section: section || null,
+      student_number: normalizedStudentNumber,
+      first_name: normalizedFirstName || null,
+      middle_name: normalizedMiddleName || null,
+      last_name: normalizedLastName || null,
+      course_id: parsedCourseId,
+      year_level: normalizedYearLevel || null,
+      section: normalizedSection || null,
     });
 
     res.json({
