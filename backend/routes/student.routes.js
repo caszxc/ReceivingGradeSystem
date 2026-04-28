@@ -305,14 +305,14 @@ router.get("/getStudent", async (req, res) => {
 
 // Search students
 router.get("/searchStudent", async (req, res) => {
-  const { query } = req.query;
+  const { query, serial, studentNumber, name } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
-  if (!query) {
-    return res.status(400).json({ error: "Search query is required" });
+  if (!query && !serial && !studentNumber && !name) {
+    return res.status(400).json({ error: "At least one search field is required" });
   }
 
   // Extract filter parameters
@@ -337,11 +337,30 @@ router.get("/searchStudent", async (req, res) => {
       filtersForStudent.section = null;
     }
 
-    const whereClause = buildWhereClause(
-      query,
-      filtersForStudent,
-      !!filters.academicYear,
-    );
+    const { Op } = require("sequelize");
+    let whereClause = {};
+
+    if (serial || studentNumber || name) {
+      if (serial) {
+        whereClause.card_serial_number = { [Op.like]: `%${serial.trim()}%` };
+      }
+      if (studentNumber) {
+        whereClause.student_number = { [Op.like]: `%${studentNumber.trim()}%` };
+      }
+      if (name) {
+        whereClause[Op.or] = [
+          {first_name: { [Op.like]: `%${name.trim()}%` } },
+          {middle_name: { [Op.like]: `%${name.trim()}%` } },
+          {last_name: { [Op.like]: `%${name.trim()}%` } },
+        ];
+      }
+    } else {
+      whereClause = buildWhereClause(
+        query,
+        filtersForStudent,
+        !!filters.academicYear,
+      );
+    }
 
     let findOptions = {
       where: whereClause,
