@@ -42,66 +42,88 @@ function getSortOrder(sortBy, sortOrder) {
   return [[col, dir]];
 }
 
-function buildWhereClause(query, filters, isFromEnrollment = false) {
+function buildWhereClause(query, filters, isFromEnrollment = false, searchBy) {
   let whereClause = {};
   const andConditions = [];
 
   // Handle search query
   if (query && query.trim() !== "") {
     const searchQuery = query.trim().toUpperCase().replace(/\s+/g, " ");
-    andConditions.push({
-      [Op.or]: [
-        sequelize.where(
-          sequelize.fn("UPPER", sequelize.col("student_number")),
-          { [Op.like]: `%${searchQuery}%` },
+ 
+
+    const likeCol = (col) =>
+      sequelize.where(sequelize.fn("UPPER", sequelize.col(col)), {
+        [Op.like]: `%${searchQuery}%`,
+      });
+
+    const eqCol = (col) =>
+      sequelize.where(sequelize.fn("UPPER", sequelize.col(col)), {
+        [Op.eq]: searchQuery,
+      });
+
+    const likeFullNameFirst = sequelize.where(
+      sequelize.fn(
+        "UPPER",
+        sequelize.fn(
+          "CONCAT_WS",
+          " ",
+          sequelize.col("first_name"),
+          sequelize.col("middle_name"),
+          sequelize.col("last_name"),
         ),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("first_name")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("middle_name")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("last_name")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_type")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
-        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_status")), {
-          [Op.like]: `%${searchQuery}%`,
-        }),
-        sequelize.where(
-          sequelize.fn("UPPER", sequelize.col("card_serial_number")),
-          { [Op.like]: `%${searchQuery}%` },
+      ),
+      { [Op.like]: `%${searchQuery}%` },
+    );
+
+    const likeFullNameLast = sequelize.where(
+      sequelize.fn(
+        "UPPER",
+        sequelize.fn(
+          "CONCAT_WS",
+          " ",
+          sequelize.col("last_name"),
+          sequelize.col("first_name"),
+          sequelize.col("middle_name"),
         ),
-        sequelize.where(
-          sequelize.fn(
-            "UPPER",
-            sequelize.fn(
-              "CONCAT_WS",
-              " ",
-              sequelize.col("first_name"),
-              sequelize.col("middle_name"),
-              sequelize.col("last_name"),
-            ),
-          ),
-          { [Op.like]: `%${searchQuery}%` },
-        ),
-        sequelize.where(
-          sequelize.fn(
-            "UPPER",
-            sequelize.fn(
-              "CONCAT_WS",
-              " ",
-              sequelize.col("last_name"),
-              sequelize.col("first_name"),
-              sequelize.col("middle_name"),
-            ),
-          ),
-          { [Op.like]: `%${searchQuery}%` },
-        ),
-      ],
-    });
+      ),
+      { [Op.like]: `%${searchQuery}%` },
+    );
+
+    let searchTargets;
+    switch (searchBy) {
+      case "serial":
+        // Identifiers: exact match to avoid cross-field substring matches
+        searchTargets = [eqCol("card_serial_number")];
+        break;
+      case "studentNumber":
+        // Identifiers: exact match to avoid cross-field substring matches
+        searchTargets = [eqCol("student_number")];
+        break;
+      case "name":
+        searchTargets = [
+          likeCol("first_name"),
+          likeCol("middle_name"),
+          likeCol("last_name"),
+          likeFullNameFirst,
+          likeFullNameLast,
+        ];
+        break;
+      default:
+        searchTargets = [
+          likeCol("student_number"),
+          likeCol("first_name"),
+          likeCol("middle_name"),
+          likeCol("last_name"),
+          likeCol("card_type"),
+          likeCol("card_status"),
+          likeCol("card_serial_number"),
+          likeFullNameFirst,
+          likeFullNameLast,
+        ];
+        break;
+    }
+
+    andConditions.push({ [Op.or]: searchTargets });
   }
 
   if (filters.yearLevel) {
@@ -306,6 +328,7 @@ router.get("/getStudent", async (req, res) => {
 // Search students
 router.get("/searchStudent", async (req, res) => {
   const { query } = req.query;
+  const searchBy = req.query.searchBy ? String(req.query.searchBy) : undefined;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
@@ -313,6 +336,15 @@ router.get("/searchStudent", async (req, res) => {
 
   if (!query) {
     return res.status(400).json({ error: "Search query is required" });
+  }
+
+  if (
+    searchBy &&
+    searchBy !== "serial" &&
+    searchBy !== "studentNumber" &&
+    searchBy !== "name"
+  ) {
+    return res.status(400).json({ error: "Invalid searchBy" });
   }
 
   // Extract filter parameters
@@ -341,6 +373,7 @@ router.get("/searchStudent", async (req, res) => {
       query,
       filtersForStudent,
       !!filters.academicYear,
+      searchBy,
     );
 
     let findOptions = {

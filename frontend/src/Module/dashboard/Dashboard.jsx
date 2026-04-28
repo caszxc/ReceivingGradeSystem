@@ -815,7 +815,6 @@ function Dashboard() {
           cancelButtonColor: "#6b7280",
           focusConfirm: false,
           didOpen: async () => {
-            const searchButton = swal.getConfirmButton();
             const searchSerialInput = document.getElementById(
               "search_serial_number",
             );
@@ -829,7 +828,7 @@ function Dashboard() {
             const searchResults = document.getElementById("search_results");
 
             // Search function
-            const performSearch = async (sourceInput = null) => {
+            const performSearch = async () => {
               const serial = searchSerialInput.value.trim();
               const studentNumber = searchNumberInput.value.trim();
               const name = searchNameInput.value.trim();
@@ -841,12 +840,35 @@ function Dashboard() {
                 return;
               }
 
+              // Validate that serial and student number fields are not both filled
+              if (serial && studentNumber) {
+                swal.showValidationMessage(
+                  "Please use either Serial Number OR Student Number field, not both",
+                );
+                return;
+              }
+
+              // Determine which field is being used and validate accordingly
+              let searchQuery = "";
+              let searchBy = "";
+              if (serial) {
+                // Serial number field: search only by serial
+                searchQuery = serial;
+                searchBy = "serial";
+              } else if (studentNumber) {
+                // Student number field: search only by student number
+                searchQuery = studentNumber;
+                searchBy = "studentNumber";
+              } else if (name) {
+                // Name field: search by name
+                searchQuery = name;
+                searchBy = "name";
+              }
+
               try {
                 searchResults.innerHTML =
                   '<div class="text-xs text-gray-500 p-2">Searching...</div>';
                 searchResultsContainer.classList.remove("hidden");
-
-                const searchQuery = serial || studentNumber || name;
                 // const response = await fetch(
                 //   `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
                 // );
@@ -857,6 +879,7 @@ function Dashboard() {
                     params: {
                       query: searchQuery,
                       limit: 10,
+                      searchBy,
                     },
                   },
                 );
@@ -947,7 +970,7 @@ function Dashboard() {
             const handleEnterKey = async (e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                await performSearch(e.target.id);
+                await performSearch();
               }
             };
 
