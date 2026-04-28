@@ -1424,6 +1424,42 @@ router.put("/updateStudent/:id", async (req, res) => {
       semester,
     } = bodyData;
 
+    const { Op } = require("sequelize");
+
+    // Check if the new serial number (if changed) already exists for another student
+    if (card_serial_number && card_serial_number !== student.card_serial_number) {
+      const existingStudent = await Student.findOne({
+        where: {
+          card_serial_number: card_serial_number,
+          id: { [Op.ne]: student.id }, // Exclude current student
+        },
+      });
+
+      if (existingStudent) {
+        return res.status(400).json({ 
+          message: "Serial number already exists",
+          field: "card_serial_number",
+        });
+      }
+    }
+
+    // Check if the new student number (if changed) already exists for another student
+    if (student_number && student_number.toUpperCase() !== student.student_number.toUpperCase()) {
+      const existingStudent = await Student.findOne({
+        where: {
+          student_number: student_number.toUpperCase(),
+          id: { [Op.ne]: student.id }, // Exclude current student
+        },
+      });
+
+      if (existingStudent) {
+        return res.status(400).json({ 
+          message: "Student number already exists",
+          field: "student_number",
+        });
+      }
+    }
+
     const hasEnrollment =
       student.StudentEnrollments && student.StudentEnrollments.length > 0;
 
@@ -1473,8 +1509,10 @@ router.put("/updateStudent/:id", async (req, res) => {
     res.json({ success: true, message: "Student updated successfully" });
   } catch (err) {
     console.error("Update error:", err);
-    console.error("Update error FULL:", err);
-    console.error("Validation errors:", err.errors);
+
+    res.status(500).json({
+      message: "Server error while updating student", 
+    });
   }
 });
 

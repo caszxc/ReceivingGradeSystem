@@ -208,9 +208,11 @@ function ViewStudent() {
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to update student:", error);
+
+      const message = error.response?.data?.message || "Failed to update student information.";
       swal.fire({
         title: "Error",
-        text: "Failed to update student information.",
+        text: message,
         icon: "error",
       });
     }
