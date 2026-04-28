@@ -474,113 +474,6 @@ async function downloadFile({
   URL.revokeObjectURL(objectUrl);
 }
 
-// ── Reusable scope row with collapsible format sub-panel ──────────────────────
-function FormatSubMenu({
-  scope,
-  label,
-  activeScope,
-  onSetScope,
-  onExport,
-  selectedCount,
-}) {
-  const disabled = scope === "selected" && selectedCount === 0;
-
-  return (
-    <div className="border-b border-gray-100 last:border-0">
-      {/* Scope label row */}
-      <div
-        onClick={() =>
-          !disabled && onSetScope(activeScope === scope ? null : scope)
-        }
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${disabled
-          ? "text-gray-300 cursor-not-allowed"
-          : activeScope === scope
-            ? "bg-blue-600 text-white cursor-pointer"
-            : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
-          }`}
-      >
-        <span className="flex items-center gap-2">
-          {label}
-          {scope === "selected" && selectedCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full leading-none">
-              {selectedCount}
-            </span>
-          )}
-        </span>
-        {!disabled && (
-          <svg
-            className={`h-3 w-3 opacity-60 transition-transform duration-150 ${activeScope === scope ? "rotate-90" : ""}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )}
-      </div>
-
-      {/* Format sub-panel */}
-      {activeScope === scope && (
-        <div className="bg-gray-50 border-t border-gray-100">
-          {/* Excel */}
-          <button
-            onClick={() => onExport(scope, "xlsx")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-green-600"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
-            </svg>
-            Excel (.xlsx)
-          </button>
-
-          {/* CSV */}
-          <button
-            onClick={() => onExport(scope, "csv")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-blue-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            CSV (.csv)
-          </button>
-
-          {/* PDF */}
-          <button
-            onClick={() => onExport(scope, "pdf")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-red-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM11.5 18H10v-5h1.5c1.1 0 2 .9 2 2s-.9 2-2 2zm0-3.5H11v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5zm3 3.5v-5h1c1.1 0 2 .9 2 2v1c0 1.1-.9 2-2 2h-1zm1-3.5v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5H15zm-8 3.5v-5h3v1h-2v1h2v1h-2v2H7z" />
-            </svg>
-            PDF (.pdf)
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main ExportButton component ───────────────────────────────────────────────
 function ExportButton({
   searchQuery,
@@ -593,7 +486,6 @@ function ExportButton({
   filters = {},
 }) {
   const [open, setOpen] = useState(false);
-  const [activeScope, setActiveScope] = useState(null);
   const menuRef = useRef(null);
 
   // ── Preview modal state ───────────────────────────────────────────────────
@@ -661,7 +553,6 @@ function ExportButton({
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
-        setActiveScope(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -672,7 +563,6 @@ function ExportButton({
   const handleExport = useCallback(
     async (scope, format) => {
       setOpen(false);
-      setActiveScope(null);
 
       if (scope === "selected" && selectedIds.size === 0) {
         alert("Please select at least one row to export.");
@@ -799,7 +689,6 @@ function ExportButton({
         <button
           onClick={() => {
             setOpen(true);
-            setActiveScope("all");
           }}
           className="inline-flex items-center gap-2 pl-4 pr-3 py-3 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-l-lg hover:bg-blue-500 focus:outline-none transition-colors"
         >
@@ -823,7 +712,6 @@ function ExportButton({
         <button
           onClick={() => {
             setOpen((p) => !p);
-            setActiveScope(null);
           }}
           className="inline-flex items-center px-2.5 py-2 bg-blue-700 text-white rounded-r-lg border-l border-blue-500 hover:bg-blue-600 focus:outline-none transition-colors"
         >
@@ -861,30 +749,56 @@ function ExportButton({
               )
             }
 
-            <FormatSubMenu
-              scope="all"
-              label="All"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
-            <FormatSubMenu
-              scope="page"
-              label="Current page"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
-            <FormatSubMenu
-              scope="selected"
-              label="Selected rows"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
+            {/* Excel */}
+            <button
+              onClick={() => handleExport("all", "xlsx")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-green-600"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
+              </svg>
+              Excel (.xlsx)
+            </button>
+
+            {/* CSV */}
+            <button
+              onClick={() => handleExport("all", "csv")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              CSV (.csv)
+            </button>
+
+            {/* PDF */}
+            <button
+              onClick={() => handleExport("all", "pdf")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM11.5 18H10v-5h1.5c1.1 0 2 .9 2 2s-.9 2-2 2zm0-3.5H11v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5zm3 3.5v-5h1c1.1 0 2 .9 2 2v1c0 1.1-.9 2-2 2h-1zm1-3.5v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5H15zm-8 3.5v-5h3v1h-2v1h2v1h-2v2H7z" />
+              </svg>
+              PDF (.pdf)
+            </button>
           </div>
         )}
       </div>
