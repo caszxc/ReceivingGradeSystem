@@ -9,6 +9,7 @@ import {
   AiOutlineSetting,
   AiOutlineLogout,
 } from "react-icons/ai";
+import { MdOutlineSpaceDashboard } from "react-icons/md";
 
 const Sidebar = () => {
   const { user, logout, isSuperAdmin } = useAuth();
@@ -30,7 +31,7 @@ const Sidebar = () => {
     {
       name: "Dashboard",
       path: "/dashboard",
-      icon: <AiOutlineDashboard size={22} />,
+      icon: <MdOutlineSpaceDashboard size={22} />,
     },
   ];
 
