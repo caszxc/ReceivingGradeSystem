@@ -17,6 +17,7 @@ function ViewStudent() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState(null);
+  const [activeSemester, setActiveSemester] = useState("1ST SEMESTER");
 
   // State for dropdown options
   const [options, setOptions] = useState({
@@ -28,6 +29,20 @@ function ViewStudent() {
   });
 
   useEffect(() => {
+    const fetchActiveSemester = async () => {
+      try {
+        const response = await axios.get(
+          `${BASE_URL}/settings/getActiveSemester`,
+        );
+        setActiveSemester(response.data.activeSemester || "1ST SEMESTER");
+      } catch {
+        setActiveSemester("1ST SEMESTER");
+      }
+    };
+    fetchActiveSemester();
+  }, []);
+
+  useEffect(() => {
     const fetchStudent = async () => {
       try {
         const response = await axios.get(
@@ -35,12 +50,40 @@ function ViewStudent() {
         );
         setStudent(response.data);
 
-        // Set default to first enrollment if exists
+        //comment old code for setting default enrollment without considering active semester
+
+        // // Set default to first enrollment if exists
+        // if (
+        //   response.data.StudentEnrollments &&
+        //   response.data.StudentEnrollments.length > 0
+        // ) {
+        //   setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
+        // }
+
+        // Set default to enrollment matching active semester
         if (
           response.data.StudentEnrollments &&
           response.data.StudentEnrollments.length > 0
         ) {
-          setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
+          const match = response.data.StudentEnrollments.find(
+            (e) =>
+              (e.semester || "").trim().toUpperCase() ===
+              (activeSemester || "").trim().toUpperCase(),
+          );
+          setSelectedEnrollmentId(
+            match ? match.id : response.data.StudentEnrollments[0].id,
+          );
+
+          // pwede to agmitin pero mas more robust yung nasa unahan
+
+          // const match = response.data.StudentEnrollments.find(
+          //   (e) => e.semester === activeSemester,
+          // );
+          // setSelectedEnrollmentId(
+          //   match ? match.id : response.data.StudentEnrollments[0].id,
+          // );
+
+          // setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
         }
       } catch (error) {
         console.error("Failed to fetch student:", error);
@@ -49,8 +92,13 @@ function ViewStudent() {
       }
     };
 
-    fetchStudent();
-  }, [id]);
+    // Only fetch student after activeSemester is loaded
+    if (activeSemester) fetchStudent();
+  }, [id, activeSemester]);
+
+  //commnet old code for fetching student without waiting for active semester
+  //  fetchStudent();
+  // }, [id]);
 
   useEffect(() => {
     if (id) {
@@ -108,9 +156,9 @@ function ViewStudent() {
 
     try {
       const response = await axios.get(
-        `${BASE_URL}/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`
-      )
-      
+        `${BASE_URL}/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`,
+      );
+
       setOptions((prev) => ({
         ...prev,
         sections: response.data.sections || [],
@@ -124,7 +172,7 @@ function ViewStudent() {
   const fetchYearLevelsByCourse = async (courseId) => {
     try {
       const res = await axios.get(
-        `${BASE_URL}/students/getYearLevelsByCourse?course_id=${courseId}`
+        `${BASE_URL}/students/getYearLevelsByCourse?course_id=${courseId}`,
       );
 
       setOptions((prev) => ({
@@ -169,7 +217,6 @@ function ViewStudent() {
     if (courseId && yearLevel) {
       fetchSectionsByCourseAndYear(courseId, yearLevel);
     }
-
   };
 
   const handleCancel = () => {
@@ -209,7 +256,9 @@ function ViewStudent() {
     } catch (error) {
       console.error("Failed to update student:", error);
 
-      const message = error.response?.data?.message || "Failed to update student information.";
+      const message =
+        error.response?.data?.message ||
+        "Failed to update student information.";
       swal.fire({
         title: "Error",
         text: message,
@@ -227,7 +276,7 @@ function ViewStudent() {
       newEditData.section = "";
       setOptions((prev) => ({ ...prev, sections: [] }));
     }
-    
+
     if (field === "year_level") {
       newEditData.section = "";
     }
@@ -238,8 +287,15 @@ function ViewStudent() {
       fetchYearLevelsByCourse(value);
     }
 
-    if ((field === "course_id" ||  field === "year_level") && newEditData.course_id && newEditData.year_level) {
-      fetchSectionsByCourseAndYear(newEditData.course_id, newEditData.year_level);
+    if (
+      (field === "course_id" || field === "year_level") &&
+      newEditData.course_id &&
+      newEditData.year_level
+    ) {
+      fetchSectionsByCourseAndYear(
+        newEditData.course_id,
+        newEditData.year_level,
+      );
     }
   };
 
