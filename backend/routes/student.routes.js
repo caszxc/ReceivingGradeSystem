@@ -13,6 +13,7 @@ const sequelize = require("../config/database");
 const majorsByCourseName = require("../config/majors");
 const multer = require("multer");
 const xlsx = require("xlsx");
+const ExcelJS = require("exceljs");
 const csv = require("csv-parser");
 const fs = require("fs");
 const {
@@ -156,6 +157,74 @@ function buildWhereClause(query, filters, isFromEnrollment = false) {
   }
 
   return whereClause;
+}
+
+function getSemesterLabel(sem) {
+  const n = parseInt(sem, 10);
+  if (n === 1) return "1st Semester";
+  if (n === 2) return "2nd Semester";
+  if (!sem) return "";
+  return `Semester ${sem}`;
+}
+
+function convertYearLevelForDisplay(yearLevel) {
+  if (!yearLevel) return yearLevel;
+
+  const romanToNumber = {
+    I: "1",
+    II: "2",
+    III: "3",
+    IV: "4",
+    V: "5",
+  };
+
+  const key = String(yearLevel).trim().toUpperCase();
+  return romanToNumber[key] || yearLevel;
+}
+
+function formatSchoolYearLabel(academicYear) {
+  if (!academicYear) return "";
+  const raw = String(academicYear).trim();
+  const parts = raw.split("-").map((p) => p.trim());
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return `School Year ${parts[0]} - ${parts[1]}`;
+  }
+  return `School Year ${raw}`;
+}
+
+async function buildFilterSummaryForExport(filters = {}) {
+  const parts = [];
+
+  if (filters.yearLevel) {
+    parts.push(`Year Level: ${convertYearLevelForDisplay(filters.yearLevel)}`);
+  }
+  if (filters.semester) parts.push(getSemesterLabel(filters.semester));
+
+  if (filters.course) {
+    let courseName = "";
+    try {
+      const course = await Course.findByPk(parseInt(filters.course, 10));
+      courseName = course?.name || "";
+    } catch (_) {
+      // ignore lookup failure
+    }
+    parts.push(`Course: ${courseName || filters.course}`);
+  }
+
+  if (filters.section) parts.push(`Section: ${filters.section}`);
+
+  if (filters.academicYear) {
+    let ayName = "";
+    try {
+      const ay = await AcademicYear.findByPk(parseInt(filters.academicYear, 10));
+      ayName = ay?.academic_year || "";
+    } catch (_) {
+      // ignore lookup failure
+    }
+    parts.push(`A.Y. ${ayName || filters.academicYear}`);
+  }
+
+  return parts.length ? parts.join(" | ") : "All Records";
 }
 
 // Helper function to merge StudentEnrollment data with Student data
@@ -845,13 +914,11 @@ router.get("/exportStudents", async (req, res) => {
         .join(", "),
       "Student No.": s.student_number || "",
       Course: s.course || s.courseData?.name || "",
-      "Year Level": s.year_level || "",
+      "Year Level": convertYearLevelForDisplay(s.year_level) || "",
       Section: s.section || "",
     }));
 
-    const workbook = xlsx.utils.book_new();
     const worksheet = xlsx.utils.json_to_sheet(exportData);
-    xlsx.utils.book_append_sheet(workbook, worksheet, "Students");
 
     const timestamp = new Date()
       .toISOString()
@@ -871,7 +938,152 @@ router.get("/exportStudents", async (req, res) => {
       return res.send(csvData);
     }
 
-    const buffer = xlsx.write(workbook, { bookType: "xlsx", type: "buffer" });
+    // ── Excel (.xlsx) export with a header + better formatting ─────────────
+    const filterSummary = await buildFilterSummaryForExport(filters);
+    const now = new Date();
+
+    let academicYearName = "";
+    if (filters.academicYear) {
+      try {
+        const ay = await AcademicYear.findByPk(parseInt(filters.academicYear, 10));
+        academicYearName = ay?.academic_year || "";
+      } catch (_) {
+        // ignore lookup failure
+      }
+    }
+
+    const semLabel = getSemesterLabel(filters.semester);
+    const schoolYearLabel = academicYearName
+      ? formatSchoolYearLabel(academicYearName)
+      : "";
+    const semesterLine = [semLabel, schoolYearLabel].filter(Boolean).join(" ");
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = "EnrollmentSystem";
+    wb.created = now;
+
+    const ws = wb.addWorksheet("Students", {
+      views: [{ state: "frozen", ySplit: 6 }],
+    });
+
+    const columns = [
+      { key: "no", width: 6 },
+      { key: "name", width: 32 },
+      { key: "studentNo", width: 16 },
+      { key: "course", width: 26 },
+      { key: "yearLevel", width: 12 },
+      { key: "section", width: 12 },
+    ];
+    const tableHeaders = [
+      "No.",
+      "Name",
+      "Student No.",
+      "Course",
+      "Year Level",
+      "Section",
+    ];
+
+    ws.columns = columns;
+
+    const lastColLetter = "F";
+    const mergeAcross = (row) => `A${row}:${lastColLetter}${row}`;
+
+    // Header block (rows 1-4)
+    ws.mergeCells(mergeAcross(1));
+    ws.getCell("A1").value = "PAMANTASAN NG LUNGSOD NG VALENZUELA";
+    ws.getCell("A1").font = { bold: true, size: 14 };
+    ws.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
+
+    ws.mergeCells(mergeAcross(2));
+    ws.getCell("A2").value = "STUDENT MASTERLIST";
+    ws.getCell("A2").font = { bold: true, size: 12 };
+    ws.getCell("A2").alignment = { horizontal: "center", vertical: "middle" };
+
+    ws.mergeCells(mergeAcross(3));
+    ws.getCell("A3").value = semesterLine || "";
+    ws.getCell("A3").font = { italic: true, size: 10 };
+    ws.getCell("A3").alignment = { horizontal: "center", vertical: "middle" };
+
+    // Blank row (5) then table header (6)
+    const headerRow = ws.getRow(6);
+    headerRow.values = tableHeaders;
+    headerRow.font = { bold: true, size: 10 };
+    headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    headerRow.height = 18;
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE5E7EB" },
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+
+    // Data rows start at 7
+    exportData.forEach((row) => {
+      ws.addRow({
+        no: row["No."],
+        name: row.Name,
+        studentNo: row["Student No."],
+        course: row.Course,
+        yearLevel: row["Year Level"],
+        section: row.Section,
+      });
+    });
+
+    const dataStartRow = 7;
+    const lastDataRow = ws.lastRow?.number || 6;
+    if (lastDataRow >= dataStartRow) {
+      for (let r = dataStartRow; r <= lastDataRow; r++) {
+        const excelRow = ws.getRow(r);
+        excelRow.alignment = { vertical: "middle", wrapText: true };
+        excelRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          // Align numeric/index & short fields
+          if (colNumber === 1 || colNumber >= 5) {
+            cell.alignment = {
+              horizontal: "center",
+              vertical: "middle",
+              wrapText: true,
+            };
+          } else {
+            cell.alignment = {
+              horizontal: "left",
+              vertical: "middle",
+              wrapText: true,
+            };
+          }
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
+      }
+    }
+
+    ws.autoFilter = {
+      from: { row: 6, column: 1 },
+      to: { row: 6, column: 6 },
+    };
+
+    ws.pageSetup = {
+      orientation: "portrait",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    };
+
+    ws.headerFooter = {
+      oddFooter: "&LPrinted: &D &T&RPage &P of &N",
+    };
+
+    const buffer = await wb.xlsx.writeBuffer();
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
