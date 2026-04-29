@@ -132,9 +132,6 @@ function Dashboard() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setDropdownOpen(false);
-      }
       if (dateYearRef.current && !dateYearRef.current.contains(event.target)) {
         setDateYearDropdownOpen(false);
       }
@@ -483,7 +480,7 @@ function Dashboard() {
         <div class="space-y-4 text-left">
           <div>
             <label class="block text-xs font-medium text-gray-700 mb-1">
-              Student Number
+              Student Number <span class="ml-1 text-red-500" aria-hidden="true">*</span>
             </label>
             <input id="student_number" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs">
           </div>
@@ -491,7 +488,7 @@ function Dashboard() {
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                First Name
+                First Name <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <input id="first_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
             </div>
@@ -503,7 +500,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Last Name
+                Last Name <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <input id="last_name" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs" style="text-transform: uppercase">
             </div>
@@ -512,7 +509,7 @@ function Dashboard() {
           <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Course
+                Course <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <select id="course_id" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Course</option>
@@ -521,7 +518,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Year Level
+                Year Level <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <select id="year_level" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
                 <option value="">Select Year Level</option>
@@ -529,7 +526,7 @@ function Dashboard() {
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Section
+                Section <span class="ml-1 text-red-500" aria-hidden="true">*</span>
               </label>
               <div class="relative">
                 <input 
@@ -547,6 +544,8 @@ function Dashboard() {
     `,
         focusConfirm: false,
         showCancelButton: true,
+      showLoaderOnConfirm: true,
+      allowOutsideClick: () => !swal.isLoading(),
         didOpen: () => {
           // Add event listener to course dropdown
           const courseSelect = document.getElementById("course_id");
@@ -584,7 +583,10 @@ function Dashboard() {
                 yearLevelSelect.innerHTML =
                   `<option value="">Select Year Level</option>` +
                   yearLevels
-                    .map((y) => `<option value="${y}">${y}</option>`)
+                    .map(
+                      (y) =>
+                        `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
+                    )
                     .join("");
               } catch (error) {
                 console.error("Error fetching year levels:", error);
@@ -629,15 +631,91 @@ function Dashboard() {
             }
           });
         },
-        preConfirm: () => {
-          const student_number =
+        preConfirm: async () => {
+          const normalizeText = (v) =>
+            (v ?? "").toString().trim().replace(/\s+/g, " ");
+          const normalizeStudentNumber = (v) =>
+            normalizeText(v).toUpperCase().replace(/\s+/g, "");
+
+          const rawStudentNumber =
             document.getElementById("student_number").value;
-          const first_name = document.getElementById("first_name").value;
-          const middle_name = document.getElementById("middle_name").value;
-          const last_name = document.getElementById("last_name").value;
+          const rawFirstName = document.getElementById("first_name").value;
+          const rawMiddleName = document.getElementById("middle_name").value;
+          const rawLastName = document.getElementById("last_name").value;
           const course_id = document.getElementById("course_id").value;
           const year_level = document.getElementById("year_level").value;
-          const section = document.getElementById("add_section").value;
+          const rawSection = document.getElementById("add_section").value;
+
+          const student_number = normalizeStudentNumber(rawStudentNumber);
+          const first_name = normalizeText(rawFirstName);
+          const middle_name = normalizeText(rawMiddleName);
+          const last_name = normalizeText(rawLastName);
+          const section = normalizeText(rawSection);
+
+          if (!student_number) {
+            swal.showValidationMessage("Student Number is required");
+            return false;
+          }
+
+          // Basic safety: keep student numbers simple to avoid accidental duplicates
+          if (!/^[A-Z0-9-]+$/.test(student_number)) {
+            swal.showValidationMessage(
+              "Student Number must contain only letters, numbers, and dashes",
+            );
+            return false;
+          }
+
+          if (!first_name) {
+            swal.showValidationMessage("First Name is required");
+            return false;
+          }
+          if (!last_name) {
+            swal.showValidationMessage("Last Name is required");
+            return false;
+          }
+          if (!course_id) {
+            swal.showValidationMessage("Course is required");
+            return false;
+          }
+          if (!year_level) {
+            swal.showValidationMessage("Year Level is required");
+            return false;
+          }
+          if (!section) {
+            swal.showValidationMessage("Section is required");
+            return false;
+          }
+
+          // Duplicate check BEFORE confirming, to avoid adding duplicates.
+          try {
+            const dup = await axios.get(`${BASE_URL}/students/searchStudent`, {
+              params: {
+                query: student_number,
+                searchBy: "studentNumber",
+                limit: 1,
+                page: 1,
+              },
+            });
+
+            const count = Number(dup?.data?.count ?? 0);
+            if (count > 0) {
+              swal.showValidationMessage(
+                `Student Number already exists: ${student_number}`,
+              );
+              return false;
+            }
+          } catch (e) {
+            const apiMessage =
+              e?.response?.data?.error ||
+              e?.response?.data?.message ||
+              e?.message;
+            swal.showValidationMessage(
+              apiMessage
+                ? `Could not validate Student Number: ${apiMessage}`
+                : "Could not validate Student Number. Please try again.",
+            );
+            return false;
+          }
 
           return {
             student_number,
@@ -815,7 +893,6 @@ function Dashboard() {
           cancelButtonColor: "#6b7280",
           focusConfirm: false,
           didOpen: async () => {
-            const searchButton = swal.getConfirmButton();
             const searchSerialInput = document.getElementById(
               "search_serial_number",
             );
@@ -829,7 +906,7 @@ function Dashboard() {
             const searchResults = document.getElementById("search_results");
 
             // Search function
-            const performSearch = async (sourceInput = null) => {
+            const performSearch = async () => {
               const serial = searchSerialInput.value.trim();
               const studentNumber = searchNumberInput.value.trim();
               const name = searchNameInput.value.trim();
@@ -841,12 +918,35 @@ function Dashboard() {
                 return;
               }
 
+              // Validate that serial and student number fields are not both filled
+              if (serial && studentNumber) {
+                swal.showValidationMessage(
+                  "Please use either Serial Number OR Student Number field, not both",
+                );
+                return;
+              }
+
+              // Determine which field is being used and validate accordingly
+              let searchQuery = "";
+              let searchBy = "";
+              if (serial) {
+                // Serial number field: search only by serial
+                searchQuery = serial;
+                searchBy = "serial";
+              } else if (studentNumber) {
+                // Student number field: search only by student number
+                searchQuery = studentNumber;
+                searchBy = "studentNumber";
+              } else if (name) {
+                // Name field: search by name
+                searchQuery = name;
+                searchBy = "name";
+              }
+
               try {
                 searchResults.innerHTML =
                   '<div class="text-xs text-gray-500 p-2">Searching...</div>';
                 searchResultsContainer.classList.remove("hidden");
-
-                const searchQuery = serial || studentNumber || name;
                 // const response = await fetch(
                 //   `http://localhost:3001/students/searchStudent?query=${encodeURIComponent(searchQuery)}&limit=10`,
                 // );
@@ -859,6 +959,7 @@ function Dashboard() {
                       studentNumber: studentNumber || undefined,
                       name: name || undefined,
                       limit: 10,
+                      searchBy,
                     },
                   },
                 );
@@ -949,7 +1050,7 @@ function Dashboard() {
             const handleEnterKey = async (e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                await performSearch(e.target.id);
+                await performSearch();
               }
             };
 
@@ -1197,7 +1298,10 @@ function Dashboard() {
                   yearLevelSelect.innerHTML =
                     `<option value="">Select Year Level</option>` +
                     yearLevels
-                      .map((y) => `<option value="${y}">${y}</option>`)
+                      .map(
+                        (y) =>
+                          `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
+                      )
                       .join("");
 
                   /* setTimeout(() => {
