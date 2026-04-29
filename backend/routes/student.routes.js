@@ -847,7 +847,6 @@ router.get("/exportStudents", async (req, res) => {
       Course: s.course || s.courseData?.name || "",
       "Year Level": s.year_level || "",
       Section: s.section || "",
-      Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();
