@@ -52,7 +52,9 @@ function buildFilterSummary(filters, students = [], filterOptions = {}) {
       (ay) => ay.value == filters.academicYear,
     );
     const ayName = academicYearObj
-      ? academicYearObj.label.replace(" (Active)", "")
+      ? String(academicYearObj.label || "")
+          .replace(/\s*\((?:active)\)\s*$/i, "")
+          .trim()
       : filters.academicYear;
     parts.push("A.Y. " + ayName);
   }
@@ -79,7 +81,6 @@ async function fetchStudentData({
       page: 1,
     });
 
-    if (filters?.academicYear) p.set("academicYear", filters.academicYear);
     if (filters?.yearLevel) p.set("yearLevel", filters.yearLevel);
     if (filters?.semester) p.set("semester", filters.semester);
     if (filters?.course) p.set("course", filters.course);
@@ -151,9 +152,9 @@ async function renderPdf({
   students,
   filters,
   filterOptions,
-  scope,
   now,
   withSignature,
+  output = "save",
 }) {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -180,10 +181,13 @@ async function renderPdf({
       (ay) => ay.id == filters.academicYear || ay.value == filters.academicYear,
     );
     if (academicYearObj) {
-      const ayName = academicYearObj.academic_year || academicYearObj.label;
-      const parts = ayName.split("-");
-      ayFrom = parts[0];
-      ayTo = parts[1];
+      const ayRaw = academicYearObj.academic_year || academicYearObj.label || "";
+      const ayName = String(ayRaw)
+        .replace(/\s*\((?:active)\)\s*$/i, "")
+        .trim();
+      const parts = ayName.split("-").map((p) => p.trim());
+      ayFrom = parts[0] || "";
+      ayTo = parts[1] || "";
     }
   }
 
@@ -192,11 +196,6 @@ async function renderPdf({
     semLabel && schoolYear
       ? `${semLabel} ${schoolYear}`
       : semLabel || schoolYear || "";
-
-  const enrollmentLine =
-    semLabel && ayFrom && ayTo
-      ? `MASTERLIST ENROLLMENT ${semLabel.toUpperCase()} A.Y (${ayFrom}-${ayTo})`
-      : "MASTERLIST ENROLLMENT";
 
   const selectedCourseId =
     filters && filters.course ? String(filters.course) : "";
@@ -215,144 +214,209 @@ async function renderPdf({
   const sectionName =
     filters?.section || (students.length > 0 ? students[0].section || "" : "");
 
-  // ── Draw header (first page) ──────────────────────────────────────────────
+  // ── Draw premium header ──────────────────────────────────────────────
   function drawHeader(doc) {
-    const centerX = pageWidth / 2;
-    let y = 10;
+    const top = 12;
 
-    // Logo
-    const logoSize = 16;
-    const logoX = centerX - 70;
-    if (logoDataUrl) {
-      doc.addImage(logoDataUrl, "PNG", logoX, y - 3, logoSize, logoSize);
-    }
+    // Header block (logo + text) should feel unified
+    const logoSize = 18;
+    const logoX = marginLeft;
+    const logoY = top;
+    const gap = 4;
+    const textX = logoDataUrl ? logoX + logoSize + gap : marginLeft;
+    const maxTextWidth = pageWidth - marginRight - textX;
+    if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
 
     // University name
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text("PAMANTASAN NG LUNGSOD NG VALENZUELA", centerX + 2, y + 1, {
-      align: "center",
-    });
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.setFont("times", "bold");
+    doc.setFontSize(16);
+    const title = "PAMANTASAN NG LUNGSOD NG VALENZUELA";
+    const titleLines = doc.splitTextToSize(title, maxTextWidth);
+
+    // Vertically align title with logo
+    const titleLineHeight = 6;
+    const titleBlockHeight = titleLines.length * titleLineHeight;
+    const logoBlockHeight = logoDataUrl ? logoSize : 0;
+    const headerBlockHeight = Math.max(logoBlockHeight, titleBlockHeight);
+    const titleY = top + Math.max(0, (headerBlockHeight - titleBlockHeight) / 2) + 5;
+    doc.text(titleLines, textX, titleY);
 
     // STUDENT MASTERLIST
-    y += 6;
-    doc.setFontSize(10);
+    let y = top + headerBlockHeight + 4;
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("STUDENT MASTERLIST", centerX + 2, y + 1, { align: "center" });
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("STUDENT MASTERLIST", textX, y);
 
     // Semester / School Year line
     if (semesterLine) {
       y += 5;
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(semesterLine, centerX + 2, y + 1, { align: "center" });
+      doc.setTextColor(71, 85, 105); // slate-500
+      doc.text(semesterLine, textX, y);
     }
 
     // Divider line
-    y += 6;
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.3);
+    y += 8;
+    doc.setDrawColor(203, 213, 225); // slate-300
+    doc.setLineWidth(0.5);
     doc.line(marginLeft, y, pageWidth - marginRight, y);
 
-    // Enrollment line
-    y += 5;
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text(enrollmentLine, marginLeft, y);
-
     // Course and Section row
-    y += 5;
-    doc.setFontSize(8);
+    y += 6;
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(51, 65, 85);
     if (courseName) {
-      doc.text(`Course : ${courseName}`, marginLeft, y);
+      doc.text(`Course: ${courseName}`, marginLeft, y);
     }
     if (sectionName) {
       doc.setFont("helvetica", "bold");
-      doc.text(`Section :  ${sectionName}`, pageWidth - marginRight, y, {
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Section: ${sectionName}`, pageWidth - marginRight, y, {
         align: "right",
       });
     }
 
-    y += 3;
+    y += 4;
     return y; // next content Y
   }
 
   const tableStartY = drawHeader(doc);
 
-  // ── Table ──────────────────────────────────────────────────────────────────
-  const baseRow = (s, i) => [
-    i + 1,
-    [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", "),
-    s.student_number ?? "—",
-    s.isEnrolled ? "Enrolled" : "Not Enrolled",
-  ];
-  const rows = students.map((s, i) =>
-    withSignature ? [...baseRow(s, i), ""] : baseRow(s, i),
-  );
+  // ── Table Data Mapping ─────────────────────────────────────────────────────
+  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Sec"];
+  if (withSignature) baseHeaders.push("Signature");
 
-  // Column widths adjust when signature column is present
-  const nameWidth = withSignature ? 65 : 90;
-  const sigColStyle = withSignature ? { 4: { cellWidth: 42 } } : {};
+  const rows = students.map((s, i) => {
+    const fullName = [s.last_name, s.first_name, s.middle_name].filter(Boolean).join(", ");
+    const course = s.courseData?.name || s.course || "—";
+    const yearLevel = convertYearLevelForDisplay(s.year_level) || "—";
+    const section = s.section || "—";
+
+    const rowData = [
+      i + 1,
+      fullName,
+      s.student_number ?? "—",
+      course,
+      yearLevel,
+      section,
+    ];
+    if (withSignature) rowData.push("");
+    return rowData;
+  });
+
+  // Calculate dynamic column widths
+  const getColStyles = () => {
+    if (withSignature) {
+      return {
+        0: { halign: "center", cellWidth: 8 },
+        1: { cellWidth: 55 },
+        2: { halign: "center", cellWidth: 20 },
+        3: { cellWidth: 55 },
+        4: { halign: "center", cellWidth: 10 },
+        5: { halign: "center", cellWidth: 10 },
+        6: { cellWidth: 24 }, // Signature
+      };
+    }
+    return {
+      0: { halign: "center", cellWidth: 10 },
+      1: { cellWidth: 60 },
+      2: { halign: "center", cellWidth: 22 },
+      3: { cellWidth: 65 },
+      4: { halign: "center", cellWidth: 10 },
+      5: { halign: "center", cellWidth: 15 },
+    };
+  };
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [
-      withSignature
-        ? ["#", "Name", "Student No.", "Enrolled", "Signature"]
-        : ["#", "Name", "Student No.", "Enrolled"],
-    ],
+    head: [baseHeaders],
     body: rows,
     theme: "grid",
-    headStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [0, 0, 0],
-      fontStyle: "bold",
-      fontSize: 7,
-      halign: "center",
-      lineColor: [0, 0, 0],
-      lineWidth: 0.3,
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: 3,
+      overflow: "linebreak",
+      lineColor: [226, 232, 240], // slate-200
+      lineWidth: 0.15,
+      valign: "middle",
     },
-    bodyStyles: {
-      fontSize: 7,
-      textColor: [0, 0, 0],
-      lineColor: [0, 0, 0],
+    headStyles: {
+      fillColor: [241, 245, 249], // slate-100-ish
+      textColor: [15, 23, 42], // slate-900
+      fontStyle: "bold",
+      fontSize: 9,
+      halign: "center",
+      valign: "middle",
+      lineColor: [203, 213, 225], // slate-300
       lineWidth: 0.2,
     },
-    alternateRowStyles: { fillColor: [245, 245, 245] },
-    columnStyles: {
-      0: { halign: "center", cellWidth: 10 },
-      1: { cellWidth: nameWidth },
-      2: { cellWidth: 40 },
-      3: { halign: "center", cellWidth: 32 },
-      ...sigColStyle,
+    bodyStyles: {
+      textColor: [51, 65, 85], // slate-700
     },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250],
+    },
+    columnStyles: getColStyles(),
     margin: { left: marginLeft, right: marginRight },
+    didDrawCell: (data) => {
+      // Draw a line for the signature cell to make it look ready to sign
+      if (withSignature && data.section === 'body' && data.column.index === 6) {
+        const { x, y, width, height } = data.cell;
+        doc.setDrawColor(148, 163, 184); // slate-400
+        doc.setLineWidth(0.2);
+        // Draw horizontal line in the middle-bottom of the cell
+        doc.line(x + 2, y + height - 2, x + width - 2, y + height - 2);
+      }
+    },
     didDrawPage: (data) => {
       // Footer
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFontSize(7);
-      doc.setTextColor(120);
+      doc.setTextColor(148, 163, 184); // slate-400
+
+      // Left side - Timestamp
+      const printDate = new Date().toLocaleString('en-PH', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+      doc.text(`Printed: ${printDate}`, marginLeft, pageHeight - 6);
+
+      // Right side - Page Number
       doc.text(
         `Page ${data.pageNumber} of ${pageCount}`,
-        pageWidth / 2,
-        pageHeight - 5,
-        { align: "center" },
+        pageWidth - marginRight,
+        pageHeight - 6,
+        { align: "right" }
       );
-      doc.setDrawColor(180);
+
+      // Footer Top Border
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setLineWidth(0.3);
       doc.line(
         marginLeft,
-        pageHeight - 8,
+        pageHeight - 9,
         pageWidth - marginRight,
-        pageHeight - 8,
+        pageHeight - 9
       );
     },
   });
 
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const ayLabel = ayFrom && ayTo ? `AY_${ayFrom}-${ayTo}` : "ALL";
-  doc.save(`student_masterlist_${ayLabel}_${timestamp}.pdf`);
+  const fileName = `student_masterlist_${ayLabel}_${timestamp}.pdf`;
+
+  if (output === "blob") {
+    const blob = doc.output("blob");
+    return { blob, fileName };
+  }
+
+  doc.save(fileName);
+  return { fileName };
 }
 
 // ── xlsx / csv downloader (backend) ──────────────────────────────────────────
@@ -410,114 +474,6 @@ async function downloadFile({
   URL.revokeObjectURL(objectUrl);
 }
 
-// ── Reusable scope row with collapsible format sub-panel ──────────────────────
-function FormatSubMenu({
-  scope,
-  label,
-  activeScope,
-  onSetScope,
-  onExport,
-  selectedCount,
-}) {
-  const disabled = scope === "selected" && selectedCount === 0;
-
-  return (
-    <div className="border-b border-gray-100 last:border-0">
-      {/* Scope label row */}
-      <div
-        onClick={() =>
-          !disabled && onSetScope(activeScope === scope ? null : scope)
-        }
-        className={`flex items-center justify-between px-4 py-2.5 text-sm font-medium transition-colors ${
-          disabled
-            ? "text-gray-300 cursor-not-allowed"
-            : activeScope === scope
-              ? "bg-blue-600 text-white cursor-pointer"
-              : "text-gray-900 hover:bg-blue-600 hover:text-white cursor-pointer"
-        }`}
-      >
-        <span className="flex items-center gap-2">
-          {label}
-          {scope === "selected" && selectedCount > 0 && (
-            <span className="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full leading-none">
-              {selectedCount}
-            </span>
-          )}
-        </span>
-        {!disabled && (
-          <svg
-            className={`h-3 w-3 opacity-60 transition-transform duration-150 ${activeScope === scope ? "rotate-90" : ""}`}
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )}
-      </div>
-
-      {/* Format sub-panel */}
-      {activeScope === scope && (
-        <div className="bg-gray-50 border-t border-gray-100">
-          {/* Excel */}
-          <button
-            onClick={() => onExport(scope, "xlsx")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-green-600"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
-            </svg>
-            Excel (.xlsx)
-          </button>
-
-          {/* CSV */}
-          <button
-            onClick={() => onExport(scope, "csv")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-blue-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            CSV (.csv)
-          </button>
-
-          {/* PDF */}
-          <button
-            onClick={() => onExport(scope, "pdf")}
-            className="w-full flex items-center gap-2.5 px-6 py-2 text-sm text-gray-700 hover:bg-red-600 hover:text-white transition-colors"
-          >
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM11.5 18H10v-5h1.5c1.1 0 2 .9 2 2s-.9 2-2 2zm0-3.5H11v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5zm3 3.5v-5h1c1.1 0 2 .9 2 2v1c0 1.1-.9 2-2 2h-1zm1-3.5v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5H15zm-8 3.5v-5h3v1h-2v1h2v1h-2v2H7z" />
-            </svg>
-            PDF (.pdf)
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Main ExportButton component ───────────────────────────────────────────────
 function ExportButton({
   searchQuery,
@@ -530,7 +486,6 @@ function ExportButton({
   filters = {},
 }) {
   const [open, setOpen] = useState(false);
-  const [activeScope, setActiveScope] = useState(null);
   const menuRef = useRef(null);
 
   // ── Preview modal state ───────────────────────────────────────────────────
@@ -540,7 +495,55 @@ function ExportButton({
     students: [],
     format: "xlsx",
     scope: "all",
+    now: null,
+    withSignature: false,
+    pdfLoading: false,
+    pdfUrl: null,
+    pdfBlob: null,
+    pdfFileName: null,
   });
+
+  // Cleanup any object URLs we create
+  useEffect(() => {
+    return () => {
+      if (preview.pdfUrl) URL.revokeObjectURL(preview.pdfUrl);
+    };
+    // Intentionally run only on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const generatePdfPreview = useCallback(
+    async ({ students, withSignature, now }) => {
+      // Revoke old URL first to avoid leaks
+      setPreview((p) => {
+        if (p.pdfUrl) URL.revokeObjectURL(p.pdfUrl);
+        return { ...p, pdfLoading: true, pdfUrl: null, pdfBlob: null, pdfFileName: null };
+      });
+
+      try {
+        const { blob, fileName } = await renderPdf({
+          students,
+          filters,
+          filterOptions,
+          now,
+          withSignature,
+          output: "blob",
+        });
+        const url = URL.createObjectURL(blob);
+        setPreview((p) => ({
+          ...p,
+          pdfLoading: false,
+          pdfUrl: url,
+          pdfBlob: blob,
+          pdfFileName: fileName,
+        }));
+      } catch (e) {
+        console.error("PDF preview generation failed:", e);
+        setPreview((p) => ({ ...p, pdfLoading: false }));
+      }
+    },
+    [filters, filterOptions],
+  );
 
   // Snapshot of params at the moment user clicked — used on confirm
   const pendingRef = useRef(null);
@@ -550,7 +553,6 @@ function ExportButton({
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
-        setActiveScope(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -561,7 +563,6 @@ function ExportButton({
   const handleExport = useCallback(
     async (scope, format) => {
       setOpen(false);
-      setActiveScope(null);
 
       if (scope === "selected" && selectedIds.size === 0) {
         alert("Please select at least one row to export.");
@@ -582,7 +583,20 @@ function ExportButton({
       };
 
       // Open preview in loading state
-      setPreview({ isOpen: true, loading: true, students: [], format, scope });
+      const now = new Date();
+      setPreview({
+        isOpen: true,
+        loading: true,
+        students: [],
+        format,
+        scope,
+        now,
+        withSignature: false,
+        pdfLoading: false,
+        pdfUrl: null,
+        pdfBlob: null,
+        pdfFileName: null,
+      });
 
       try {
         const students = await fetchStudentData({
@@ -596,6 +610,10 @@ function ExportButton({
           filters,
         });
         setPreview((p) => ({ ...p, loading: false, students }));
+
+        if (format === "pdf") {
+          await generatePdfPreview({ students, withSignature: false, now });
+        }
       } catch (err) {
         console.error("Preview fetch error:", err);
         setPreview((p) => ({ ...p, loading: false }));
@@ -610,13 +628,14 @@ function ExportButton({
       itemsPerPage,
       selectedIds,
       filters,
+      generatePdfPreview,
     ],
   );
 
   // ── Confirm: do the actual export ────────────────────────────────────────
   const handleConfirm = useCallback(
-    async (withSignature = false) => {
-      const { scope, format, students } = preview;
+    async () => {
+      const { format, students, pdfBlob, pdfFileName, now, withSignature } = preview;
       const params = pendingRef.current;
       if (!params) return;
 
@@ -624,14 +643,27 @@ function ExportButton({
 
       try {
         if (format === "pdf") {
-          await renderPdf({
-            students,
-            filters: params.filters,
-            filterOptions, // Add this line
-            scope,
-            now: new Date(),
-            withSignature,
-          });
+          // Download the exact PDF that was previewed (WYSIWYG)
+          if (pdfBlob && pdfFileName) {
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = pdfFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          } else {
+            // Fallback: generate and save
+            await renderPdf({
+              students,
+              filters: params.filters,
+              filterOptions,
+              now: now || new Date(),
+              withSignature,
+              output: "save",
+            });
+          }
         } else {
           await downloadFile(params);
         }
@@ -640,7 +672,7 @@ function ExportButton({
         alert("Export failed. Please try again.");
       }
     },
-    [preview, filterOptions], // Add filterOptions to dependencies
+    [preview, filterOptions],
   );
 
   const filterSummary = buildFilterSummary(
@@ -657,7 +689,6 @@ function ExportButton({
         <button
           onClick={() => {
             setOpen(true);
-            setActiveScope("all");
           }}
           className="inline-flex items-center gap-2 pl-4 pr-3 py-3 bg-blue-600 text-white text-xs font-bold uppercase tracking-widest rounded-l-lg hover:bg-blue-500 focus:outline-none transition-colors"
         >
@@ -681,7 +712,6 @@ function ExportButton({
         <button
           onClick={() => {
             setOpen((p) => !p);
-            setActiveScope(null);
           }}
           className="inline-flex items-center px-2.5 py-2 bg-blue-700 text-white rounded-r-lg border-l border-blue-500 hover:bg-blue-600 focus:outline-none transition-colors"
         >
@@ -719,30 +749,56 @@ function ExportButton({
               )
             }
 
-            <FormatSubMenu
-              scope="all"
-              label="All"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
-            <FormatSubMenu
-              scope="page"
-              label="Current page"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
-            <FormatSubMenu
-              scope="selected"
-              label="Selected rows"
-              activeScope={activeScope}
-              onSetScope={setActiveScope}
-              onExport={handleExport}
-              selectedCount={selectedIds.size}
-            />
+            {/* Excel */}
+            <button
+              onClick={() => handleExport("all", "xlsx")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-green-600"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 19l-2-3h1.2l1.3 2 1.3-2H11.5l-2 3H8.5zm4.2 0l-2-5h1.3l1.35 3.5L14.7 14H16l-2 5h-1.3zm4.3 0v-5H18v5h-1z" />
+              </svg>
+              Excel (.xlsx)
+            </button>
+
+            {/* CSV */}
+            <button
+              onClick={() => handleExport("all", "csv")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              CSV (.csv)
+            </button>
+
+            {/* PDF */}
+            <button
+              onClick={() => handleExport("all", "pdf")}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-600 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-4 w-4 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM11.5 18H10v-5h1.5c1.1 0 2 .9 2 2s-.9 2-2 2zm0-3.5H11v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5zm3 3.5v-5h1c1.1 0 2 .9 2 2v1c0 1.1-.9 2-2 2h-1zm1-3.5v2h.5c.28 0 .5-.22.5-.5v-1c0-.28-.22-.5-.5-.5H15zm-8 3.5v-5h3v1h-2v1h2v1h-2v2H7z" />
+              </svg>
+              PDF (.pdf)
+            </button>
           </div>
         )}
       </div>
@@ -755,8 +811,26 @@ function ExportButton({
         format={preview.format}
         scope={preview.scope}
         filterSummary={filterSummary}
+        withSignature={preview.withSignature}
+        onWithSignatureChange={async (next) => {
+          setPreview((p) => ({ ...p, withSignature: next }));
+          if (preview.format === "pdf" && preview.students?.length) {
+            await generatePdfPreview({
+              students: preview.students,
+              withSignature: next,
+              now: preview.now || new Date(),
+            });
+          }
+        }}
+        pdfUrl={preview.pdfUrl}
+        pdfLoading={preview.pdfLoading}
         onConfirm={handleConfirm}
-        onClose={() => setPreview((p) => ({ ...p, isOpen: false }))}
+        onClose={() =>
+          setPreview((p) => {
+            if (p.pdfUrl) URL.revokeObjectURL(p.pdfUrl);
+            return { ...p, isOpen: false, pdfUrl: null, pdfBlob: null, pdfFileName: null };
+          })
+        }
       />
     </>
   );
