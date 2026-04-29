@@ -952,7 +952,9 @@ function Dashboard() {
                   `${BASE_URL}/students/searchStudent`,
                   {
                     params: {
-                      query: searchQuery,
+                      serial: serial || undefined,
+                      studentNumber: studentNumber || undefined,
+                      name: name || undefined,
                       limit: 10,
                       searchBy,
                     },

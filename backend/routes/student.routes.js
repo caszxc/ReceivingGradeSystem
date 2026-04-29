@@ -42,88 +42,66 @@ function getSortOrder(sortBy, sortOrder) {
   return [[col, dir]];
 }
 
-function buildWhereClause(query, filters, isFromEnrollment = false, searchBy) {
+function buildWhereClause(query, filters, isFromEnrollment = false) {
   let whereClause = {};
   const andConditions = [];
 
   // Handle search query
   if (query && query.trim() !== "") {
     const searchQuery = query.trim().toUpperCase().replace(/\s+/g, " ");
- 
-
-    const likeCol = (col) =>
-      sequelize.where(sequelize.fn("UPPER", sequelize.col(col)), {
-        [Op.like]: `%${searchQuery}%`,
-      });
-
-    const eqCol = (col) =>
-      sequelize.where(sequelize.fn("UPPER", sequelize.col(col)), {
-        [Op.eq]: searchQuery,
-      });
-
-    const likeFullNameFirst = sequelize.where(
-      sequelize.fn(
-        "UPPER",
-        sequelize.fn(
-          "CONCAT_WS",
-          " ",
-          sequelize.col("first_name"),
-          sequelize.col("middle_name"),
-          sequelize.col("last_name"),
+    andConditions.push({
+      [Op.or]: [
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("student_number")),
+          { [Op.like]: `%${searchQuery}%` },
         ),
-      ),
-      { [Op.like]: `%${searchQuery}%` },
-    );
-
-    const likeFullNameLast = sequelize.where(
-      sequelize.fn(
-        "UPPER",
-        sequelize.fn(
-          "CONCAT_WS",
-          " ",
-          sequelize.col("last_name"),
-          sequelize.col("first_name"),
-          sequelize.col("middle_name"),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("first_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("middle_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("last_name")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_type")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(sequelize.fn("UPPER", sequelize.col("card_status")), {
+          [Op.like]: `%${searchQuery}%`,
+        }),
+        sequelize.where(
+          sequelize.fn("UPPER", sequelize.col("card_serial_number")),
+          { [Op.like]: `%${searchQuery}%` },
         ),
-      ),
-      { [Op.like]: `%${searchQuery}%` },
-    );
-
-    let searchTargets;
-    switch (searchBy) {
-      case "serial":
-        // Identifiers: exact match to avoid cross-field substring matches
-        searchTargets = [eqCol("card_serial_number")];
-        break;
-      case "studentNumber":
-        // Identifiers: exact match to avoid cross-field substring matches
-        searchTargets = [eqCol("student_number")];
-        break;
-      case "name":
-        searchTargets = [
-          likeCol("first_name"),
-          likeCol("middle_name"),
-          likeCol("last_name"),
-          likeFullNameFirst,
-          likeFullNameLast,
-        ];
-        break;
-      default:
-        searchTargets = [
-          likeCol("student_number"),
-          likeCol("first_name"),
-          likeCol("middle_name"),
-          likeCol("last_name"),
-          likeCol("card_type"),
-          likeCol("card_status"),
-          likeCol("card_serial_number"),
-          likeFullNameFirst,
-          likeFullNameLast,
-        ];
-        break;
-    }
-
-    andConditions.push({ [Op.or]: searchTargets });
+        sequelize.where(
+          sequelize.fn(
+            "UPPER",
+            sequelize.fn(
+              "CONCAT_WS",
+              " ",
+              sequelize.col("first_name"),
+              sequelize.col("middle_name"),
+              sequelize.col("last_name"),
+            ),
+          ),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
+        sequelize.where(
+          sequelize.fn(
+            "UPPER",
+            sequelize.fn(
+              "CONCAT_WS",
+              " ",
+              sequelize.col("last_name"),
+              sequelize.col("first_name"),
+              sequelize.col("middle_name"),
+            ),
+          ),
+          { [Op.like]: `%${searchQuery}%` },
+        ),
+      ],
+    });
   }
 
   if (filters.yearLevel) {
@@ -327,24 +305,14 @@ router.get("/getStudent", async (req, res) => {
 
 // Search students
 router.get("/searchStudent", async (req, res) => {
-  const { query } = req.query;
-  const searchBy = req.query.searchBy ? String(req.query.searchBy) : undefined;
+  const { query, serial, studentNumber, name } = req.query;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 50;
   const offset = (page - 1) * limit;
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
-  if (!query) {
-    return res.status(400).json({ error: "Search query is required" });
-  }
-
-  if (
-    searchBy &&
-    searchBy !== "serial" &&
-    searchBy !== "studentNumber" &&
-    searchBy !== "name"
-  ) {
-    return res.status(400).json({ error: "Invalid searchBy" });
+  if (!query && !serial && !studentNumber && !name) {
+    return res.status(400).json({ error: "At least one search field is required" });
   }
 
   // Extract filter parameters
@@ -369,12 +337,30 @@ router.get("/searchStudent", async (req, res) => {
       filtersForStudent.section = null;
     }
 
-    const whereClause = buildWhereClause(
-      query,
-      filtersForStudent,
-      !!filters.academicYear,
-      searchBy,
-    );
+    const { Op } = require("sequelize");
+    let whereClause = {};
+
+    if (serial || studentNumber || name) {
+      if (serial) {
+        whereClause.card_serial_number = { [Op.like]: `%${serial.trim()}%` };
+      }
+      if (studentNumber) {
+        whereClause.student_number = { [Op.like]: `%${studentNumber.trim()}%` };
+      }
+      if (name) {
+        whereClause[Op.or] = [
+          {first_name: { [Op.like]: `%${name.trim()}%` } },
+          {middle_name: { [Op.like]: `%${name.trim()}%` } },
+          {last_name: { [Op.like]: `%${name.trim()}%` } },
+        ];
+      }
+    } else {
+      whereClause = buildWhereClause(
+        query,
+        filtersForStudent,
+        !!filters.academicYear,
+      );
+    }
 
     let findOptions = {
       where: whereClause,
@@ -861,6 +847,7 @@ router.get("/exportStudents", async (req, res) => {
       Course: s.course || s.courseData?.name || "",
       "Year Level": s.year_level || "",
       Section: s.section || "",
+      Enrolled: s.isEnrolled ? "Enrolled" : "Not Enrolled",
     }));
 
     const workbook = xlsx.utils.book_new();
@@ -1317,50 +1304,9 @@ router.post("/addStudent", async (req, res) => {
       section,
     } = bodyData;
 
-    const normalizeText = (v) =>
-      (v ?? "").toString().trim().replace(/\s+/g, " ");
-    const normalizeStudentNumber = (v) =>
-      normalizeText(v).toUpperCase().replace(/\s+/g, "");
-
-    const normalizedStudentNumber = normalizeStudentNumber(student_number);
-    const normalizedFirstName = normalizeText(first_name);
-    const normalizedMiddleName = normalizeText(middle_name);
-    const normalizedLastName = normalizeText(last_name);
-    const normalizedSection = normalizeText(section);
-    const normalizedYearLevel = normalizeText(year_level);
-    const parsedCourseId =
-      course_id === null || course_id === undefined || course_id === ""
-        ? null
-        : parseInt(course_id);
-
-    // Required fields (matches the Add New Student form expectations)
-    if (!normalizedStudentNumber) {
-      return res.status(400).json({ error: "Student number is required" });
-    }
-    if (!/^[A-Z0-9-]+$/.test(normalizedStudentNumber)) {
-      return res.status(400).json({
-        error: "Student number must contain only letters, numbers, and dashes",
-      });
-    }
-    if (!normalizedFirstName) {
-      return res.status(400).json({ error: "First name is required" });
-    }
-    if (!normalizedLastName) {
-      return res.status(400).json({ error: "Last name is required" });
-    }
-    if (!parsedCourseId || Number.isNaN(parsedCourseId)) {
-      return res.status(400).json({ error: "Course is required" });
-    }
-    if (!normalizedYearLevel) {
-      return res.status(400).json({ error: "Year level is required" });
-    }
-    if (!normalizedSection) {
-      return res.status(400).json({ error: "Section is required" });
-    }
-
-    // Check if student number already exists
+    // Check if serial number already exists
     const existingStudent = await Student.findOne({
-      where: { student_number: normalizedStudentNumber },
+      where: { student_number: student_number.toUpperCase() },
     });
 
     if (existingStudent) {
@@ -1370,13 +1316,13 @@ router.post("/addStudent", async (req, res) => {
     // Create new student with separate name fields
     const newStudent = await Student.create({
       card_serial_number: card_serial_number || null,
-      student_number: normalizedStudentNumber,
-      first_name: normalizedFirstName || null,
-      middle_name: normalizedMiddleName || null,
-      last_name: normalizedLastName || null,
-      course_id: parsedCourseId,
-      year_level: normalizedYearLevel || null,
-      section: normalizedSection || null,
+      student_number: student_number.toUpperCase(),
+      first_name: first_name || null,
+      middle_name: middle_name || null,
+      last_name: last_name || null,
+      course_id: course_id ? parseInt(course_id) : null, //  Parse only course_id
+      year_level: year_level || null, // Keep as STRING
+      section: section || null,
     });
 
     res.json({
@@ -1497,6 +1443,42 @@ router.put("/updateStudent/:id", async (req, res) => {
       semester,
     } = bodyData;
 
+    const { Op } = require("sequelize");
+
+    // Check if the new serial number (if changed) already exists for another student
+    if (card_serial_number && card_serial_number !== student.card_serial_number) {
+      const existingStudent = await Student.findOne({
+        where: {
+          card_serial_number: card_serial_number,
+          id: { [Op.ne]: student.id }, // Exclude current student
+        },
+      });
+
+      if (existingStudent) {
+        return res.status(400).json({ 
+          message: "Serial number already exists",
+          field: "card_serial_number",
+        });
+      }
+    }
+
+    // Check if the new student number (if changed) already exists for another student
+    if (student_number && student_number.toUpperCase() !== student.student_number.toUpperCase()) {
+      const existingStudent = await Student.findOne({
+        where: {
+          student_number: student_number.toUpperCase(),
+          id: { [Op.ne]: student.id }, // Exclude current student
+        },
+      });
+
+      if (existingStudent) {
+        return res.status(400).json({ 
+          message: "Student number already exists",
+          field: "student_number",
+        });
+      }
+    }
+
     const hasEnrollment =
       student.StudentEnrollments && student.StudentEnrollments.length > 0;
 
@@ -1546,8 +1528,10 @@ router.put("/updateStudent/:id", async (req, res) => {
     res.json({ success: true, message: "Student updated successfully" });
   } catch (err) {
     console.error("Update error:", err);
-    console.error("Update error FULL:", err);
-    console.error("Validation errors:", err.errors);
+
+    res.status(500).json({
+      message: "Server error while updating student", 
+    });
   }
 });
 
