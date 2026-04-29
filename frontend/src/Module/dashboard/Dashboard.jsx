@@ -583,7 +583,10 @@ function Dashboard() {
                 yearLevelSelect.innerHTML =
                   `<option value="">Select Year Level</option>` +
                   yearLevels
-                    .map((y) => `<option value="${y}">${y}</option>`)
+                    .map(
+                      (y) =>
+                        `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
+                    )
                     .join("");
               } catch (error) {
                 console.error("Error fetching year levels:", error);
@@ -1295,7 +1298,10 @@ function Dashboard() {
                   yearLevelSelect.innerHTML =
                     `<option value="">Select Year Level</option>` +
                     yearLevels
-                      .map((y) => `<option value="${y}">${y}</option>`)
+                      .map(
+                        (y) =>
+                          `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
+                      )
                       .join("");
 
                   /* setTimeout(() => {
