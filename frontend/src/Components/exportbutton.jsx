@@ -159,8 +159,14 @@ async function renderPdf({
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const marginLeft = 14;
-  const marginRight = 14;
+  // Keep a comfortable margin for header/footer text,
+  // but allow the table to span the full page width.
+  const headerMarginLeft = 14;
+  const headerMarginRight = 14;
+  // Small side margin so the table isn't flush to the page edge.
+  // (0.5cm ≈ 5mm)
+  const tableMarginLeft = 5;
+  const tableMarginRight = 5;
 
   // ── Load PLV logo ─────────────────────────────────────────────────────────
   let logoDataUrl = null;
@@ -197,97 +203,78 @@ async function renderPdf({
       ? `${semLabel} ${schoolYear}`
       : semLabel || schoolYear || "";
 
-  const selectedCourseId =
-    filters && filters.course ? String(filters.course) : "";
-  const courseNameFromFilter = (
-    filterOptions && filterOptions.coursesWithMajors
-      ? filterOptions.coursesWithMajors
-      : []
-  ).find((c) => String(c.id) === selectedCourseId)?.name;
-
-  const courseName =
-    courseNameFromFilter ||
-    (students.length > 0
-      ? students[0].courseData?.name || students[0].course || ""
-      : "");
-
-  const sectionName =
-    filters?.section || (students.length > 0 ? students[0].section || "" : "");
+  // NOTE: Course/section values are intentionally not printed in the header
+  // to match the provided sample header layout.
 
   // ── Draw premium header ──────────────────────────────────────────────
   function drawHeader(doc) {
-    const top = 12;
+    const top = 10;
+    const centerX = pageWidth / 2;
 
-    // Header block (logo + text) should feel unified
+    // Logo at left (as in the sample)
     const logoSize = 18;
-    const logoX = marginLeft;
+    const logoX = headerMarginLeft;
     const logoY = top;
-    const gap = 4;
-    const textX = logoDataUrl ? logoX + logoSize + gap : marginLeft;
-    const maxTextWidth = pageWidth - marginRight - textX;
-    if (logoDataUrl) doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
-
-    // University name
-    doc.setTextColor(15, 23, 42); // slate-900
-    doc.setFont("times", "bold");
-    doc.setFontSize(16);
-    const title = "PAMANTASAN NG LUNGSOD NG VALENZUELA";
-    const titleLines = doc.splitTextToSize(title, maxTextWidth);
-
-    // Vertically align title with logo
-    const titleLineHeight = 6;
-    const titleBlockHeight = titleLines.length * titleLineHeight;
-    const logoBlockHeight = logoDataUrl ? logoSize : 0;
-    const headerBlockHeight = Math.max(logoBlockHeight, titleBlockHeight);
-    const titleY = top + Math.max(0, (headerBlockHeight - titleBlockHeight) / 2) + 5;
-    doc.text(titleLines, textX, titleY);
-
-    // STUDENT MASTERLIST
-    let y = top + headerBlockHeight + 4;
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(30, 41, 59); // slate-800
-    doc.text("STUDENT MASTERLIST", textX, y);
-
-    // Semester / School Year line
-    if (semesterLine) {
-      y += 5;
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105); // slate-500
-      doc.text(semesterLine, textX, y);
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, "PNG", logoX, logoY, logoSize, logoSize);
     }
+
+    // Header text centered on the page
+    const maxTitleWidth =
+      pageWidth - headerMarginLeft - headerMarginRight - (logoDataUrl ? logoSize + 6 : 0);
+    const title = "PAMANTASAN NG LUNGSOD NG VALENZUELA";
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    const titleLines = doc.splitTextToSize(title, maxTitleWidth);
+    const titleLineHeight = 5.5;
+
+    // Align the text block to visually match the logo height.
+    // Start slightly below the logo top for a clean baseline.
+    let y = top + 6;
+    titleLines.forEach((line, i) => {
+      doc.text(line, centerX, y + i * titleLineHeight, { align: "center" });
+    });
+    y += titleLines.length * titleLineHeight + 2;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(30, 41, 59);
+    doc.text("STUDENT MASTERLIST", centerX, y, { align: "center" });
+    y += 5;
+
+    if (semesterLine) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text(semesterLine, centerX, y, { align: "center" });
+      y += 4;
+    }
+
+    // Optional course/section line is intentionally omitted to match the printed header sample.
+    const contentBottom = Math.max(y, top + (logoDataUrl ? logoSize : 0));
 
     // Divider line
-    y += 8;
-    doc.setDrawColor(203, 213, 225); // slate-300
+    const lineY = contentBottom + 3;
+    doc.setDrawColor(203, 213, 225);
     doc.setLineWidth(0.5);
-    doc.line(marginLeft, y, pageWidth - marginRight, y);
+    doc.line(0, lineY, pageWidth, lineY);
 
-    // Course and Section row
-    y += 6;
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(51, 65, 85);
-    if (courseName) {
-      doc.text(`Course: ${courseName}`, marginLeft, y);
-    }
-    if (sectionName) {
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Section: ${sectionName}`, pageWidth - marginRight, y, {
-        align: "right",
-      });
-    }
-
-    y += 4;
-    return y; // next content Y
+    return lineY + 3; // next content Y
   }
 
   const tableStartY = drawHeader(doc);
 
+  const drawNothingFollows = (y) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text("-----------------------NOTHING FOLLOWS-----------------------", pageWidth / 2, y, { align: "center" });
+  };
+
   // ── Table Data Mapping ─────────────────────────────────────────────────────
-  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Sec"];
+  const baseHeaders = ["No.", "Student Name", "Student No.", "Course", "Year", "Section"];
   if (withSignature) baseHeaders.push("Signature");
 
   const rows = students.map((s, i) => {
@@ -308,26 +295,83 @@ async function renderPdf({
     return rowData;
   });
 
-  // Calculate dynamic column widths
+  // If there are no rows, render a small label and skip the table.
+  if (rows.length === 0) {
+    drawNothingFollows(tableStartY + 12);
+
+    const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const ayLabel = ayFrom && ayTo ? `AY_${ayFrom}-${ayTo}` : "ALL";
+    const fileName = `student_masterlist_${ayLabel}_${timestamp}.pdf`;
+
+    if (output === "blob") {
+      const blob = doc.output("blob");
+      return { blob, fileName };
+    }
+
+    doc.save(fileName);
+    return { fileName };
+  }
+
+  // Column widths: keep small columns fixed, and expand key columns to fill the page width.
   const getColStyles = () => {
+    const availableWidth = pageWidth - tableMarginLeft - tableMarginRight;
+
     if (withSignature) {
+      const fixed = {
+        0: 10, // No.
+        2: 24, // Student No.
+        4: 14, // Year
+        5: 14, // Sec
+      };
+      const flexDefaults = {
+        1: 55, // Student Name
+        3: 55, // Course
+        6: 24, // Signature
+      };
+
+      const fixedTotal = Object.values(fixed).reduce((a, b) => a + b, 0);
+      const flexTotalDefault = Object.values(flexDefaults).reduce((a, b) => a + b, 0);
+      const flexTarget = Math.max(0, availableWidth - fixedTotal);
+      const scale = flexTotalDefault > 0 ? flexTarget / flexTotalDefault : 1;
+
+      const nameW = Math.round(flexDefaults[1] * scale);
+      const courseW = Math.round(flexDefaults[3] * scale);
+      const sigW = Math.max(0, flexTarget - nameW - courseW);
+
       return {
-        0: { halign: "center", cellWidth: 8 },
-        1: { cellWidth: 55 },
-        2: { halign: "center", cellWidth: 20 },
-        3: { cellWidth: 55 },
-        4: { halign: "center", cellWidth: 10 },
-        5: { halign: "center", cellWidth: 10 },
-        6: { cellWidth: 24 }, // Signature
+        0: { halign: "center", cellWidth: fixed[0] },
+        1: { cellWidth: nameW },
+        2: { halign: "center", cellWidth: fixed[2] },
+        3: { cellWidth: courseW },
+        4: { halign: "center", cellWidth: fixed[4] },
+        5: { halign: "center", cellWidth: fixed[5] },
+        6: { cellWidth: sigW },
       };
     }
+
+    const fixed = {
+      0: 12, // No.
+      2: 26, // Student No.
+      4: 14, // Year
+      5: 18, // Sec
+    };
+    const fixedTotal = Object.values(fixed).reduce((a, b) => a + b, 0);
+    const flexTarget = Math.max(0, availableWidth - fixedTotal);
+
+    // Distribute remaining width between Name and Course (roughly like the old layout).
+    const nameRatio = 60;
+    const courseRatio = 65;
+    const ratioTotal = nameRatio + courseRatio;
+    const nameW = Math.round((flexTarget * nameRatio) / ratioTotal);
+    const courseW = Math.max(0, flexTarget - nameW);
+
     return {
-      0: { halign: "center", cellWidth: 10 },
-      1: { cellWidth: 60 },
-      2: { halign: "center", cellWidth: 22 },
-      3: { cellWidth: 65 },
-      4: { halign: "center", cellWidth: 10 },
-      5: { halign: "center", cellWidth: 15 },
+      0: { halign: "center", cellWidth: fixed[0] },
+      1: { cellWidth: nameW },
+      2: { halign: "center", cellWidth: fixed[2] },
+      3: { cellWidth: courseW },
+      4: { halign: "center", cellWidth: fixed[4] },
+      5: { halign: "center", cellWidth: fixed[5] },
     };
   };
 
@@ -341,33 +385,37 @@ async function renderPdf({
       fontSize: 9,
       cellPadding: 3,
       overflow: "linebreak",
-      lineColor: [226, 232, 240], // slate-200
-      lineWidth: 0.15,
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
       valign: "middle",
     },
     headStyles: {
-      fillColor: [241, 245, 249], // slate-100-ish
-      textColor: [15, 23, 42], // slate-900
+      fillColor: [255, 255, 255],
+      textColor: [0, 0, 0],
       fontStyle: "bold",
       fontSize: 9,
       halign: "center",
       valign: "middle",
-      lineColor: [203, 213, 225], // slate-300
-      lineWidth: 0.2,
+      minCellHeight: 12,
+      cellPadding: { top: 3, right: 2, bottom: 3, left: 2 },
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
     },
     bodyStyles: {
-      textColor: [51, 65, 85], // slate-700
+      textColor: [0, 0, 0],
     },
     alternateRowStyles: {
-      fillColor: [250, 250, 250],
+      fillColor: [255, 255, 255],
     },
     columnStyles: getColStyles(),
-    margin: { left: marginLeft, right: marginRight },
+    tableWidth: pageWidth - tableMarginLeft - tableMarginRight,
+    margin: { left: tableMarginLeft, right: tableMarginRight },
     didDrawCell: (data) => {
       // Draw a line for the signature cell to make it look ready to sign
       if (withSignature && data.section === 'body' && data.column.index === 6) {
         const { x, y, width, height } = data.cell;
-        doc.setDrawColor(148, 163, 184); // slate-400
+        doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
         // Draw horizontal line in the middle-bottom of the cell
         doc.line(x + 2, y + height - 2, x + width - 2, y + height - 2);
@@ -378,18 +426,19 @@ async function renderPdf({
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184); // slate-400
+      doc.setFont("helvetica", "normal");
 
       // Left side - Timestamp
       const printDate = new Date().toLocaleString('en-PH', {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
       });
-      doc.text(`Printed: ${printDate}`, marginLeft, pageHeight - 6);
+      doc.text(`Printed: ${printDate}`, headerMarginLeft, pageHeight - 6);
 
       // Right side - Page Number
       doc.text(
         `Page ${data.pageNumber} of ${pageCount}`,
-        pageWidth - marginRight,
+        pageWidth - headerMarginRight,
         pageHeight - 6,
         { align: "right" }
       );
@@ -398,13 +447,24 @@ async function renderPdf({
       doc.setDrawColor(226, 232, 240); // slate-200
       doc.setLineWidth(0.3);
       doc.line(
-        marginLeft,
+        headerMarginLeft,
         pageHeight - 9,
-        pageWidth - marginRight,
+        pageWidth - headerMarginRight,
         pageHeight - 9
       );
     },
   });
+
+  // End-of-list marker
+  const afterTableY = (doc.lastAutoTable?.finalY ?? tableStartY) + 8;
+  const safeBottomY = pageHeight - 14;
+  if (afterTableY > safeBottomY) {
+    doc.addPage();
+    const y = drawHeader(doc) + 12;
+    drawNothingFollows(y);
+  } else {
+    drawNothingFollows(afterTableY);
+  }
 
   const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const ayLabel = ayFrom && ayTo ? `AY_${ayFrom}-${ayTo}` : "ALL";
