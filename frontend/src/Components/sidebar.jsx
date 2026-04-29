@@ -2,6 +2,13 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import plvLogo from "/assets/PLVLogo.png";
 import { useAuth } from "../context/authContext";
+import {
+  AiOutlineDashboard,
+  AiOutlineUser,
+  AiOutlineUpload,
+  AiOutlineSetting,
+  AiOutlineLogout,
+} from "react-icons/ai";
 
 const Sidebar = () => {
   const { user, logout, isSuperAdmin } = useAuth();
@@ -23,6 +30,7 @@ const Sidebar = () => {
     {
       name: "Dashboard",
       path: "/dashboard",
+      icon: <AiOutlineDashboard size={22} />,
     },
   ];
 
@@ -33,14 +41,17 @@ const Sidebar = () => {
         {
           name: "Manage Account",
           path: "/manage-accounts",
+          icon: <AiOutlineUser size={22} />,
         },
         {
           name: "Upload",
           path: "/upload",
+          icon: <AiOutlineUpload size={22} />,
         },
         {
           name: "Settings",
           path: "/settings",
+          icon: <AiOutlineSetting size={22} />,
         },
       ]
     : baseNavItems;
@@ -50,7 +61,7 @@ const Sidebar = () => {
       className={`h-screen bg-white shadow-lg flex flex-col transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}
     >
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 relative">
+      <div className="p-4 border-b border-gray-200 relative">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0">
             <img
@@ -120,8 +131,6 @@ const Sidebar = () => {
                     {item.name}
                   </span>
                 )}
-
-                {/* Tooltip for collapsed state */}
                 {isCollapsed && (
                   <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
                     {item.name}
@@ -164,24 +173,10 @@ const Sidebar = () => {
           className={`w-full flex items-center ${isCollapsed ? "justify-center" : "justify-center space-x-2"} px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors duration-200 group relative`}
           title={isCollapsed ? "Logout" : ""}
         >
-          <svg
-            className="w-4 h-4 flex-shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-            />
-          </svg>
+          <AiOutlineLogout size={20} className="flex-shrink-0" />
           {!isCollapsed && <span>Logout</span>}
-
-          {/* Tooltip for collapsed logout button */}
           {isCollapsed && (
-            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
+            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50">
               Logout
             </div>
           )}
