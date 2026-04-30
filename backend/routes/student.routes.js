@@ -481,6 +481,10 @@ router.get("/searchStudent", async (req, res) => {
             model: AcademicYear,
             attributes: ["id", "academic_year"],
           },
+          {
+            model: Course,
+            attributes: ["id", "name"],
+          },
         ],
       });
     }
