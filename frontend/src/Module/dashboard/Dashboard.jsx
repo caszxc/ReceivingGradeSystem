@@ -544,8 +544,8 @@ function Dashboard() {
     `,
         focusConfirm: false,
         showCancelButton: true,
-      showLoaderOnConfirm: true,
-      allowOutsideClick: () => !swal.isLoading(),
+        showLoaderOnConfirm: true,
+        allowOutsideClick: () => !swal.isLoading(),
         didOpen: () => {
           // Add event listener to course dropdown
           const courseSelect = document.getElementById("course_id");
@@ -611,10 +611,21 @@ function Dashboard() {
 
             if (yearLevel) {
               try {
-                const res = await fetch(
-                  `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${selectedCourse}&year_level=${yearLevel}`,
+                // const res = await fetch(
+                //   `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${selectedCourse}&year_level=${yearLevel}`,
+                // );
+                // const data = await res.json();
+                const response = await axios.get(
+                  `${BASE_URL}/students/getSectionsByCourseAndYear`,
+                  {
+                    params: {
+                      course_id: selectedCourse,
+                      year_level: yearLevel,
+                    },
+                  },
                 );
-                const data = await res.json();
+
+                const data = response.data;
                 const sections = data.sections || [];
 
                 sectionInput.disabled = false;
@@ -1328,10 +1339,21 @@ function Dashboard() {
 
               if (courseId && yearLevel) {
                 try {
-                  const response = await fetch(
-                    `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`,
+                  // const response = await fetch(
+                  //   `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`,
+                  // );
+                  // const data = await response.json();
+                  const response = await axios.get(
+                    `${BASE_URL}/students/getSectionsByCourseAndYear`,
+                    {
+                      params: {
+                        course_id: courseId,
+                        year_level: yearLevel,
+                      },
+                    },
                   );
-                  const data = await response.json();
+
+                  const data = response.data;
                   availableSections = data.sections || [];
                   sectionInput.disabled = false;
                   sectionDatalist.innerHTML = availableSections
