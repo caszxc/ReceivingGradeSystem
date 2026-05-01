@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -5,7 +7,9 @@ const db = require("./models/association");
 const seedCourses = require("./seeds/courseSeed");
 
 const app = express();
-const PORT = 3001;
+// const PORT = 3001;
+const PORT = process.env.PORT || 3005;
+const HOST = process.env.HOST || "0.0.0.0";
 
 app.use(cors());
 app.use(bodyParser.json({ limit: "50mb" }));
@@ -27,12 +31,12 @@ db.sequelize.sync().then(async () => {
   await seedCourses();
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
-});
-
-// app.listen(PORT, "0.0.0.0", () => {
-//   console.log("Backend running");
+// app.listen(PORT, () => {
+//   console.log(`Backend running at http://localhost:${PORT}`);
 // });
+
+app.listen(PORT, HOST, () => {
+  console.log(`Backend running at http://${HOST}:${PORT}]`);
+});
 
 module.exports = app;
