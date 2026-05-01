@@ -216,7 +216,9 @@ async function buildFilterSummaryForExport(filters = {}) {
   if (filters.academicYear) {
     let ayName = "";
     try {
-      const ay = await AcademicYear.findByPk(parseInt(filters.academicYear, 10));
+      const ay = await AcademicYear.findByPk(
+        parseInt(filters.academicYear, 10),
+      );
       ayName = ay?.academic_year || "";
     } catch (_) {
       // ignore lookup failure
@@ -381,7 +383,9 @@ router.get("/searchStudent", async (req, res) => {
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
   if (!query && !serial && !studentNumber && !name) {
-    return res.status(400).json({ error: "At least one search field is required" });
+    return res
+      .status(400)
+      .json({ error: "At least one search field is required" });
   }
 
   // Extract filter parameters
@@ -418,9 +422,9 @@ router.get("/searchStudent", async (req, res) => {
       }
       if (name) {
         whereClause[Op.or] = [
-          {first_name: { [Op.like]: `%${name.trim()}%` } },
-          {middle_name: { [Op.like]: `%${name.trim()}%` } },
-          {last_name: { [Op.like]: `%${name.trim()}%` } },
+          { first_name: { [Op.like]: `%${name.trim()}%` } },
+          { middle_name: { [Op.like]: `%${name.trim()}%` } },
+          { last_name: { [Op.like]: `%${name.trim()}%` } },
         ];
       }
     } else {
@@ -949,7 +953,9 @@ router.get("/exportStudents", async (req, res) => {
     let academicYearName = "";
     if (filters.academicYear) {
       try {
-        const ay = await AcademicYear.findByPk(parseInt(filters.academicYear, 10));
+        const ay = await AcademicYear.findByPk(
+          parseInt(filters.academicYear, 10),
+        );
         academicYearName = ay?.academic_year || "";
       } catch (_) {
         // ignore lookup failure
@@ -1012,7 +1018,11 @@ router.get("/exportStudents", async (req, res) => {
     const headerRow = ws.getRow(6);
     headerRow.values = tableHeaders;
     headerRow.font = { bold: true, size: 10 };
-    headerRow.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    headerRow.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
     headerRow.height = 18;
     headerRow.eachCell((cell) => {
       cell.fill = {
@@ -1102,6 +1112,49 @@ router.get("/exportStudents", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+function normalizeCourseMajor(course, major) {
+  const courseName = String(course || "")
+    .trim()
+    .toUpperCase();
+  const majorName = String(major || "")
+    .trim()
+    .toUpperCase();
+
+  const pairMap = {
+    "BACHELOR OF SECONDARY EDUCATION||MATHEMATICS": "BSED-MATHEMATICS",
+    "BACHELOR OF SECONDARY EDUCATION||ENGLISH": "BSED-ENGLISH",
+    "BACHELOR OF SECONDARY EDUCATION||FILIPINO": "BSED-FILIPINO",
+    "BACHELOR OF SECONDARY EDUCATION||SCIENCE": "BSED-SCIENCE",
+    "BACHELOR OF SECONDARY EDUCATION||SOCIAL STUDIES": "BSED-SOCIAL STUDIES",
+
+    "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION||FINANCIAL MANAGEMENT":
+      "BSBA-FM",
+    "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION||HUMAN RESOURCE DEVELOPMENT MANAGEMENT":
+      "BSBA-HRDM",
+    "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION||MARKETING MANAGEMENT":
+      "BSBA-MM",
+  };
+
+  const shortFormRules = {
+    "BSED-MATHEMATICS": "MATHEMATICS",
+    "BSED-ENGLISH": "ENGLISH",
+    "BSED-FILIPINO": "FILIPINO",
+    "BSED-SCIENCE": "SCIENCE",
+    "BSED-SOCIAL STUDIES": "SOCIAL STUDIES",
+    "BSBA-FM": "FINANCIAL MANAGEMENT",
+    "BSBA-HRDM": "HUMAN RESOURCE DEVELOPMENT MANAGEMENT",
+    "BSBA-MM": "MARKETING MANAGEMENT",
+  };
+
+  if (shortFormRules[courseName]) {
+    return majorName && majorName === shortFormRules[courseName]
+      ? courseName
+      : null;
+  }
+
+  return pairMap[`${courseName}||${majorName}`] || null;
+}
 
 // Get student by RFID UID
 router.get("/rfid/:uid", async (req, res) => {
@@ -1219,18 +1272,39 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
         if (row.middle_name && row.middle_name.toString().trim() !== "") {
           cleanedRow.middle_name = row.middle_name.toString().trim();
         }
+
         if (row.course && row.course.toString().trim() !== "") {
-          const courseExists = await Course.findOne({
-            where: { name: row.course.toString().trim().toUpperCase() },
-          });
-          if (!courseExists) {
-            rowErrors.push(`Course not found: ${row.course}`);
-          } else {
-            cleanedRow.course = row.course.toString().trim();
-          }
+          cleanedRow.course = row.course.toString().trim();
         }
+
         if (row.major && row.major.toString().trim() !== "") {
           cleanedRow.major = row.major.toString().trim();
+        }
+
+        // Validate course and major together when both are present.
+        if (cleanedRow.course && cleanedRow.major) {
+          const resolvedCourseName = normalizeCourseMajor(
+            cleanedRow.course,
+            cleanedRow.major,
+          );
+
+          if (!resolvedCourseName) {
+            rowErrors.push(
+              `Invalid course-major pair: ${cleanedRow.course} - ${cleanedRow.major}`,
+            );
+          } else {
+            const courseExists = await Course.findOne({
+              where: { name: resolvedCourseName },
+            });
+
+            if (!courseExists) {
+              rowErrors.push(
+                `Course not found for mapping: ${resolvedCourseName}`,
+              );
+            } else {
+              cleanedRow.course = resolvedCourseName;
+            }
+          }
         }
         if (row.section && row.section.toString().trim() !== "") {
           cleanedRow.section = row.section.toString().trim();
@@ -1303,17 +1377,29 @@ router.post("/confirmUpload", async (req, res) => {
       return res.status(400).json({ error: "No valid data to upload" });
     }
 
-    // Auto-assign course_id based on course name
     for (const student of validatedData) {
-      if (student.course) {
+      let resolvedCourseName = student.course;
+
+      // If course + major still exist separately, resolve them one more time.
+      if (student.course && student.major) {
+        resolvedCourseName = normalizeCourseMajor(
+          student.course,
+          student.major,
+        );
+      }
+
+      if (resolvedCourseName) {
         const courseRecord = await Course.findOne({
-          where: { name: student.course.toUpperCase() },
+          where: { name: resolvedCourseName.toUpperCase() },
         });
+
         if (courseRecord) {
           student.course_id = courseRecord.id;
         }
-        delete student.course; // ← Remove course field before saving
       }
+
+      // Remove the text field before insert; DB only needs course_id.
+      delete student.course;
     }
 
     const createdStudents = await Student.bulkCreate(validatedData, {
@@ -1661,7 +1747,10 @@ router.put("/updateStudent/:id", async (req, res) => {
     const { Op } = require("sequelize");
 
     // Check if the new serial number (if changed) already exists for another student
-    if (card_serial_number && card_serial_number !== student.card_serial_number) {
+    if (
+      card_serial_number &&
+      card_serial_number !== student.card_serial_number
+    ) {
       const existingStudent = await Student.findOne({
         where: {
           card_serial_number: card_serial_number,
@@ -1670,7 +1759,7 @@ router.put("/updateStudent/:id", async (req, res) => {
       });
 
       if (existingStudent) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Serial number already exists",
           field: "card_serial_number",
         });
@@ -1678,7 +1767,10 @@ router.put("/updateStudent/:id", async (req, res) => {
     }
 
     // Check if the new student number (if changed) already exists for another student
-    if (student_number && student_number.toUpperCase() !== student.student_number.toUpperCase()) {
+    if (
+      student_number &&
+      student_number.toUpperCase() !== student.student_number.toUpperCase()
+    ) {
       const existingStudent = await Student.findOne({
         where: {
           student_number: student_number.toUpperCase(),
@@ -1687,7 +1779,7 @@ router.put("/updateStudent/:id", async (req, res) => {
       });
 
       if (existingStudent) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Student number already exists",
           field: "student_number",
         });
@@ -1745,7 +1837,7 @@ router.put("/updateStudent/:id", async (req, res) => {
     console.error("Update error:", err);
 
     res.status(500).json({
-      message: "Server error while updating student", 
+      message: "Server error while updating student",
     });
   }
 });
@@ -1940,7 +2032,9 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
   try {
     const { course_id, year_level } = req.query;
     if (!course_id || !year_level) {
-      return res.status(400).json({ error: "course_id and year_level are required" });
+      return res
+        .status(400)
+        .json({ error: "course_id and year_level are required" });
     }
 
     const courseId = parseInt(course_id);
@@ -1990,8 +2084,8 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
 
     // Combine All Sections + Remove Duplicates
     const sections = [
-      ...studentSections.map(s => s.section),
-      ...enrollmentSections.map(s => s.section),
+      ...studentSections.map((s) => s.section),
+      ...enrollmentSections.map((s) => s.section),
     ];
 
     const uniqueSections = [...new Set(sections)].filter(Boolean).sort();
@@ -2000,8 +2094,8 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
 
     let finalSections = uniqueSections;
     if (prefix) {
-        finalSections = uniqueSections.filter((s) =>
-          s.toUpperCase().startsWith(prefix.toUpperCase())
+      finalSections = uniqueSections.filter((s) =>
+        s.toUpperCase().startsWith(prefix.toUpperCase()),
       );
     }
 
@@ -2009,7 +2103,6 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
       success: true,
       sections: finalSections,
     });
-
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2024,7 +2117,7 @@ const courseYearLevelMapping = {
 
   // Public Admin
   BSPA: ["I", "II", "III", "IV", "V", "ALUMNI", "MPA"],
-}
+};
 
 // Get Year Levels by Course
 router.get("/getYearLevelsByCourse", async (req, res) => {
@@ -2032,7 +2125,7 @@ router.get("/getYearLevelsByCourse", async (req, res) => {
     const { course_id } = req.query;
 
     if (!course_id) {
-      return res.status(400).json({ error: "course_id is required" })
+      return res.status(400).json({ error: "course_id is required" });
     }
 
     const course = await Course.findByPk(course_id);
@@ -2047,16 +2140,17 @@ router.get("/getYearLevelsByCourse", async (req, res) => {
     if (courseName.includes("BSED")) {
       yearLevels = courseYearLevelMapping["BSED"];
     } else if (courseName.includes("BACHELOR OF EARLY CHILDHOOD EDUCATION")) {
-      yearLevels = courseYearLevelMapping["BCED"]
-    } else if (courseName.includes("BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION")) {
-      yearLevels = courseYearLevelMapping["BSPA"]
+      yearLevels = courseYearLevelMapping["BCED"];
+    } else if (
+      courseName.includes("BACHELOR OF SCIENCE IN PUBLIC ADMINISTRATION")
+    ) {
+      yearLevels = courseYearLevelMapping["BSPA"];
     }
 
     res.json({
       success: true,
       yearLevels,
-    })
-
+    });
   } catch (err) {
     console.error("Year level filter error:", err);
     res.status(500).json({ error: err.message });

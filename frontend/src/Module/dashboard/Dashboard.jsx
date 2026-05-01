@@ -1229,62 +1229,79 @@ function Dashboard() {
               "enroll_section_list",
             );
 
+            let isPopulating = false; // Flag to track initial population phase
+
             // Pre-populate with latest enrollment data
             if (latestEnrollment) {
-              if (latestEnrollment.year_level) {
-                yearLevelSelect.value = latestEnrollment.year_level;
-              }
+              isPopulating = true;
+
               if (latestEnrollment.semester) {
                 semesterSelect.value = latestEnrollment.semester;
               }
 
               if (latestEnrollment.course_id) {
-                // Set course value after a slight delay to ensure DOM is ready
-                setTimeout(() => {
-                  courseSelect.value = latestEnrollment.course_id;
+                // Set course value
+                courseSelect.value = latestEnrollment.course_id;
 
-                  // Extract and populate major
-                  const selectedOption =
-                    courseSelect.options[courseSelect.selectedIndex];
-                  selectedMajor =
-                    selectedOption.getAttribute("data-major") || "";
-                  majorInput.value = selectedMajor;
+                // Extract and populate major
+                const selectedOption =
+                  courseSelect.options[courseSelect.selectedIndex];
+                selectedMajor = selectedOption.getAttribute("data-major") || "";
+                majorInput.value = selectedMajor;
 
-                  courseSelect.dispatchEvent(new Event("change"));
-                }, 0);
-
-                // Fetch sections for this course
+                // Fetch year levels for this course
                 fetch(
-                  `${BASE_URL}/students/getSectionsByCourseAndYear?course_id=${latestEnrollment.course_id}&year_level=${latestEnrollment.year_level}`,
+                  `${BASE_URL}/students/getYearLevelsByCourse?course_id=${latestEnrollment.course_id}`,
                 )
                   .then((res) => res.json())
                   .then((data) => {
-                    availableSections = data.sections || [];
+                    const yearLevels = data.yearLevels || [];
 
-                    sectionDatalist.innerHTML = availableSections
-                      .map((s) => `<option value="${s}"></option>`)
-                      .join("");
+                    yearLevelSelect.disabled = false;
+                    yearLevelSelect.innerHTML =
+                      `<option value="">Select Year Level</option>` +
+                      yearLevels
+                        .map(
+                          (y) =>
+                            `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
+                        )
+                        .join("");
 
-                    if (latestEnrollment.section) {
-                      sectionInput.value = latestEnrollment.section;
+                    // NOW restore year level after options are rendered
+                    if (latestEnrollment.year_level) {
+                      yearLevelSelect.value = latestEnrollment.year_level;
+
+                      // Trigger change event to fetch ALL sections AND pre-select recent section
+                      yearLevelSelect.dispatchEvent(new Event("change"));
+
+                      // Wait for the change event to complete, then set the section value
+                      setTimeout(() => {
+                        if (latestEnrollment.section) {
+                          sectionInput.value = latestEnrollment.section;
+                        }
+                      }, 100);
                     }
+
+                    isPopulating = false;
                   })
                   .catch((error) => {
-                    console.error("Error fetching sections:", error);
+                    console.error("Error fetching year levels:", error);
+                    isPopulating = false;
                   });
               }
             }
-
             // Handle course change - extract and populate major
             courseSelect.addEventListener("change", async (e) => {
               selectedCourse = e.target.value;
 
-              // Reset Dependent Fields
-              yearLevelSelect.value = "";
-              sectionInput.value = "";
-              sectionInput.disabled = true;
-              sectionDatalist.innerHTML = "";
-              availableSections = [];
+              // Only reset dependent fields if NOT in initial population
+              if (!isPopulating) {
+                yearLevelSelect.value = "";
+                sectionInput.value = "";
+                sectionInput.disabled = true;
+                sectionDatalist.innerHTML = "";
+                availableSections = [];
+              }
 
               if (selectedCourse) {
                 try {
@@ -1314,12 +1331,6 @@ function Dashboard() {
                           `<option value="${y}">${convertYearLevelForDisplay(y)}</option>`,
                       )
                       .join("");
-
-                  /* setTimeout(() => {
-                    if (yearLevels.includes(latestEnrollment.year_level)) {
-                      yearLevelSelect.value = latestEnrollment.year_level;
-                    }
-                  }, 0); */
                 } catch (error) {
                   console.error("Error fetching year levels:", error);
                 }
@@ -1339,10 +1350,6 @@ function Dashboard() {
 
               if (courseId && yearLevel) {
                 try {
-                  // const response = await fetch(
-                  //   `http://localhost:3001/students/getSectionsByCourseAndYear?course_id=${courseId}&year_level=${yearLevel}`,
-                  // );
-                  // const data = await response.json();
                   const response = await axios.get(
                     `${BASE_URL}/students/getSectionsByCourseAndYear`,
                     {

@@ -8,7 +8,7 @@ const majorsByCourseName = {
   ],
   "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION": [
     { name: "FINANCIAL MANAGEMENT" },
-    { name: "HUMAN RESOURCE MANAGEMENT" },
+    { name: "HUMAN RESOURCE DEVELOPMENT MANAGEMENT" },
     { name: "MARKETING MANAGEMENT" },
   ],
 };
