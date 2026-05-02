@@ -21,11 +21,11 @@ function createWindow() {
   });
 
   // Load production build - uncomment when ready for production
-  const distPath = path.join(__dirname, "../frontend/dist/index.html");
-  win.loadFile(distPath);
+  // const distPath = path.join(__dirname, "../frontend/dist/index.html");
+  // win.loadFile(distPath);
 
   // Dev mode: uncomment to test with Vite dev server
-  // win.loadURL("http://localhost:5173");  //uncomment kapag dev mode
+  win.loadURL("http://localhost:5173");  //uncomment kapag dev mode
 }
 
 app.whenReady().then(createWindow);
