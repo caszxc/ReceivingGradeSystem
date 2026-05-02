@@ -20,12 +20,12 @@ function createWindow() {
     },
   });
 
-  // Load production build
+  // Load production build - uncomment when ready for production
   const distPath = path.join(__dirname, "../frontend/dist/index.html");
   win.loadFile(distPath);
 
   // Dev mode: uncomment to test with Vite dev server
-  // win.loadURL("http://localhost:5173");
+  // win.loadURL("http://localhost:5173");  //uncomment kapag dev mode
 }
 
 app.whenReady().then(createWindow);
@@ -33,7 +33,6 @@ app.whenReady().then(createWindow);
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-
 
 //////////////////---OLD CODE FOR DEV MODE---
 

@@ -1426,6 +1426,7 @@ function isValidDate(dateString) {
 
 // Enroll student by ID or by student_number/card_serial_number
 router.patch("/enrollStudent/:id", async (req, res) => {
+  let t;
   try {
     const bodyData = convertStudentDataForDB(req.body);
 
@@ -1518,63 +1519,69 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     //   }
     // }
 
-    // Check if student is already enrolled in this academic year and semester
-    const existingEnrollment = await StudentEnrollment.findOne({
+    // start transaction
+    t = await sequelize.transaction();
+
+    const [enrollment, created] = await StudentEnrollment.findOrCreate({
       where: {
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
         semester: semester,
       },
-    });
-
-    // If enrollment already exists and forceUpdate is not true, return conflict status
-    if (existingEnrollment && !forceUpdate) {
-      return res.status(409).json({
-        success: false,
-        code: "ALREADY_ENROLLED",
-        message: `Student is already enrolled in ${activeAcademicYear.academic_year} - ${semester}`,
-        existingEnrollment: {
-          id: existingEnrollment.id,
-          semester: existingEnrollment.semester,
-          year_level: existingEnrollment.year_level,
-          section: existingEnrollment.section,
-          course_id: existingEnrollment.course_id,
-          major: existingEnrollment.major,
-          date_enrolled: existingEnrollment.date_enrolled,
-          isEnrolled: existingEnrollment.isEnrolled,
-        },
-      });
-    }
-
-    // Create or update StudentEnrollment record
-    let enrollment;
-    if (existingEnrollment) {
-      // Force update existing enrollment
-      await existingEnrollment.update({
-        year_level: year_level || existingEnrollment.year_level,
-        section: section || existingEnrollment.section,
-        course_id: resolvedCourseId || existingEnrollment.course_id,
-        major: major || existingEnrollment.major,
-        date_enrolled: new Date(),
-        isEnrolled: true,
-      });
-      enrollment = existingEnrollment;
-    } else {
-      // Create new enrollment
-      enrollment = await StudentEnrollment.create({
-        student_id: student.id,
-        academic_year_id: activeAcademicYear.id,
-        semester: semester,
+      defaults: {
         year_level: year_level || null,
         section: section || null,
         course_id: resolvedCourseId || null,
         major: major || null,
         date_enrolled: new Date(),
         isEnrolled: true,
+      },
+      transaction: t,
+    });
+
+    if (!created && !forceUpdate) {
+      await t.rollback();
+      t = null;
+      return res.status(409).json({
+        success: false,
+        code: "ALREADY_ENROLLED",
+        message: `Student is already enrolled in ${activeAcademicYear.academic_year} - ${semester}`,
+        existingEnrollment: {
+          id: enrollment.id,
+          semester: enrollment.semester,
+          year_level: enrollment.year_level,
+          section: enrollment.section,
+          course_id: enrollment.course_id,
+          major: enrollment.major,
+          date_enrolled: enrollment.date_enrolled,
+          isEnrolled: enrollment.isEnrolled,
+        },
       });
     }
 
-    res.json({
+    if (!created && forceUpdate) {
+      await enrollment.update(
+        {
+          year_level: year_level || enrollment.year_level,
+          section: section || enrollment.section,
+          course_id: resolvedCourseId || enrollment.course_id,
+          major: major || enrollment.major,
+          date_enrolled: new Date(),
+          isEnrolled: true,
+        },
+        { transaction: t },
+      );
+    }
+
+    await Student.update(
+      { isEnrolled: true, date_enrolled: new Date() },
+      { where: { id: student.id }, transaction: t },
+    );
+
+    await t.commit();
+    t = null;
+
+    return res.json({
       success: true,
       message: forceUpdate
         ? "Student enrollment updated successfully"
@@ -1582,8 +1589,20 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       enrollment,
     });
   } catch (err) {
+    if (t) {
+      await t.rollback();
+    }
+
+    if (err && err.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        success: false,
+        code: "ALREADY_ENROLLED",
+        message: "Enrollment already exists (unique constraint)",
+      });
+    }
+
     console.error("Enroll error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: err.message,
     });
