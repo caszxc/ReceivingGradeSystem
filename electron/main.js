@@ -1,14 +1,19 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
 
-// Start backend automatically
-require("../backend/server");
+// Detect if running on server or client
+const isServerMode = process.env.SERVER_MODE === "true";
+
+if (isServerMode) {
+  // Start backend only on server PC
+  require("../backend/server");
+}
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, "icon", "PLVLogo.ico"), // ICON TO
+    icon: path.join(__dirname, "icon", "PLVLogo.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
