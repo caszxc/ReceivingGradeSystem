@@ -40,6 +40,11 @@ app.listen(PORT, () => {
 //   console.log(`Backend running at http://${HOST}:${PORT}]`);
 // });
 
+//uncomment kapag deploy locally
+// app.listen(PORT, HOST, () => {
+//   console.log(`Backend running at http://${HOST}:${PORT}]`);
+// });
+
 // app.listen(PORT, "0.0.0.0", () => {
 //   console.log("Backend running");
 // });
