@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -43,10 +45,6 @@ app.listen(PORT, () => {
 //uncomment kapag deploy locally
 // app.listen(PORT, HOST, () => {
 //   console.log(`Backend running at http://${HOST}:${PORT}]`);
-// });
-
-// app.listen(PORT, "0.0.0.0", () => {
-//   console.log("Backend running");
 // });
 
 module.exports = app;
