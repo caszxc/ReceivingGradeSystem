@@ -46,6 +46,14 @@ const StudentEnrollment = sequelize.define(
   },
   {
     tableName: "student_enrollment",
+    indexes: [
+      {
+        unique: true, // UNIQUE index: pipigilan ang duplicate rows
+        fields: ["student_id", "academic_year_id", "semester"],
+        // ibig sabihin: hindi puwedeng magkaroon ng dalawa o higit pang rows
+        // na pareho ang student_id + academic_year_id + semester
+      },
+    ],
   },
 );
 

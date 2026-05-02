@@ -7,7 +7,11 @@ const db = require("./models/association");
 const seedCourses = require("./seeds/courseSeed");
 
 const app = express();
+
+//-unccomment kapag dev mode
 // const PORT = 3001;
+
+//-uncomment kapag deploy locally
 const PORT = process.env.PORT || 3005;
 const HOST = process.env.HOST || "0.0.0.0";
 
@@ -31,10 +35,12 @@ db.sequelize.sync().then(async () => {
   await seedCourses();
 });
 
+//uncomment kapag dev mode
 // app.listen(PORT, () => {
 //   console.log(`Backend running at http://localhost:${PORT}`);
 // });
 
+//uncomment kapag deploy locally
 app.listen(PORT, HOST, () => {
   console.log(`Backend running at http://${HOST}:${PORT}]`);
 });
