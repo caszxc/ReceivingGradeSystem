@@ -220,6 +220,7 @@ const Upload = () => {
                     <li>• first_name</li>
                     <li>• last_name</li>
                     <li>• middle_name</li>
+                    <li>• card_serial_number</li>
                     <li>• course</li>
                     <li>• major</li>
                     <li>• section</li>
@@ -457,15 +458,17 @@ const Upload = () => {
                         <div className="text-sm text-yellow-800">
                           The following records already exist in the database:
                           <div className="mt-2 space-y-1">
-                            {uploadResult.existingRecords.map(
-                              (record, index) => (
-                                <div key={index}>
-                                  Student Number: {record.student_number},
-                                  Control Number:{" "}
-                                  {record.card_id_control_number}
-                                </div>
-                              ),
-                            )}
+                            {uploadResult.existingRecords.map((record, index) => (
+                              <div key={index}>
+                                {record.student_number && (
+                                  <div>Student Number: {record.student_number}</div>
+                                )}
+
+                                {record.card_serial_number && (
+                                  <div>Card Serial Number: {record.card_serial_number}</div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>

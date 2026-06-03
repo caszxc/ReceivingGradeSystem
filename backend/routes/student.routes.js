@@ -1217,6 +1217,7 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
       "first_name",
       "last_name",
       "middle_name",
+      "card_serial_number",
       // "course",
       "major",
       "section",
@@ -1248,6 +1249,22 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
         );
       }
 
+      // Check for duplicate card serial numbers in the file (if present)
+      if (row.card_serial_number && row.card_serial_number.toString().trim() !== "") {
+        const cardSerial = row.card_serial_number.toString().trim();
+
+        const duplicateCardInFile = validatedData.find(
+          (existingRow) =>
+            existingRow.card_serial_number === cardSerial,
+        );
+
+        if (duplicateCardInFile) {
+          rowErrors.push(
+            `Duplicate card_serial_number in file: ${cardSerial}`,
+          );
+        }
+      }
+
       if (rowErrors.length > 0) {
         errors.push({
           row: rowNumber,
@@ -1271,6 +1288,11 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
         }
         if (row.middle_name && row.middle_name.toString().trim() !== "") {
           cleanedRow.middle_name = row.middle_name.toString().trim();
+        }
+
+        //validate and clean card_serial_number if present
+        if (row.card_serial_number && row.card_serial_number.toString().trim() !== "") {
+          cleanedRow.card_serial_number = row.card_serial_number.toString().trim();
         }
 
         if (row.course && row.course.toString().trim() !== "") {
@@ -1320,20 +1342,37 @@ router.post("/uploadStudents", upload.single("file"), async (req, res) => {
       }
     }
 
-    // Check for existing records in database - only check student_number
+    // Check for existing records in database - only check student_number (updated: now also checks card_serial_number for duplicates)
     const existingRecords = [];
     if (validatedData.length > 0) {
       const studentNumbers = validatedData.map((row) => row.student_number);
+      const cardSerialNumbers = validatedData.filter((row) => row.card_serial_number).map((row) => row.card_serial_number);
 
       const existing = await Student.findAll({
         where: {
-          student_number: { [Op.in]: studentNumbers },
+          [Op.or]: [
+            {
+              student_number: {
+                [Op.in]: studentNumbers,
+              },
+            },
+            ...(cardSerialNumbers.length > 0
+              ? [
+                  {
+                    card_serial_number: {
+                      [Op.in]: cardSerialNumbers,
+                    },
+                  },
+                ]
+              : []),
+          ],
         },
       });
 
       existing.forEach((student) => {
         existingRecords.push({
           student_number: student.student_number,
+          card_serial_number: student.card_serial_number,
         });
       });
     }
