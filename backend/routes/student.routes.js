@@ -1508,9 +1508,20 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     }
 
     // Get active academic year
-    const activeAcademicYear = await AcademicYear.findOne({
-      where: { isActive: true },
-    });
+    // const activeAcademicYear = await AcademicYear.findOne({
+    //   where: { isActive: true },
+    // });
+
+    let activeAcademicYear;
+    if (req.body.academic_year_id) {
+      activeAcademicYear = await AcademicYear.findByPk(
+        parseInt(req.body.academic_year_id, 10),
+      );
+    } else {
+      activeAcademicYear = await AcademicYear.findOne({
+        where: { isActive: true },
+      });
+    }
 
     if (!activeAcademicYear) {
       return res.status(400).json({

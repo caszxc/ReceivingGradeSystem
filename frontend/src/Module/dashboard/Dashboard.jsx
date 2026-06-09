@@ -1126,6 +1126,18 @@ function Dashboard() {
         console.error("Error fetching latest enrollment:", err);
       }
 
+      // Build academic year options (active year pre-selected)
+      const activeAcademicYear = filterOptions.academicYears.find(
+        (ay) => ay.isActive,
+      );
+      const academicYearOptions = filterOptions.academicYears
+        .filter((ay) => ay.value !== "")
+        .map(
+          (ay) =>
+            `<option value="${ay.value}" ${ay.isActive ? "selected" : ""}>${ay.label}</option>`,
+        )
+        .join("");
+
       // Build semester options
       const semesterOptions = filterOptions.semesters
         .filter((s) => s.value !== "")
@@ -1185,6 +1197,16 @@ function Dashboard() {
             />
             <datalist id="enroll_section_list"></datalist>
           </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-700 mb-1">
+            Academic Year
+          </label>
+          <select id="enroll_academic_year" class="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white cursor-pointer text-xs">
+            <option value="">Select Academic Year</option>
+            ${academicYearOptions}
+          </select>
         </div>
 
         <div>
@@ -1379,12 +1401,17 @@ function Dashboard() {
             const courseSelect = document.getElementById("enroll_course");
             const yearLevel =
               document.getElementById("enroll_year_level").value;
+            const academicYearId = document.getElementById("enroll_academic_year").value; 
             const semester = document.getElementById("enroll_semester").value;
             const courseId = courseSelect.value;
             const section = document.getElementById("enroll_section").value;
 
             if (!yearLevel) {
               swal.showValidationMessage("Please select a year level");
+              return false;
+            }
+            if (!academicYearId) {
+              swal.showValidationMessage("Please select an academic year");
               return false;
             }
             if (!semester) {
@@ -1402,6 +1429,7 @@ function Dashboard() {
 
             return {
               yearLevel,
+              academicYearId,
               semester,
               courseId,
               section,
@@ -1417,7 +1445,7 @@ function Dashboard() {
             return;
           }
 
-          const { yearLevel, semester, courseId, section, major } =
+          const { yearLevel, semester, academicYearId, courseId, section, major } =
             result.value;
 
           try {
@@ -1441,6 +1469,7 @@ function Dashboard() {
               `${BASE_URL}/students/enrollStudent/${selectedStudent.id}`,
               {
                 year_level: yearLevel,
+                academic_year_id: parseInt(academicYearId, 10),
                 semester,
                 course_id: parseInt(courseId, 10),
                 section,
