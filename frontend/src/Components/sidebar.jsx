@@ -39,16 +39,16 @@ const Sidebar = () => {
   const navItems = isSuperAdmin()
     ? [
         ...baseNavItems,
-        {
-          name: "Manage Account",
-          path: "/manage-accounts",
-          icon: <AiOutlineUser size={22} />,
-        },
-        {
-          name: "Upload",
-          path: "/upload",
-          icon: <AiOutlineUpload size={22} />,
-        },
+        // {
+        //   name: "Manage Account",
+        //   path: "/manage-accounts",
+        //   icon: <AiOutlineUser size={22} />,
+        // },
+        // {
+        //   name: "Upload",
+        //   path: "/upload",
+        //   icon: <AiOutlineUpload size={22} />,
+        // },
         {
           name: "Settings",
           path: "/settings",
@@ -77,7 +77,7 @@ const Sidebar = () => {
                 PLV System
               </h1>
               <p className="text-xs text-gray-500 whitespace-nowrap">
-                Enrollment Portal
+                Grade Receiving Portal
               </p>
             </div>
           )}

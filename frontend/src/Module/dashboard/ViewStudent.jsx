@@ -16,7 +16,8 @@ function ViewStudent() {
   const [profileImage, setProfileImage] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
-  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState(null);
+  const [selectedGradeReceivingId, setSelectedGradeReceivingId] =
+  useState(null);
   const [activeSemester, setActiveSemester] = useState("1ST SEMESTER");
 
   // State for dropdown options
@@ -57,33 +58,35 @@ function ViewStudent() {
         //   response.data.StudentEnrollments &&
         //   response.data.StudentEnrollments.length > 0
         // ) {
-        //   setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
+        //   setSelectedGradeReceivingId(response.data.StudentEnrollments[0].id);
         // }
 
         // Set default to enrollment matching active semester
         if (
-          response.data.StudentEnrollments &&
-          response.data.StudentEnrollments.length > 0
+          response.data.StudentGradeReceivings &&
+          response.data.StudentGradeReceivings.length > 0
         ) {
-          const match = response.data.StudentEnrollments.find(
+          const match = response.data.StudentGradeReceivings.find(
             (e) =>
               (e.semester || "").trim().toUpperCase() ===
-              (activeSemester || "").trim().toUpperCase(),
+              (activeSemester || "").trim().toUpperCase()
           );
-          setSelectedEnrollmentId(
-            match ? match.id : response.data.StudentEnrollments[0].id,
+
+          setSelectedGradeReceivingId(
+            match ? match.id : response.data.StudentGradeReceivings[0].id
           );
+
 
           // pwede to agmitin pero mas more robust yung nasa unahan
 
           // const match = response.data.StudentEnrollments.find(
           //   (e) => e.semester === activeSemester,
           // );
-          // setSelectedEnrollmentId(
+          // setSelectedGradeReceivingId(
           //   match ? match.id : response.data.StudentEnrollments[0].id,
           // );
 
-          // setSelectedEnrollmentId(response.data.StudentEnrollments[0].id);
+          // setSelectedGradeReceivingId(response.data.StudentEnrollments[0].id);
         }
       } catch (error) {
         console.error("Failed to fetch student:", error);
@@ -186,12 +189,14 @@ function ViewStudent() {
 
   const handleEdit = () => {
     // Use selected enrollment data if available
-    const currentEnrollment = selectedEnrollmentId
-      ? student.StudentEnrollments?.find((e) => e.id === selectedEnrollmentId)
-      : student.StudentEnrollments?.[0];
+    const currentGradeReceiving = selectedGradeReceivingId
+      ? student.StudentGradeReceivings?.find(
+          (e) => e.id === selectedGradeReceivingId
+        )
+      : student.StudentGradeReceivings?.[0];
 
-    const courseId = currentEnrollment?.course_id || student.course_id || "";
-    const yearLevel = currentEnrollment?.year_level || student.year_level || "";
+    const courseId = currentGradeReceiving?.course_id || student.course_id || "";
+    const yearLevel = currentGradeReceiving?.year_level || student.year_level || "";
 
     const newEditData = {
       card_serial_number: student.card_serial_number || "",
@@ -200,10 +205,10 @@ function ViewStudent() {
       middle_name: student.middle_name || "",
       last_name: student.last_name || "",
       course_id: courseId,
-      section: currentEnrollment?.section || student.section || "",
+      section: currentGradeReceiving?.section || student.section || "",
       year_level: yearLevel,
-      semester: currentEnrollment?.semester || student.semester || "",
-      major: currentEnrollment?.major || student.major || "",
+      semester: currentGradeReceiving?.semester || student.semester || "",
+      major: currentGradeReceiving?.major || student.major || "",
     };
 
     setEditData(newEditData);
@@ -239,7 +244,7 @@ function ViewStudent() {
     try {
       await axios.put(`${BASE_URL}/students/updateStudent/${id}`, {
         ...editData,
-        enrollment_id: selectedEnrollmentId, // Pass the selected enrollment ID to update the correct record
+        grade_receiving_id: selectedGradeReceivingId,
       });
       await swal.fire({
         title: "Updated!",
@@ -387,9 +392,9 @@ function ViewStudent() {
   }
 
   // Get the currently selected enrollment data
-  const currentEnrollment = selectedEnrollmentId
-    ? student.StudentEnrollments?.find((e) => e.id === selectedEnrollmentId)
-    : student.StudentEnrollments?.[0];
+  const currentGradeReceiving = selectedGradeReceivingId
+    ? student.StudentGradeReceivings?.find((e) => e.id === selectedGradeReceivingId)
+    : student.StudentGradeReceivings?.[0];
 
   // Display data - prefer enrollment data if available
   const displayData = {
@@ -402,14 +407,14 @@ function ViewStudent() {
     card_type: student.card_type,
     card_status: student.card_status,
     date_issued: student.date_issued,
-    year_level: currentEnrollment?.year_level || student.year_level,
-    section: currentEnrollment?.section || student.section,
-    semester: currentEnrollment?.semester || student.semester,
-    major: currentEnrollment?.major || student.major,
-    course: currentEnrollment?.Course?.name || student.courseData?.name,
-    course_id: currentEnrollment?.course_id || student.course_id,
-    date_enrolled: currentEnrollment?.date_enrolled || student.date_enrolled,
-    isEnrolled: currentEnrollment?.isEnrolled ?? student.isEnrolled,
+    year_level: currentGradeReceiving?.year_level || student.year_level,
+    section: currentGradeReceiving?.section || student.section,
+    semester: currentGradeReceiving?.semester || student.semester,
+    major: currentGradeReceiving?.major || student.major,
+    course: currentGradeReceiving?.Course?.name || student.courseData?.name,
+    course_id: currentGradeReceiving?.course_id || student.course_id,
+    date_enrolled: currentGradeReceiving?.date_enrolled || student.date_enrolled,
+    isEnrolled: currentGradeReceiving?.isEnrolled ?? student.isEnrolled,
   };
 
   return (
@@ -424,19 +429,19 @@ function ViewStudent() {
         </button>
       </div>
 
-      {/* Enrollment Selection */}
-      {student.StudentEnrollments && student.StudentEnrollments.length > 1 && (
+      {/* Claim Record Selection */}
+      {student.StudentGradeReceivings && student.StudentGradeReceivings.length > 1 && (
         <div className="mb-4 p-4 bg-white border border-gray-300 rounded-lg shadow-md">
           <label className="block text-sm font-semibold mb-2">
-            Select Enrollment Record:
+            Select Student Grade Report Claim Record:
           </label>
 
           <select
-            value={selectedEnrollmentId || ""}
-            onChange={(e) => setSelectedEnrollmentId(parseInt(e.target.value))}
+            value={selectedGradeReceivingId|| ""}
+            onChange={(e) => setSelectedGradeReceivingId(parseInt(e.target.value))}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {student.StudentEnrollments.map((enrollment, idx) => (
+            {student.StudentGradeReceivings.map((enrollment, idx) => (
               <option key={enrollment.id} value={enrollment.id}>
                 {enrollment.AcademicYear?.academic_year || `Year ${idx + 1}`} -{" "}
                 {""}
@@ -445,7 +450,7 @@ function ViewStudent() {
             ))}
           </select>
           <p className="text-sm text-gray-600 mt-2">
-            Total Enrollments: {student.StudentEnrollments.length}
+            Total Claims: {student.StudentGradeReceivings.length}
           </p>
         </div>
       )}
@@ -486,31 +491,22 @@ function ViewStudent() {
             )}
           </div>
 
-          <div>
-            {/*active or enrolled*/}
-            <span
-              className={`mt-4 px-5 py-2 rounded-md text-white text-sm font-semibold ${
-                displayData.isEnrolled ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              {displayData.isEnrolled ? "Enrolled" : "Not Enrolled"}
-            </span>
-          </div>
+          
 
-          {/* Enrollment History */}
-          {student.StudentEnrollments &&
-            student.StudentEnrollments.length > 0 && (
+          {/* Claim History */}
+          {student.StudentGradeReceivings &&
+            student.StudentGradeReceivings.length > 0 && (
               <div className="mt-6 w-full h-full">
                 <h3 className="text-sm font-semibold mb-2">
-                  Enrollment History
+                  Claim History
                 </h3>
                 <div className="space-y-2 max-h-100 overflow-y-auto">
-                  {student.StudentEnrollments.map((enrollment, idx) => (
+                  {student.StudentGradeReceivings.map((enrollment, idx) => (
                     <div
                       key={enrollment.id}
-                      onClick={() => setSelectedEnrollmentId(enrollment.id)}
+                      onClick={() => setSelectedGradeReceivingId(enrollment.id)}
                       className={`p-2 rounded-lg cursor-pointer text-xs transition ${
-                        selectedEnrollmentId === enrollment.id
+                        selectedGradeReceivingId=== enrollment.id
                           ? "bg-blue-500 text-white"
                           : "bg-gray-100 hover:bg-gray-200"
                       }`}

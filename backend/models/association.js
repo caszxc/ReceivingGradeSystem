@@ -5,6 +5,7 @@ const StudentImage = require("./studentProfile");
 const Course = require("./course");
 const AcademicYear = require("./academicYear");
 const StudentEnrollment = require("./studentEnrollment");
+const StudentGradeReceiving = require("./studentGradeReceiving");
 const ActiveSemester = require("./activeSemester");
 
 // Import future models here when needed:
@@ -50,6 +51,30 @@ Course.hasMany(StudentEnrollment, {
   foreignKey: "course_id",
 });
 
+
+// Student ←→ StudentGradeReceiving
+Student.hasMany(StudentGradeReceiving, {
+  foreignKey: "student_id",
+});
+StudentGradeReceiving.belongsTo(Student, {
+  foreignKey: "student_id",
+});
+
+// StudentGradeReceiving ←→ AcademicYear
+StudentGradeReceiving.belongsTo(AcademicYear, {
+  foreignKey: "academic_year_id",
+});
+AcademicYear.hasMany(StudentGradeReceiving, {
+  foreignKey: "academic_year_id",
+});
+
+StudentGradeReceiving.belongsTo(Course, {
+  foreignKey: "course_id",
+});
+Course.hasMany(StudentGradeReceiving, {
+  foreignKey: "course_id",
+});
+
 const db = {
   sequelize,
   Sequelize: require("sequelize"),
@@ -58,6 +83,7 @@ const db = {
   StudentImage,
   Course,
   AcademicYear,
+  StudentGradeReceiving,
   StudentEnrollment,
   ActiveSemester,
 };

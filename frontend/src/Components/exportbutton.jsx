@@ -241,7 +241,7 @@ async function renderPdf({
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
     doc.setTextColor(30, 41, 59);
-    doc.text("STUDENT MASTERLIST", centerX, y, { align: "center" });
+    doc.text("STUDENT GRADE REPORT RECEIVED MASTERLIST", centerX, y, { align: "center" });
     y += 5;
 
     if (semesterLine) {

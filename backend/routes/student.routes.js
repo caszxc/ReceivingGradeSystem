@@ -5,6 +5,7 @@ const {
   Student,
   StudentImage,
   Course,
+  StudentGradeReceiving,
   StudentEnrollment,
   AcademicYear,
 } = require("../models/association");
@@ -229,8 +230,8 @@ async function buildFilterSummaryForExport(filters = {}) {
   return parts.length ? parts.join(" | ") : "All Records";
 }
 
-// Helper function to merge StudentEnrollment data with Student data
-function mergeEnrollmentData(students, hasAcademicYear) {
+// Helper function to merge StudentGradeReceiving data with Student data
+function mergeClaimData(students, hasAcademicYear) {
   if (!hasAcademicYear) return students;
 
   const expandedStudents = [];
@@ -238,21 +239,21 @@ function mergeEnrollmentData(students, hasAcademicYear) {
   students.forEach((student) => {
     const studentData = student.toJSON ? student.toJSON() : student;
 
-    // Create a row for EACH enrollment instead of just the first
+    // Create a row for EACH grade receiving record instead of just the first
     if (
-      studentData.StudentEnrollments &&
-      studentData.StudentEnrollments.length > 0
+      studentData.StudentGradeReceivings &&
+      studentData.StudentGradeReceivings.length > 0
     ) {
-      studentData.StudentEnrollments.forEach((enrollment) => {
+      studentData.StudentGradeReceivings.forEach((record) => {
         expandedStudents.push({
           ...studentData,
-          semester: enrollment.semester,
-          year_level: enrollment.year_level,
-          section: enrollment.section,
-          date_enrolled: enrollment.date_enrolled,
-          course_id: enrollment.course_id,
-          course: enrollment.Course?.name,
-          StudentEnrollments: undefined,
+          semester: record.semester,
+          year_level: record.year_level,
+          section: record.section,
+          date_enrolled: record.date_received,
+          course_id: record.course_id,
+          course: record.Course?.name,
+          StudentGradeReceivings: undefined,
         });
       });
     } else {
@@ -270,7 +271,6 @@ router.get("/getStudent", async (req, res) => {
   const offset = (page - 1) * limit;
   const { sortBy = "last_name", sortOrder = "asc" } = req.query;
 
-  // Extract filter parameters
   const filters = {
     academicYear: req.query.academicYear,
     yearLevel: req.query.yearLevel,
@@ -283,7 +283,7 @@ router.get("/getStudent", async (req, res) => {
 
   try {
     // When academic year is selected, don't filter Student table by semester/yearLevel/section/course
-    // Those filters should apply to StudentEnrollment instead
+    // Those filters should apply to StudentGradeReceiving instead
     const filtersForStudent = { ...filters };
     if (filters.academicYear) {
       filtersForStudent.yearLevel = null;
@@ -308,40 +308,39 @@ router.get("/getStudent", async (req, res) => {
       ],
     };
 
-    // If academic year is selected, join with StudentEnrollment table
+    // If academic year is selected, join with StudentGradeReceiving table
     if (filters.academicYear) {
-      // Build where clause for StudentEnrollment
-      const enrollmentWhere = {};
-      enrollmentWhere.academic_year_id = parseInt(filters.academicYear);
+      const gradeReceivingWhere = {};
+      gradeReceivingWhere.academic_year_id = parseInt(filters.academicYear);
 
       if (filters.yearLevel) {
-        enrollmentWhere.year_level = filters.yearLevel;
+        gradeReceivingWhere.year_level = filters.yearLevel;
       }
       if (filters.semester) {
-        enrollmentWhere.semester = filters.semester;
+        gradeReceivingWhere.semester = filters.semester;
       }
       if (filters.course) {
         const courseId = parseInt(filters.course);
         if (!isNaN(courseId)) {
-          enrollmentWhere.course_id = courseId;
+          gradeReceivingWhere.course_id = courseId;
         }
       }
       if (filters.section) {
-        enrollmentWhere.section = filters.section;
+        gradeReceivingWhere.section = filters.section;
       }
 
       findOptions.include.push({
-        model: StudentEnrollment,
+        model: StudentGradeReceiving,
         attributes: [
           "id",
           "semester",
           "year_level",
           "section",
-          "date_enrolled",
+          "date_received",
           "major",
           "course_id",
         ],
-        where: enrollmentWhere,
+        where: gradeReceivingWhere,
         required: true,
         include: [
           {
@@ -358,8 +357,8 @@ router.get("/getStudent", async (req, res) => {
 
     const result = await Student.findAndCountAll(findOptions);
 
-    // Merge enrollment data with student data when academic year is selected
-    const transformedRows = mergeEnrollmentData(
+    // Merge grade receiving data with student data when academic year is selected
+    const transformedRows = mergeClaimData(
       result.rows,
       !!filters.academicYear,
     );
@@ -388,7 +387,6 @@ router.get("/searchStudent", async (req, res) => {
       .json({ error: "At least one search field is required" });
   }
 
-  // Extract filter parameters
   const filters = {
     academicYear: req.query.academicYear,
     yearLevel: req.query.yearLevel,
@@ -401,7 +399,7 @@ router.get("/searchStudent", async (req, res) => {
 
   try {
     // When academic year is selected, don't filter Student table by semester/yearLevel/section/course
-    // Those filters should apply to StudentEnrollment instead
+    // Those filters should apply to StudentGradeReceiving instead
     const filtersForStudent = { ...filters };
     if (filters.academicYear) {
       filtersForStudent.yearLevel = null;
@@ -445,40 +443,39 @@ router.get("/searchStudent", async (req, res) => {
       ],
     };
 
-    // If academic year is selected, join with StudentEnrollment table
+    // If academic year is selected, join with StudentGradeReceiving table
     if (filters.academicYear) {
-      // Build where clause for StudentEnrollment
-      const enrollmentWhere = {};
-      enrollmentWhere.academic_year_id = parseInt(filters.academicYear);
+      const gradeReceivingWhere = {};
+      gradeReceivingWhere.academic_year_id = parseInt(filters.academicYear);
 
       if (filters.yearLevel) {
-        enrollmentWhere.year_level = filters.yearLevel;
+        gradeReceivingWhere.year_level = filters.yearLevel;
       }
       if (filters.semester) {
-        enrollmentWhere.semester = filters.semester;
+        gradeReceivingWhere.semester = filters.semester;
       }
       if (filters.course) {
         const courseId = parseInt(filters.course);
         if (!isNaN(courseId)) {
-          enrollmentWhere.course_id = courseId;
+          gradeReceivingWhere.course_id = courseId;
         }
       }
       if (filters.section) {
-        enrollmentWhere.section = filters.section;
+        gradeReceivingWhere.section = filters.section;
       }
 
       findOptions.include.push({
-        model: StudentEnrollment,
+        model: StudentGradeReceiving,
         attributes: [
           "id",
           "semester",
           "year_level",
           "section",
-          "date_enrolled",
+          "date_received",
           "major",
           "course_id",
         ],
-        where: enrollmentWhere,
+        where: gradeReceivingWhere,
         required: true,
         include: [
           {
@@ -495,8 +492,8 @@ router.get("/searchStudent", async (req, res) => {
 
     const result = await Student.findAndCountAll(findOptions);
 
-    // Merge enrollment data with student data when academic year is selected
-    const transformedRows = mergeEnrollmentData(
+    // Merge grade receiving data with student data when academic year is selected
+    const transformedRows = mergeClaimData(
       result.rows,
       !!filters.academicYear,
     );
@@ -880,26 +877,26 @@ router.get("/exportStudents", async (req, res) => {
     };
 
     if (filters.academicYear && scope !== "selected") {
-      const enrollmentWhere = {
+      const gradeReceivingWhere = {
         academic_year_id: parseInt(filters.academicYear, 10),
       };
 
-      if (filters.yearLevel) enrollmentWhere.year_level = filters.yearLevel;
-      if (filters.semester) enrollmentWhere.semester = filters.semester;
-      if (filters.section) enrollmentWhere.section = filters.section;
+      if (filters.yearLevel) gradeReceivingWhere.year_level = filters.yearLevel;
+      if (filters.semester) gradeReceivingWhere.semester = filters.semester;
+      if (filters.section) gradeReceivingWhere.section = filters.section;
       if (filters.course)
-        enrollmentWhere.course_id = parseInt(filters.course, 10);
+        gradeReceivingWhere.course_id = parseInt(filters.course, 10);
 
       findOptions.include.push({
-        model: StudentEnrollment,
+        model: StudentGradeReceiving,
         attributes: [
           "semester",
           "year_level",
           "section",
-          "date_enrolled",
+          "date_received",
           "course_id",
         ],
-        where: enrollmentWhere,
+        where: gradeReceivingWhere,
         required: true,
         include: [{ model: Course, attributes: ["id", "name"] }],
       });
@@ -913,7 +910,7 @@ router.get("/exportStudents", async (req, res) => {
     }
 
     const students = await Student.findAll(findOptions);
-    const normalized = mergeEnrollmentData(students, !!filters.academicYear);
+    const normalized = mergeClaimData(students, !!filters.academicYear);
 
     const exportData = normalized.map((s, i) => ({
       "No.": i + 1,
@@ -1005,7 +1002,7 @@ router.get("/exportStudents", async (req, res) => {
     ws.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
 
     ws.mergeCells(mergeAcross(2));
-    ws.getCell("A2").value = "STUDENT MASTERLIST";
+    ws.getCell("A2").value = "STUDENT GRADE REPORT RECEIVED MASTERLIST";
     ws.getCell("A2").font = { bold: true, size: 12 };
     ws.getCell("A2").alignment = { horizontal: "center", vertical: "middle" };
 
@@ -1464,7 +1461,203 @@ function isValidDate(dateString) {
 }
 
 // Enroll student by ID or by student_number/card_serial_number
-router.patch("/enrollStudent/:id", async (req, res) => {
+// router.patch("/enrollStudent/:id", async (req, res) => {
+//   let t;
+//   try {
+//     const bodyData = convertStudentDataForDB(req.body);
+
+//     const { id } = req.params;
+//     const {
+//       studentNumber,
+//       cardSerialNumber,
+//       semester,
+//       course,
+//       course_id,
+//       section,
+//       year_level,
+//       major,
+//       forceUpdate = false,
+//     } = bodyData;
+
+//     let student;
+
+//     // If ID is provided and not 0, use it directly
+//     if (id !== "0") {
+//       student = await Student.findByPk(id);
+//     } else {
+//       // Otherwise search by studentNumber or cardSerialNumber
+//       if (studentNumber) {
+//         student = await Student.findOne({
+//           where: { student_number: studentNumber.toUpperCase() },
+//         });
+//       } else if (cardSerialNumber) {
+//         student = await Student.findOne({
+//           where: { card_serial_number: cardSerialNumber },
+//         });
+//       }
+//     }
+
+//     if (!student) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
+
+//     // Get active academic year
+//     // const activeAcademicYear = await AcademicYear.findOne({
+//     //   where: { isActive: true },
+//     // });
+
+//     let activeAcademicYear;
+//     if (req.body.academic_year_id) {
+//       activeAcademicYear = await AcademicYear.findByPk(
+//         parseInt(req.body.academic_year_id, 10),
+//       );
+//     } else {
+//       activeAcademicYear = await AcademicYear.findOne({
+//         where: { isActive: true },
+//       });
+//     }
+
+//     if (!activeAcademicYear) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "No active academic year found. Please set an active academic year first.",
+//       });
+//     }
+
+//     // Resolve course_id: if we have a course name (from conversion), look it up
+//     let resolvedCourseId = course_id;
+
+//     if (!resolvedCourseId && course) {
+//       const courseRecord = await Course.findOne({
+//         where: { name: course },
+//       });
+
+//       if (courseRecord) {
+//         resolvedCourseId = courseRecord.id;
+//       }
+//     }
+
+//     // Map short-form courses to their parent courses
+//     // if (resolvedCourseId) {
+//     //   const courseRecord = await Course.findByPk(resolvedCourseId);
+//     //   if (courseRecord) {
+//     //     const courseName = courseRecord.name;
+
+//     //     // Define mapping from short-form to parent course ID
+//     //     // const shortFormToParentId = {
+//     //     //   "BSBA-FM": 4,
+//     //     //   "BSBA-HRM": 4,
+//     //     //   "BSBA-MM": 4,
+//     //     //   "BSED-MATHEMATICS": 11,
+//     //     //   "BSED-ENGLISH": 11,
+//     //     //   "BSED-SCIENCE": 11,
+//     //     //   "BSED-FILIPINO": 11,
+//     //     //   "BSED-SOCIAL STUDIES": 11,
+//     //     // };
+
+//     //     // If it's a short form, use parent course ID
+//     //     if (shortFormToParentId[courseName]) {
+//     //       resolvedCourseId = shortFormToParentId[courseName];
+//     //     }
+//     //   }
+//     // }
+
+//     // start transaction
+//     t = await sequelize.transaction();
+
+//     const [enrollment, created] = await StudentEnrollment.findOrCreate({
+//       where: {
+//         student_id: student.id,
+//         academic_year_id: activeAcademicYear.id,
+//         semester: semester,
+//       },
+//       defaults: {
+//         year_level: year_level || null,
+//         section: section || null,
+//         course_id: resolvedCourseId || null,
+//         major: major || null,
+//         date_enrolled: new Date(),
+//         isEnrolled: true,
+//       },
+//       transaction: t,
+//     });
+
+//     if (!created && !forceUpdate) {
+//       await t.rollback();
+//       t = null;
+//       return res.status(409).json({
+//         success: false,
+//         code: "ALREADY_ENROLLED",
+//         message: `Student is already enrolled in ${activeAcademicYear.academic_year} - ${semester}`,
+//         existingEnrollment: {
+//           id: enrollment.id,
+//           semester: enrollment.semester,
+//           year_level: enrollment.year_level,
+//           section: enrollment.section,
+//           course_id: enrollment.course_id,
+//           major: enrollment.major,
+//           date_enrolled: enrollment.date_enrolled,
+//           isEnrolled: enrollment.isEnrolled,
+//         },
+//       });
+//     }
+
+//     if (!created && forceUpdate) {
+//       await enrollment.update(
+//         {
+//           year_level: year_level || enrollment.year_level,
+//           section: section || enrollment.section,
+//           course_id: resolvedCourseId || enrollment.course_id,
+//           major: major || enrollment.major,
+//           date_enrolled: new Date(),
+//           isEnrolled: true,
+//         },
+//         { transaction: t },
+//       );
+//     }
+
+//     await Student.update(
+//       { isEnrolled: true, date_enrolled: new Date() },
+//       { where: { id: student.id }, transaction: t },
+//     );
+
+//     await t.commit();
+//     t = null;
+
+//     return res.json({
+//       success: true,
+//       message: forceUpdate
+//         ? "Student enrollment updated successfully"
+//         : "Student enrolled successfully",
+//       enrollment,
+//     });
+//   } catch (err) {
+//     if (t) {
+//       await t.rollback();
+//     }
+
+//     if (err && err.name === "SequelizeUniqueConstraintError") {
+//       return res.status(409).json({
+//         success: false,
+//         code: "ALREADY_ENROLLED",
+//         message: "Enrollment already exists (unique constraint)",
+//       });
+//     }
+
+//     console.error("Enroll error:", err);
+//     return res.status(500).json({
+//       success: false,
+//       error: err.message,
+//     });
+//   }
+// });
+
+// Mark grade report as claimed by ID or by student_number/card_serial_number
+router.patch("/claimGradeReport/:id", async (req, res) => {
   let t;
   try {
     const bodyData = convertStudentDataForDB(req.body);
@@ -1508,10 +1701,6 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     }
 
     // Get active academic year
-    // const activeAcademicYear = await AcademicYear.findOne({
-    //   where: { isActive: true },
-    // });
-
     let activeAcademicYear;
     if (req.body.academic_year_id) {
       activeAcademicYear = await AcademicYear.findByPk(
@@ -1544,35 +1733,10 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       }
     }
 
-    // Map short-form courses to their parent courses
-    // if (resolvedCourseId) {
-    //   const courseRecord = await Course.findByPk(resolvedCourseId);
-    //   if (courseRecord) {
-    //     const courseName = courseRecord.name;
-
-    //     // Define mapping from short-form to parent course ID
-    //     // const shortFormToParentId = {
-    //     //   "BSBA-FM": 4,
-    //     //   "BSBA-HRM": 4,
-    //     //   "BSBA-MM": 4,
-    //     //   "BSED-MATHEMATICS": 11,
-    //     //   "BSED-ENGLISH": 11,
-    //     //   "BSED-SCIENCE": 11,
-    //     //   "BSED-FILIPINO": 11,
-    //     //   "BSED-SOCIAL STUDIES": 11,
-    //     // };
-
-    //     // If it's a short form, use parent course ID
-    //     if (shortFormToParentId[courseName]) {
-    //       resolvedCourseId = shortFormToParentId[courseName];
-    //     }
-    //   }
-    // }
-
-    // start transaction
+    // Start transaction
     t = await sequelize.transaction();
 
-    const [enrollment, created] = await StudentEnrollment.findOrCreate({
+    const [gradeReceiving, created] = await StudentGradeReceiving.findOrCreate({
       where: {
         student_id: student.id,
         academic_year_id: activeAcademicYear.id,
@@ -1583,8 +1747,8 @@ router.patch("/enrollStudent/:id", async (req, res) => {
         section: section || null,
         course_id: resolvedCourseId || null,
         major: major || null,
-        date_enrolled: new Date(),
-        isEnrolled: true,
+        date_received: new Date(),
+        isReceived: true,
       },
       transaction: t,
     });
@@ -1594,39 +1758,34 @@ router.patch("/enrollStudent/:id", async (req, res) => {
       t = null;
       return res.status(409).json({
         success: false,
-        code: "ALREADY_ENROLLED",
-        message: `Student is already enrolled in ${activeAcademicYear.academic_year} - ${semester}`,
-        existingEnrollment: {
-          id: enrollment.id,
-          semester: enrollment.semester,
-          year_level: enrollment.year_level,
-          section: enrollment.section,
-          course_id: enrollment.course_id,
-          major: enrollment.major,
-          date_enrolled: enrollment.date_enrolled,
-          isEnrolled: enrollment.isEnrolled,
+        code: "ALREADY_CLAIMED",
+        message: `Student has already claimed their grade report for ${activeAcademicYear.academic_year} - ${semester}`,
+        existingRecord: {
+          id: gradeReceiving.id,
+          semester: gradeReceiving.semester,
+          year_level: gradeReceiving.year_level,
+          section: gradeReceiving.section,
+          course_id: gradeReceiving.course_id,
+          major: gradeReceiving.major,
+          date_received: gradeReceiving.date_received,
+          isReceived: gradeReceiving.isReceived,
         },
       });
     }
 
     if (!created && forceUpdate) {
-      await enrollment.update(
+      await gradeReceiving.update(
         {
-          year_level: year_level || enrollment.year_level,
-          section: section || enrollment.section,
-          course_id: resolvedCourseId || enrollment.course_id,
-          major: major || enrollment.major,
-          date_enrolled: new Date(),
-          isEnrolled: true,
+          year_level: year_level || gradeReceiving.year_level,
+          section: section || gradeReceiving.section,
+          course_id: resolvedCourseId || gradeReceiving.course_id,
+          major: major || gradeReceiving.major,
+          date_received: new Date(),
+          isReceived: true,
         },
         { transaction: t },
       );
     }
-
-    await Student.update(
-      { isEnrolled: true, date_enrolled: new Date() },
-      { where: { id: student.id }, transaction: t },
-    );
 
     await t.commit();
     t = null;
@@ -1634,9 +1793,9 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     return res.json({
       success: true,
       message: forceUpdate
-        ? "Student enrollment updated successfully"
-        : "Student enrolled successfully",
-      enrollment,
+        ? "Grade report claim updated successfully"
+        : "Grade report marked as claimed successfully",
+      gradeReceiving,
     });
   } catch (err) {
     if (t) {
@@ -1646,12 +1805,12 @@ router.patch("/enrollStudent/:id", async (req, res) => {
     if (err && err.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({
         success: false,
-        code: "ALREADY_ENROLLED",
-        message: "Enrollment already exists (unique constraint)",
+        code: "ALREADY_CLAIMED",
+        message: "Grade report claim already exists (unique constraint)",
       });
     }
 
-    console.error("Enroll error:", err);
+    console.error("Claim grade report error:", err);
     return res.status(500).json({
       success: false,
       error: err.message,
@@ -1733,7 +1892,7 @@ router.get("/viewStudent/:id", async (req, res) => {
       include: [
         { model: Course, attributes: ["id", "name"], as: "courseData" },
         {
-          model: StudentEnrollment,
+          model: StudentGradeReceiving,
           attributes: [
             "id",
             "academic_year_id",
@@ -1742,8 +1901,8 @@ router.get("/viewStudent/:id", async (req, res) => {
             "section",
             "major",
             "course_id",
-            "date_enrolled",
-            "isEnrolled",
+            "date_received",
+            "isReceived",
           ],
           include: [
             {
@@ -1767,20 +1926,20 @@ router.get("/viewStudent/:id", async (req, res) => {
 
     const studentData = convertStudentDataForFrontend(student.toJSON());
 
-    // If a specific academicYearId is requested, set it as the active enrollment
-    if (academicYearId && studentData.StudentEnrollments) {
-      const selectedEnrollment = studentData.StudentEnrollments.find(
+    // If a specific academicYearId is requested, set it as the active grade receiving record
+    if (academicYearId && studentData.StudentGradeReceivings) {
+      const selectedRecord = studentData.StudentGradeReceivings.find(
         (e) => e.academic_year_id === parseInt(academicYearId),
       );
-      if (selectedEnrollment) {
-        studentData.selectedEnrollment = selectedEnrollment;
+      if (selectedRecord) {
+        studentData.selectedGradeReceiving = selectedRecord;
       }
     } else if (
-      studentData.StudentEnrollments &&
-      studentData.StudentEnrollments.length > 0
+      studentData.StudentGradeReceivings &&
+      studentData.StudentGradeReceivings.length > 0
     ) {
-      // Default to the latest enrollment
-      studentData.selectedEnrollment = studentData.StudentEnrollments[0];
+      // Default to the latest grade receiving record
+      studentData.selectedGradeReceiving = studentData.StudentGradeReceivings[0];
     }
 
     res.json(studentData);
@@ -1792,7 +1951,7 @@ router.get("/viewStudent/:id", async (req, res) => {
 router.put("/updateStudent/:id", async (req, res) => {
   try {
     const student = await Student.findByPk(req.params.id, {
-      include: [{ model: StudentEnrollment }],
+      include: [{ model: StudentGradeReceiving }],
     });
 
     if (!student) {
@@ -1823,7 +1982,7 @@ router.put("/updateStudent/:id", async (req, res) => {
       const existingStudent = await Student.findOne({
         where: {
           card_serial_number: card_serial_number,
-          id: { [Op.ne]: student.id }, // Exclude current student
+          id: { [Op.ne]: student.id },
         },
       });
 
@@ -1843,7 +2002,7 @@ router.put("/updateStudent/:id", async (req, res) => {
       const existingStudent = await Student.findOne({
         where: {
           student_number: student_number.toUpperCase(),
-          id: { [Op.ne]: student.id }, // Exclude current student
+          id: { [Op.ne]: student.id },
         },
       });
 
@@ -1855,11 +2014,12 @@ router.put("/updateStudent/:id", async (req, res) => {
       }
     }
 
-    const hasEnrollment =
-      student.StudentEnrollments && student.StudentEnrollments.length > 0;
+    const hasGradeReceiving =
+      student.StudentGradeReceivings &&
+      student.StudentGradeReceivings.length > 0;
 
-    // Case 1: No Enrollment - update everything in student table
-    if (!hasEnrollment) {
+    // Case 1: No grade receiving record - update everything in student table
+    if (!hasGradeReceiving) {
       await student.update({
         card_serial_number: card_serial_number ?? student.card_serial_number,
         first_name: first_name ?? student.first_name,
@@ -1873,9 +2033,9 @@ router.put("/updateStudent/:id", async (req, res) => {
       });
     }
 
-    // Case 2: Has Enrollment - split updates
+    // Case 2: Has grade receiving record - split updates
     else {
-      // Update student basic info (non-enrollment fields)
+      // Update student basic info (non-grade-receiving fields)
       await student.update({
         card_serial_number: card_serial_number ?? student.card_serial_number,
         first_name: first_name ?? student.first_name,
@@ -1884,19 +2044,19 @@ router.put("/updateStudent/:id", async (req, res) => {
         student_number: student_number ?? student.student_number,
       });
 
-      // Choose which enrollment to update
-      const { enrollment_id } = req.body;
+      // Choose which grade receiving record to update
+      const { grade_receiving_id } = req.body;
 
-      const enrollmentToUpdate = student.StudentEnrollments.find(
-        (e) => e.id === parseInt(enrollment_id),
+      const recordToUpdate = student.StudentGradeReceivings.find(
+        (e) => e.id === parseInt(grade_receiving_id),
       );
 
-      if (enrollmentToUpdate) {
-        await enrollmentToUpdate.update({
-          course_id: course_id ?? enrollmentToUpdate.course_id,
-          section: section ?? enrollmentToUpdate.section,
-          year_level: year_level ?? enrollmentToUpdate.year_level,
-          semester: semester ?? enrollmentToUpdate.semester,
+      if (recordToUpdate) {
+        await recordToUpdate.update({
+          course_id: course_id ?? recordToUpdate.course_id,
+          section: section ?? recordToUpdate.section,
+          year_level: year_level ?? recordToUpdate.year_level,
+          semester: semester ?? recordToUpdate.semester,
         });
       }
     }
@@ -1904,7 +2064,6 @@ router.put("/updateStudent/:id", async (req, res) => {
     res.json({ success: true, message: "Student updated successfully" });
   } catch (err) {
     console.error("Update error:", err);
-
     res.status(500).json({
       message: "Server error while updating student",
     });
@@ -1992,7 +2151,79 @@ router.get("/getImage/:id", async (req, res) => {
   }
 });
 
-router.get("/getLatestEnrollment/:studentId", async (req, res) => {
+// router.get("/getLatestEnrollment/:studentId", async (req, res) => {
+//   try {
+//     const { studentId } = req.params;
+
+//     const student = await Student.findByPk(studentId, {
+//       attributes: ["id", "course_id", "semester", "year_level", "section"],
+//       include: [
+//         {
+//           model: Course,
+//           attributes: ["id", "name"],
+//           as: "courseData",
+//         },
+//       ],
+//     });
+
+//     const enrollment = await StudentEnrollment.findOne({
+//       where: { student_id: studentId },
+//       order: [["createdAt", "DESC"]],
+//       include: [
+//         {
+//           model: Course,
+//           attributes: ["id", "name"],
+//         },
+//       ],
+//     });
+
+//     if (!enrollment && !student) {
+//       return res.json({
+//         success: false,
+//         message: "Student not found",
+//         enrollment: null,
+//       });
+//     }
+
+//     // Get the course from enrollment or student
+//     let courseId = enrollment?.course_id || student?.course_id;
+//     let courseName = enrollment?.Course?.name || student?.courseData?.name;
+
+//     // Map old inactive courses to new active short-form courses
+//     const courseMapping = {
+//       "BACHELOR OF SCIENCE IN BUSINESS ADMINISTRATION": "BSBA-FM",
+//       "BACHELOR OF SECONDARY EDUCATION": "BSED-MATHEMATICS",
+//     };
+
+//     if (courseName && courseMapping[courseName]) {
+//       const newCourseName = courseMapping[courseName];
+//       const newCourse = await Course.findOne({
+//         where: { name: newCourseName },
+//       });
+//       if (newCourse) {
+//         courseId = newCourse.id;
+//       }
+//     }
+
+//     res.json({
+//       success: true,
+//       enrollment: {
+//         semester: enrollment?.semester || student?.semester || "",
+//         year_level: enrollment?.year_level || student?.year_level || "",
+//         section: enrollment?.section || student?.section || "",
+//         course_id: courseId || null,
+//         major: enrollment?.major || null,
+//       },
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       error: err.message,
+//     });
+//   }
+// });
+
+router.get("/getLatestGradeReceiving/:studentId", async (req, res) => {
   try {
     const { studentId } = req.params;
 
@@ -2007,7 +2238,7 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
       ],
     });
 
-    const enrollment = await StudentEnrollment.findOne({
+    const gradeReceiving = await StudentGradeReceiving.findOne({
       where: { student_id: studentId },
       order: [["createdAt", "DESC"]],
       include: [
@@ -2018,17 +2249,18 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
       ],
     });
 
-    if (!enrollment && !student) {
+    if (!gradeReceiving && !student) {
       return res.json({
         success: false,
         message: "Student not found",
-        enrollment: null,
+        gradeReceiving: null,
       });
     }
 
-    // Get the course from enrollment or student
-    let courseId = enrollment?.course_id || student?.course_id;
-    let courseName = enrollment?.Course?.name || student?.courseData?.name;
+    // Get the course from grade receiving record or student
+    let courseId = gradeReceiving?.course_id || student?.course_id;
+    let courseName =
+      gradeReceiving?.Course?.name || student?.courseData?.name;
 
     // Map old inactive courses to new active short-form courses
     const courseMapping = {
@@ -2048,12 +2280,12 @@ router.get("/getLatestEnrollment/:studentId", async (req, res) => {
 
     res.json({
       success: true,
-      enrollment: {
-        semester: enrollment?.semester || student?.semester || "",
-        year_level: enrollment?.year_level || student?.year_level || "",
-        section: enrollment?.section || student?.section || "",
+      gradeReceiving: {
+        semester: gradeReceiving?.semester || student?.semester || "",
+        year_level: gradeReceiving?.year_level || student?.year_level || "",
+        section: gradeReceiving?.section || student?.section || "",
         course_id: courseId || null,
-        major: enrollment?.major || null,
+        major: gradeReceiving?.major || null,
       },
     });
   } catch (err) {
@@ -2115,7 +2347,6 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
 
     const courseIdArray = [courseId];
 
-    const newCourseNames = Object.keys(courseMapping);
     for (const [oldCourseName, newCourses] of Object.entries(courseMapping)) {
       if (newCourses.includes(courseRecord.name)) {
         const oldCourse = await Course.findOne({
@@ -2139,8 +2370,8 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
       raw: true,
     });
 
-    // Get Sections from Student Enrollment Table
-    const enrollmentSections = await StudentEnrollment.findAll({
+    // Get Sections from StudentGradeReceiving Table
+    const gradeReceivingSections = await StudentGradeReceiving.findAll({
       where: {
         course_id: { [Op.in]: courseIdArray },
         year_level: year_level,
@@ -2154,7 +2385,7 @@ router.get("/getSectionsByCourseAndYear", async (req, res) => {
     // Combine All Sections + Remove Duplicates
     const sections = [
       ...studentSections.map((s) => s.section),
-      ...enrollmentSections.map((s) => s.section),
+      ...gradeReceivingSections.map((s) => s.section),
     ];
 
     const uniqueSections = [...new Set(sections)].filter(Boolean).sort();
