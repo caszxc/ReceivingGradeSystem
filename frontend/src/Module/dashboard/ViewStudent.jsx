@@ -340,7 +340,7 @@ function ViewStudent() {
 
   if (loading) {
     return (
-      <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
+      <div className="p-6 bg-violet-200 h-screen flex items-center justify-center">
         <p className="text-gray-600 text-lg">Loading student data...</p>
       </div>
     );
@@ -385,7 +385,7 @@ function ViewStudent() {
 
   if (!student) {
     return (
-      <div className="p-6 bg-blue-200 h-screen flex items-center justify-center">
+      <div className="p-6 bg-violet-200 h-screen flex items-center justify-center">
         <p className="text-red-600 text-lg">Student not found.</p>
       </div>
     );
@@ -418,7 +418,7 @@ function ViewStudent() {
   };
 
   return (
-    <div className="p-6 bg-blue-200 overflow-auto h-screen">
+    <div className="p-6 bg-violet-200 overflow-auto h-screen">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-[2rem]">View Student Profile</h1>
         <button

@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "com.enrollment",
-    "productName": "Enrollment System",
+    "productName": "Grade Report Receiving System",
     "files": [
       "electron/**/*",
       "backend/**/*",

@@ -156,7 +156,7 @@ async function renderPdf({
   withSignature,
   output = "save",
 }) {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "legal" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   // Keep a comfortable margin for header/footer text,
